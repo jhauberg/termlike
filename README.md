@@ -4,7 +4,7 @@
 
 A low-profile library for building high-performance and cross-platform games in the aesthetic of traditional text-based games, but with the benefits of modern graphics.
 
-The name *Termlike* is in reference to the *Roguelike* genre of games, which historically have been based on text-based terminals.
+The name *Termlike* is in reference to the [*Roguelike*](https://en.wikipedia.org/wiki/Roguelike) genre of games, which historically has roots in text-based terminals.
 
 Termlike is written entirely in **C99** and requires **OpenGL 3.3 (Core Profile)**.
 

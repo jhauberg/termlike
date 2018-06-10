@@ -8,7 +8,11 @@ main(void)
 {
     term_open(term_settings("Termlike"));
     
-    while (!term_should_close()) {
+    while (!term_is_closing()) {
+        if (term_key_down(TERM_KEY_ESCAPE)) {
+            term_set_closing(true);
+        }
+        
         term_render();
     }
     

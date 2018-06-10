@@ -1,13 +1,20 @@
 #include <termlike/termlike.h> // term_*
+#include <termlike/input.h> // term_key
 
 #include <stdlib.h> // NULL
 #include <stdbool.h> // bool
 
+#include "state.h" // key_state
 #include "window.h" // window_size, window_params, window_*
+
+struct term_context {
+    struct window_context * window;
+    struct key_state input;
+};
 
 static void term_get_window_size(enum term_size, struct window_size *);
 
-static struct window_context * window = NULL;
+static struct term_context terminal;
 
 struct term_settings
 term_settings(char const * const title)
@@ -40,13 +47,13 @@ term_open(struct term_settings const settings)
         .height = native.height * params.pixel_size
     };
     
-    if (window != NULL) {
-        window_terminate(window);
+    if (terminal.window != NULL) {
+        window_terminate(terminal.window);
     }
     
-    window = window_create(params);
+    terminal.window = window_create(params);
     
-    if (!window) {
+    if (!terminal.window) {
         return false;
     }
     
@@ -56,21 +63,50 @@ term_open(struct term_settings const settings)
 bool
 term_close(void)
 {
-    window_terminate(window);
+    window_terminate(terminal.window);
     
     return true;
 }
 
 bool
-term_should_close(void)
+term_is_closing(void)
 {
-    return window == NULL || window_is_closed(window);
+    return terminal.window == NULL || window_is_closed(terminal.window);
+}
+
+void
+term_set_closing(bool const close)
+{
+    window_set_closed(terminal.window, close);
 }
 
 void
 term_render(void)
 {
-    window_present(window);
+    window_read(terminal.window, &terminal.input);
+    // todo: timing
+    // todo: drawing
+    // todo: all of the above should be handled here-
+    //       client should provide callbacks for ticks, render etc.
+    window_present(terminal.window);
+}
+
+bool
+term_key_down(enum term_key const key)
+{
+    return terminal.input.down[key];
+}
+
+bool
+term_key_pressed(enum term_key const key)
+{
+    return terminal.input.pressed[key];
+}
+
+bool
+term_key_released(enum term_key const key)
+{
+    return terminal.input.released[key];
 }
 
 static

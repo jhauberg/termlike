@@ -1,3 +1,6 @@
+#include <termlike/input.h> // TERM_KEY_*
+
+#include "state.h" // key_state
 #include "window.h" // window_*
 
 #include <stdio.h> // fprintf
@@ -136,6 +139,12 @@ window_terminate(struct window_context * const context)
     free(context);
 }
 
+void
+window_set_closed(struct window_context * const context, bool const closed)
+{
+    glfwSetWindowShouldClose(context->window, closed);
+}
+
 bool
 window_is_closed(struct window_context * const context)
 {
@@ -177,17 +186,78 @@ window_present(struct window_context const * const context)
     glfwPollEvents();
 }
 
+void
+window_read(struct window_context * const context,
+            struct key_state * const state)
+{
+    bool down_previously[TERM_KEY_MAX];
+    
+    for (int32_t input = TERM_KEY_FIRST; input < TERM_KEY_MAX; input++) {
+        down_previously[input] = state->down[input];
+    }
+    
+    GLFWwindow * const window = context->window;
+
+    bool const is_modified =
+        glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_RIGHT_ALT) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_LEFT_SUPER) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_RIGHT_SUPER) == GLFW_PRESS;
+    
+    state->down[TERM_KEY_UP] =
+        glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
+    
+    state->down[TERM_KEY_DOWN] =
+        glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
+    
+    state->down[TERM_KEY_LEFT] =
+        glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
+    
+    state->down[TERM_KEY_RIGHT] =
+        glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
+    
+    state->down[TERM_KEY_CONFIRM] =
+        (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS ||
+         glfwGetKey(window, GLFW_KEY_KP_ENTER) == GLFW_PRESS) && !is_modified;
+    
+    state->down[TERM_KEY_ESCAPE] =
+        glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && !is_modified;
+    
+    state->down[TERM_KEY_SPACE] =
+        glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !is_modified;
+    
+    state->down[TERM_KEY_ANY] = false;
+    
+    for (int32_t input = TERM_KEY_FIRST; input < TERM_KEY_MAX; input++) {
+        if (state->down[input]) {
+            state->down[TERM_KEY_ANY] = true;
+        }
+        
+        state->released[input] = down_previously[input] && !state->down[input];
+        state->pressed[input] = !down_previously[input] && state->down[input];
+    }
+}
+
 static
 void
 window_make_windowed(GLFWwindow * const window,
                      struct window_position const position,
                      struct window_size const size)
 {
-    glfwSetWindowMonitor(window,
-                         NULL,
+    int32_t const refresh_rate = GLFW_DONT_CARE;
+    
+    glfwSetWindowMonitor(window, NULL,
                          position.x, position.y,
                          size.width, size.height,
-                         0);
+                         refresh_rate);
 }
 
 static
@@ -200,13 +270,12 @@ window_make_fullscreen(GLFWwindow * const window,
     if (monitor) {
         GLFWvidmode const * const mode = glfwGetVideoMode(monitor);
         
-        glfwGetWindowPos(window,
-                         &previous->x,
-                         &previous->y);
+        struct window_position const default_position = { 0, 0 };
         
-        glfwSetWindowMonitor(window,
-                             monitor,
-                             0, 0,
+        glfwGetWindowPos(window, &previous->x, &previous->y);
+        glfwSetWindowMonitor(window, monitor,
+                             default_position.x,
+                             default_position.y,
                              mode->width, mode->height,
                              mode->refreshRate);
     }

@@ -37,7 +37,7 @@ term_open(struct term_settings const settings)
     
     struct window_params params;
     
-    params.title = settings.title;
+    params.title = settings.title != NULL ? settings.title : "";
     params.pixel_size = settings.pixel_size > 0 ? settings.pixel_size : 1;
     params.swap_interval = settings.vsync ? 1 : 0;
     params.fullscreen = settings.fullscreen;
@@ -53,7 +53,7 @@ term_open(struct term_settings const settings)
     
     terminal.window = window_create(params);
     
-    if (!terminal.window) {
+    if (terminal.window == NULL) {
         return false;
     }
     

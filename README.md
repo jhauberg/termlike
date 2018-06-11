@@ -8,6 +8,40 @@ The name *Termlike* is in reference to the [*Roguelike*](https://en.wikipedia.or
 
 Termlike is written entirely in **C99** and requires **OpenGL 3.3 (Core Profile)**.
 
+## Usage
+
+Termlike is intended as a static library (`libterm.a`) that you link into your program.
+
+Here's the smallest program that just runs a terminal window until user presses <kbd>Esc</kbd>:
+
+```
+#include <termlike/termlike.h>
+
+int
+main(void)
+{
+    term_open(term_defaults("Termlike"));
+
+    while (!term_is_closing()) {
+        if (term_key_down(TERM_KEY_ESCAPE)) {
+            term_set_closing(true);
+        }
+        
+        term_render();
+    }
+    
+    term_close();
+    
+    return 0;
+}
+```
+
+Take a look in [example](/example) for more usage samples.
+
+## Build
+
+This project is in a very early stage of development. For the time being, build instructions are not included.
+
 ## Dependencies
 
 A few dependencies are required to keep the scope of the project down. Most of these are small and already included as part of the repository (see [external](/external)).
@@ -19,14 +53,6 @@ A few dependencies are required to keep the scope of the project down. Most of t
 **Included:**
 
 - [`gl3w`](https://github.com/skaslev/gl3w) for **OpenGL Core Profile** header loading
-
-## Usage
-
-Termlike is intended as a static library (`libterm.a`) that you link into your program.
-
-## Build
-
-This project is in very early stages of development. For the time being, build instructions are not included.
 
 ## License
 

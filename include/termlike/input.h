@@ -11,6 +11,8 @@ enum term_key {
     TERM_KEY_CONFIRM,
     TERM_KEY_ESCAPE,
     TERM_KEY_SPACE,
+    TERM_KEY_MOUSE_LEFT,
+    TERM_KEY_MOUSE_RIGHT,
     TERM_KEY_ANY
 };
 

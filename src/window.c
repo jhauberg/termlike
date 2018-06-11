@@ -210,7 +210,13 @@ window_read(struct window_context * const context,
     state->down[TERM_KEY_SPACE] =
         glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !is_modified;
     
-    state->down[TERM_KEY_ANY] = false;
+    keys->down[TERM_KEY_MOUSE_LEFT] =
+        glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS;
+    
+    keys->down[TERM_KEY_MOUSE_RIGHT] =
+        glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS;
+    
+    keys->down[TERM_KEY_ANY] = false;
     
     for (int32_t input = TERM_KEY_FIRST; input < TERM_KEY_MAX; input++) {
         if (state->down[input]) {

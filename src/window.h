@@ -29,6 +29,7 @@ void window_terminate(struct window_context *);
 
 void window_set_closed(struct window_context *, bool closed);
 bool window_is_closed(struct window_context *);
+
 bool window_is_fullscreen(struct window_context const *);
 void window_set_fullscreen(struct window_context *, bool fullscreen);
 

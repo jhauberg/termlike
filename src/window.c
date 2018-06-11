@@ -34,12 +34,17 @@ struct window_context {
     GLFWwindow * window;
     /** Actual display size; e.g. operating resolution ⨉ pixel size */
     struct window_size display;
-    /** Preferred window positioning; only used if initially fullscreen */
-    struct window_position preferred_position;
+    /** Position saved for restoring window location */
+    struct window_position stored_position;
 };
 
 static void window_callback_error(int32_t error, char const * description);
 static void window_callback_size(GLFWwindow *, int32_t width, int32_t height);
+
+static GLFWwindow * window_open(char const * title,
+                                struct window_size display,
+                                bool fullscreen,
+                                struct window_position *);
 
 static void window_make_windowed(GLFWwindow *,
                                  struct window_position,
@@ -67,49 +72,20 @@ window_create(struct window_params const params)
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
     
-    GLFWwindow * window = NULL;
+    glfwSwapInterval(params.swap_interval);
     
-    struct window_size display = params.display;
-    struct window_position position = { 0, 0 };
+    struct window_position position;
     
-    if (params.fullscreen) {
-        GLFWmonitor * const monitor = glfwGetPrimaryMonitor();
-        
-        if (monitor) {
-            GLFWvidmode const * const mode = glfwGetVideoMode(monitor);
-            
-            struct window_size const monitor_display = (struct window_size) {
-                .width = mode->width,
-                .height = mode->height
-            };
-
-            window = glfwCreateWindow(monitor_display.width,
-                                      monitor_display.height,
-                                      params.title,
-                                      glfwGetPrimaryMonitor(),
-                                      NULL);
-            
-            // prefer centered window if initially fullscreen;
-            // otherwise let the OS determine window placement
-            position.x = (monitor_display.width / 2) - (display.width / 2);
-            position.y = (monitor_display.height / 2) - (display.height / 2);
-        }
-    } else {
-        window = glfwCreateWindow(display.width,
-                                  display.height,
-                                  params.title,
-                                  NULL,
-                                  NULL);
-    }
+    GLFWwindow * const window = window_open(params.title,
+                                            params.display,
+                                            params.fullscreen,
+                                            &position);
     
     if (window == NULL) {
-        return false;
+        return NULL;
     }
     
     glfwSetFramebufferSizeCallback(window, window_callback_size);
-    
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(params.swap_interval);
     
     // gl3w must be initialized *after* window creation
     if (gl3wInit()) {
@@ -122,8 +98,8 @@ window_create(struct window_params const params)
         malloc(sizeof(struct window_context));
     
     context->window = window;
-    context->display = display;
-    context->preferred_position = position;
+    context->display = params.display;
+    context->stored_position = position;
     
     return context;
 }
@@ -171,11 +147,11 @@ window_set_fullscreen(struct window_context * const context,
 {
     if (fullscreen) {
         window_make_windowed(context->window,
-                             context->preferred_position,
+                             context->stored_position,
                              context->display);
     } else {
         window_make_fullscreen(context->window,
-                               &context->preferred_position);
+                               &context->stored_position);
     }
 }
 
@@ -244,6 +220,59 @@ window_read(struct window_context * const context,
         state->released[input] = down_previously[input] && !state->down[input];
         state->pressed[input] = !down_previously[input] && state->down[input];
     }
+}
+
+static
+GLFWwindow *
+window_open(char const * const title,
+            struct window_size const display,
+            bool const fullscreen,
+            struct window_position * const position)
+{
+    GLFWwindow * window = NULL;
+    
+    // position is used for restoring window location when switching between
+    // fullscreen and windowed; it is not used to initially place the window
+    position->x = 0;
+    position->y = 0;
+    
+    if (fullscreen) {
+        GLFWmonitor * const monitor = glfwGetPrimaryMonitor();
+        
+        if (monitor) {
+            GLFWvidmode const * const mode = glfwGetVideoMode(monitor);
+            
+            struct window_size const monitor_display = (struct window_size) {
+                .width = mode->width,
+                .height = mode->height
+            };
+            
+            // make windows appear as centered when switching from fullscreen
+            // as they would otherwise appear at (0, 0)- corner of the screen
+            position->x = (monitor_display.width / 2) - (display.width / 2);
+            position->y = (monitor_display.height / 2) - (display.height / 2);
+            
+            window = glfwCreateWindow(monitor_display.width,
+                                      monitor_display.height,
+                                      title,
+                                      glfwGetPrimaryMonitor(),
+                                      NULL);
+        }
+    } else {
+        window = glfwCreateWindow(display.width,
+                                  display.height,
+                                  title,
+                                  NULL,
+                                  NULL);
+    }
+    
+    if (window == NULL) {
+        return NULL;
+    }
+    
+    glfwMakeContextCurrent(window);
+    
+    return window;
 }
 
 static

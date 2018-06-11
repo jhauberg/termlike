@@ -8,13 +8,18 @@
 #include "state.h" // term_key_state
 #include "window.h" // window_size, window_params, window_*
 
+#include "graphics/graphics.h" // graphics_context, graphics_*
+#include "graphics/viewport.h" // viewport
+
 struct term_context {
     struct window_context * window;
+    struct graphics_context * graphics;
     struct term_key_state keys;
     struct term_cursor_state cursor;
 };
 
-static void term_get_window_size(enum term_size, struct window_size *);
+static void term_invalidate(void);
+static void term_get_display_size(enum term_size, struct window_size *);
 
 static struct term_context terminal;
 
@@ -27,7 +32,7 @@ term_open(struct term_settings const settings)
     
     struct window_size native = { 0, 0 };
     
-    term_get_window_size(settings.size, &native);
+    term_get_display_size(settings.size, &native);
     
     struct window_params params;
     
@@ -51,6 +56,18 @@ term_open(struct term_settings const settings)
     if (terminal.window == NULL) {
         return false;
     }
+
+    struct viewport viewport;
+    
+    viewport.offset.width = 0;
+    viewport.offset.height = 0;
+    
+    viewport.resolution.width = native.width;
+    viewport.resolution.height = native.height;
+    
+    terminal.graphics = graphics_init(viewport);
+    
+    term_invalidate();
     
     return true;
 }
@@ -58,6 +75,8 @@ term_open(struct term_settings const settings)
 bool
 term_close(void)
 {
+    graphics_release(terminal.graphics);
+    
     window_terminate(terminal.window);
     
     return true;
@@ -84,8 +103,17 @@ term_render(void)
 
     if (term_key_released(TERM_KEY_TOGGLE_FULLSCREEN)) {
         window_set_fullscreen(window, !window_is_fullscreen(window));
+     
+        // note that, generally, the graphics context should be invalidated
+        // whenever the window is resized in any way- however, since the window
+        // is currently limited to the initial size, resizing *only* happens
+        // when switching between fullscreen/windowed
+        term_invalidate();
     }
 
+    graphics_begin(terminal.graphics);
+    graphics_end(terminal.graphics);
+    
     window_present(window);
 }
 
@@ -118,7 +146,20 @@ term_cursor(void)
 
 static
 void
-term_get_window_size(enum term_size size, struct window_size * const display)
+term_invalidate(void)
+{
+    struct viewport viewport = graphics_get_viewport(terminal.graphics);
+    
+    window_get_framebuffer_size(terminal.window,
+                                &viewport.framebuffer.width,
+                                &viewport.framebuffer.height);
+    
+    graphics_invalidate(terminal.graphics, viewport);
+}
+
+static
+void
+term_get_display_size(enum term_size size, struct window_size * const display)
 {
     switch (size) {
         case TERM_SIZE_320: {

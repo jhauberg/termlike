@@ -15,7 +15,7 @@
 #endif
 
 // use gl3w to load opengl headers
-#include <gl3w/GL/gl3w.h> // *
+#include <gl3w/GL/gl3w.h> // gl3w*
 // which means GLFW should not do that
 #define GLFW_INCLUDE_NONE
 
@@ -40,10 +40,7 @@ struct window_context {
 };
 
 static void window_callback_error(int32_t error, char const * description);
-static void window_callback_size(GLFWwindow *, int32_t width, int32_t height);
-static void window_callback_scroll(GLFWwindow * window,
-                                   double x_offset,
-                                   double y_offset);
+static void window_callback_scroll(GLFWwindow * window, double x, double y);
 
 static GLFWwindow * window_open(char const * title,
                                 struct window_size display,
@@ -97,7 +94,6 @@ window_create(struct window_params const params)
         return NULL;
     }
     
-    glfwSetFramebufferSizeCallback(window, window_callback_size);
     glfwSetScrollCallback(window, window_callback_scroll);
     
     // setting swap interval requires an initialized window/OpenGL context
@@ -176,6 +172,17 @@ window_present(struct window_context const * const context)
 {
     glfwSwapBuffers(context->window);
     glfwPollEvents();
+}
+
+void
+window_get_framebuffer_size(struct window_context const * const context,
+                            int32_t * width,
+                            int32_t * height)
+{
+    // determine pixel size of the framebuffer for the window
+    // this size is not necesarilly equal to the size of the window, as some
+    // platforms may increase the pixel count (e.g. doubling on retina screens)
+    glfwGetFramebufferSize(context->window, width, height);
 }
 
 void
@@ -350,27 +357,13 @@ window_make_fullscreen(GLFWwindow * const window,
 static
 void
 window_callback_scroll(GLFWwindow * const window,
-                       double const x_offset,
-                       double const y_offset)
+                       double const x,
+                       double const y)
 {
     (void)window;
     
-    accumulated_cursor_scroll.x_offset += x_offset;
-    accumulated_cursor_scroll.y_offset += y_offset;
-}
-
-static
-void
-window_callback_size(GLFWwindow * const window,
-                     int32_t const width,
-                     int32_t const height)
-{
-    (void)window;
-    (void)width;
-    (void)height;
-    
-    // todo: handle resizing; this will only happen when transitioning
-    //       between windowed/fullscreen
+    accumulated_cursor_scroll.x_offset += x;
+    accumulated_cursor_scroll.y_offset += y;
 }
 
 static

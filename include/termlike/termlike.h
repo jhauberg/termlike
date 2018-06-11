@@ -1,6 +1,6 @@
 #pragma once
 
-#include <termlike/config.h> // term_settings
+#include <termlike/config.h> // term_settings :completeness
 #include <termlike/input.h> // term_key :completeness
 
 #include <stdbool.h> // bool

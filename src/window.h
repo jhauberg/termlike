@@ -35,6 +35,10 @@ bool window_is_closed(struct window_context *);
 bool window_is_fullscreen(struct window_context const *);
 void window_set_fullscreen(struct window_context *, bool fullscreen);
 
+void window_get_framebuffer_size(struct window_context const *,
+                                 int32_t * width,
+                                 int32_t * height);
+
 void window_present(struct window_context const *);
 void window_read(struct window_context *,
                  struct term_key_state *,

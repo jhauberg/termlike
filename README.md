@@ -14,7 +14,7 @@ Termlike is intended as a static library (`libterm.a`) that you link into your p
 
 Here's the smallest program that just runs a terminal window until user presses <kbd>Esc</kbd>:
 
-```
+```c
 #include <termlike/termlike.h>
 
 int
@@ -38,11 +38,11 @@ main(void)
 
 Take a look in [example](/example) for more usage samples.
 
-## Build
+## Building
 
 This project is in a very early stage of development. For the time being, build instructions are not included.
 
-## Dependencies
+### Dependencies
 
 A few dependencies are required to keep the scope of the project down. Most of these are small and already included as part of the repository (see [external](/external)).
 

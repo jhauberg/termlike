@@ -1,22 +1,23 @@
-#include <termlike/input.h> // TERM_KEY_*
+#include <termlike/input.h> // term_cursor_state, TERM_KEY_*
 
-#include "state.h" // key_state
+#include "state.h" // term_key_state
 #include "window.h" // window_*
 
 #include <stdio.h> // fprintf
 #include <stdlib.h> // malloc, free, NULL
 #include <stdint.h> // int32_t
 #include <stdbool.h> // bool
-
-// use gl3w to load opengl headers
-#include <gl3w/GL/gl3w.h> // *
-// which means GLFW should not do that
-#define GLFW_INCLUDE_NONE
+#include <math.h> // floor
 
 #if defined(__clang__)
  #pragma clang diagnostic push
  #pragma clang diagnostic ignored "-Wdocumentation"
 #endif
+
+// use gl3w to load opengl headers
+#include <gl3w/GL/gl3w.h> // *
+// which means GLFW should not do that
+#define GLFW_INCLUDE_NONE
 
 #include <GLFW/glfw3.h> // glfw*, GLFW*
 
@@ -40,6 +41,9 @@ struct window_context {
 
 static void window_callback_error(int32_t error, char const * description);
 static void window_callback_size(GLFWwindow *, int32_t width, int32_t height);
+static void window_callback_scroll(GLFWwindow * window,
+                                   double x_offset,
+                                   double y_offset);
 
 static GLFWwindow * window_open(char const * title,
                                 struct window_size display,
@@ -51,6 +55,16 @@ static void window_make_windowed(GLFWwindow *,
                                  struct window_size);
 static void window_make_fullscreen(GLFWwindow *,
                                    struct window_position * previous);
+
+struct cursor_scroll {
+    double x_offset;
+    double y_offset;
+};
+
+// statically maintain an accumulated set of cursor scroll offsets, assuming
+// there's only ever going to be one mouse input device, and that cursor input
+// is not tied to a single window context, but rather the system as a whole
+static struct cursor_scroll accumulated_cursor_scroll = { 0, 0 };
 
 struct window_context *
 window_create(struct window_params const params)
@@ -72,8 +86,6 @@ window_create(struct window_params const params)
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
     
-    glfwSwapInterval(params.swap_interval);
-    
     struct window_position position;
     
     GLFWwindow * const window = window_open(params.title,
@@ -86,8 +98,12 @@ window_create(struct window_params const params)
     }
     
     glfwSetFramebufferSizeCallback(window, window_callback_size);
+    glfwSetScrollCallback(window, window_callback_scroll);
     
-    // gl3w must be initialized *after* window creation
+    // setting swap interval requires an initialized window/OpenGL context
+    glfwSwapInterval(params.swap_interval);
+    
+    // initializing gl3w requires an OpenGL context
     if (gl3wInit()) {
         fprintf(stderr, "gl3w failed to initialize");
         
@@ -146,12 +162,12 @@ window_set_fullscreen(struct window_context * const context,
                       bool const fullscreen)
 {
     if (fullscreen) {
+        window_make_fullscreen(context->window,
+                               &context->stored_position);
+    } else {
         window_make_windowed(context->window,
                              context->stored_position,
                              context->display);
-    } else {
-        window_make_fullscreen(context->window,
-                               &context->stored_position);
     }
 }
 
@@ -164,12 +180,13 @@ window_present(struct window_context const * const context)
 
 void
 window_read(struct window_context * const context,
-            struct key_state * const state)
+            struct term_key_state * const keys,
+            struct term_cursor_state * const cursor)
 {
     bool down_previously[TERM_KEY_MAX];
     
     for (int32_t input = TERM_KEY_FIRST; input < TERM_KEY_MAX; input++) {
-        down_previously[input] = state->down[input];
+        down_previously[input] = keys->down[input];
     }
     
     GLFWwindow * const window = context->window;
@@ -184,48 +201,62 @@ window_read(struct window_context * const context,
         glfwGetKey(window, GLFW_KEY_LEFT_SUPER) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_RIGHT_SUPER) == GLFW_PRESS;
     
-    state->down[TERM_KEY_UP] =
+    keys->down[TERM_KEY_UP] =
         glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
     
-    state->down[TERM_KEY_DOWN] =
+    keys->down[TERM_KEY_DOWN] =
         glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
     
-    state->down[TERM_KEY_LEFT] =
+    keys->down[TERM_KEY_LEFT] =
         glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
     
-    state->down[TERM_KEY_RIGHT] =
+    keys->down[TERM_KEY_RIGHT] =
         glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
     
-    state->down[TERM_KEY_CONFIRM] =
+    keys->down[TERM_KEY_CONFIRM] =
         (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS ||
          glfwGetKey(window, GLFW_KEY_KP_ENTER) == GLFW_PRESS) && !is_modified;
     
-    state->down[TERM_KEY_ESCAPE] =
+    keys->down[TERM_KEY_ESCAPE] =
         glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && !is_modified;
     
-    state->down[TERM_KEY_SPACE] =
+    keys->down[TERM_KEY_SPACE] =
         glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !is_modified;
     
+    keys->down[TERM_KEY_TOGGLE_FULLSCREEN] =
+        glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS &&
+        glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
+    
     keys->down[TERM_KEY_MOUSE_LEFT] =
-        glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS;
+        glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
     
     keys->down[TERM_KEY_MOUSE_RIGHT] =
-        glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS;
+        glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
     
     keys->down[TERM_KEY_ANY] = false;
     
     for (int32_t input = TERM_KEY_FIRST; input < TERM_KEY_MAX; input++) {
-        if (state->down[input]) {
-            state->down[TERM_KEY_ANY] = true;
+        if (keys->down[input]) {
+            keys->down[TERM_KEY_ANY] = true;
         }
         
-        state->released[input] = down_previously[input] && !state->down[input];
-        state->pressed[input] = !down_previously[input] && state->down[input];
+        keys->released[input] = down_previously[input] && !keys->down[input];
+        keys->pressed[input] = !down_previously[input] && keys->down[input];
     }
+    
+    double cursor_x = 0;
+    double cursor_y = 0;
+    
+    glfwGetCursorPos(window, &cursor_x, &cursor_y);
+    
+    cursor->location.x = (int32_t)floor(cursor_x);
+    cursor->location.y = (int32_t)floor(cursor_y);
+    cursor->scroll.horizontal = accumulated_cursor_scroll.x_offset;
+    cursor->scroll.vertical = accumulated_cursor_scroll.y_offset;
 }
 
 static
@@ -261,7 +292,7 @@ window_open(char const * const title,
             window = glfwCreateWindow(monitor_display.width,
                                       monitor_display.height,
                                       title,
-                                      glfwGetPrimaryMonitor(),
+                                      monitor,
                                       NULL);
         }
     } else {
@@ -314,6 +345,18 @@ window_make_fullscreen(GLFWwindow * const window,
                              mode->width, mode->height,
                              mode->refreshRate);
     }
+}
+
+static
+void
+window_callback_scroll(GLFWwindow * const window,
+                       double const x_offset,
+                       double const y_offset)
+{
+    (void)window;
+    
+    accumulated_cursor_scroll.x_offset += x_offset;
+    accumulated_cursor_scroll.y_offset += y_offset;
 }
 
 static

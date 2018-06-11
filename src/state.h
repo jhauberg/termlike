@@ -4,7 +4,7 @@
 
 #include <stdbool.h> // bool
 
-struct key_state {
+struct term_key_state {
     bool down[TERM_KEY_MAX];
     bool pressed[TERM_KEY_MAX];
     bool released[TERM_KEY_MAX];

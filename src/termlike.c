@@ -1,37 +1,31 @@
 #include <termlike/termlike.h> // term_*
-#include <termlike/input.h> // term_key
+#include <termlike/config.h> // term_settings, term_size
+#include <termlike/input.h> // term_key, term_cursor_state
 
 #include <stdlib.h> // NULL
 #include <stdbool.h> // bool
 
-#include "state.h" // key_state
+#include "state.h" // term_key_state
 #include "window.h" // window_size, window_params, window_*
 
 struct term_context {
     struct window_context * window;
-    struct key_state input;
+    struct term_key_state keys;
+    struct term_cursor_state cursor;
 };
 
 static void term_get_window_size(enum term_size, struct window_size *);
 
 static struct term_context terminal;
 
-struct term_settings
-term_settings(char const * const title)
-{
-    return (struct term_settings) {
-        .title = title,
-        .size = TERM_SIZE_320,
-        .pixel_size = 1,
-        .fullscreen = false,
-        .vsync = true
-    };
-}
-
 bool
 term_open(struct term_settings const settings)
 {
-    struct window_size native;
+    if (terminal.window != NULL) {
+        window_terminate(terminal.window);
+    }
+    
+    struct window_size native = { 0, 0 };
     
     term_get_window_size(settings.size, &native);
     
@@ -47,8 +41,9 @@ term_open(struct term_settings const settings)
         .height = native.height * params.pixel_size
     };
     
-    if (terminal.window != NULL) {
-        window_terminate(terminal.window);
+    if (params.display.width == 0 ||
+        params.display.height == 0) {
+        return false;
     }
     
     terminal.window = window_create(params);
@@ -83,30 +78,42 @@ term_set_closing(bool const close)
 void
 term_render(void)
 {
-    window_read(terminal.window, &terminal.input);
-    // todo: timing
-    // todo: drawing
-    // todo: all of the above should be handled here-
-    //       client should provide callbacks for ticks, render etc.
-    window_present(terminal.window);
+    struct window_context * const window = terminal.window;
+    
+    window_read(window, &terminal.keys, &terminal.cursor);
+
+    if (term_key_released(TERM_KEY_TOGGLE_FULLSCREEN)) {
+        window_set_fullscreen(window, !window_is_fullscreen(window));
+    }
+
+    window_present(window);
 }
 
 bool
 term_key_down(enum term_key const key)
 {
-    return terminal.input.down[key];
+    return terminal.keys.down[key];
 }
 
 bool
 term_key_pressed(enum term_key const key)
 {
-    return terminal.input.pressed[key];
+    return terminal.keys.pressed[key];
 }
 
 bool
 term_key_released(enum term_key const key)
 {
-    return terminal.input.released[key];
+    return terminal.keys.released[key];
+}
+
+struct term_cursor_state
+term_cursor(void)
+{
+    return (struct term_cursor_state) {
+        .location = terminal.cursor.location,
+        .scroll = terminal.cursor.scroll
+    };
 }
 
 static

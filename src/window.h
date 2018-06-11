@@ -22,7 +22,9 @@ struct window_params {
 };
 
 struct window_context;
-struct key_state;
+
+struct term_key_state;
+struct term_cursor_state;
 
 struct window_context * window_create(struct window_params);
 void window_terminate(struct window_context *);
@@ -34,4 +36,6 @@ bool window_is_fullscreen(struct window_context const *);
 void window_set_fullscreen(struct window_context *, bool fullscreen);
 
 void window_present(struct window_context const *);
-void window_read(struct window_context *, struct key_state *);
+void window_read(struct window_context *,
+                 struct term_key_state *,
+                 struct term_cursor_state *);

@@ -1,8 +1,5 @@
 #include <termlike/input.h> // term_cursor_state, TERM_KEY_*
 
-#include "state.h" // term_key_state
-#include "window.h" // window_*
-
 #include <stdio.h> // fprintf
 #include <stdlib.h> // malloc, free, NULL
 #include <stdint.h> // int32_t
@@ -24,6 +21,9 @@
 #if defined(__clang__)
  #pragma clang diagnostic pop
 #endif
+
+#include "keys.h" // term_key_state
+#include "window.h" // window_*
 
 struct window_position {
     int32_t x;

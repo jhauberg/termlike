@@ -5,7 +5,7 @@
 #include <stdlib.h> // NULL
 #include <stdbool.h> // bool
 
-#include "state.h" // term_key_state
+#include "keys.h" // term_key_state
 #include "window.h" // window_size, window_params, window_*
 
 #include "graphics/graphics.h" // graphics_context, graphics_*

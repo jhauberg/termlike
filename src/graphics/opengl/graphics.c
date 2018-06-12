@@ -35,6 +35,8 @@ struct vertex {
 struct graphics_context {
     struct renderable_frame screen;
     struct viewport viewport;
+    struct graphics_font font;
+    GLuint font_texture_id;
 };
 
 static void graphics_process_errors(void);
@@ -46,6 +48,8 @@ static void graphics_setup_screen_shader(struct graphics_context *);
 static void graphics_setup_screen_texture(struct graphics_context *);
 static void graphics_setup_screen_buffer(struct graphics_context *);
 static void graphics_setup_screen_vbo(struct graphics_context *);
+
+static void graphics_create_texture(struct graphics_image, GLuint * texture_id);
 
 static GLuint graphics_compile_shader(GLenum type, GLchar const * source);
 static GLuint graphics_link_program(GLuint vs, GLuint fs);
@@ -116,6 +120,16 @@ graphics_end(struct graphics_context const * const context)
 }
 
 void
+graphics_set_font(struct graphics_context * const context,
+                  struct graphics_image const image,
+                  struct graphics_font const font)
+{
+    graphics_create_texture(image, &context->font_texture_id);
+    
+    context->font = font;
+}
+
+void
 graphics_invalidate(struct graphics_context * const context,
                     struct viewport const viewport)
 {
@@ -146,9 +160,10 @@ static
 void
 graphics_teardown(struct graphics_context * const context)
 {
+    glDeleteTextures(1, &context->font_texture_id);
+    glDeleteTextures(1, &context->screen.texture_id);
     glDeleteFramebuffers(1, &context->screen.framebuffer);
     glDeleteRenderbuffers(1, &context->screen.renderbuffer);
-    glDeleteTextures(1, &context->screen.texture_id);
     glDeleteProgram(context->screen.renderable.program);
     glDeleteVertexArrays(1, &context->screen.renderable.vao);
     glDeleteBuffers(1, &context->screen.renderable.vbo);
@@ -278,6 +293,43 @@ graphics_setup_screen_vbo(struct graphics_context * const context)
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
     glBindVertexArray(0);
+}
+
+static
+void
+graphics_create_texture(struct graphics_image const image,
+                        GLuint * const texture_id)
+{
+    GLenum format = 0;
+    
+    if (image.components == 3) {
+        format = GL_RGB;
+    } else if (image.components == 4) {
+        format = GL_RGBA;
+    }
+    
+    if (format == 0) {
+        return;
+    }
+    
+    GLint const format_internal = (GLint)format;
+    
+    glGenTextures(1, texture_id);
+    glBindTexture(GL_TEXTURE_2D, *texture_id); {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        
+        glTexImage2D(GL_TEXTURE_2D,
+                     0, format_internal,
+                     image.width, image.height,
+                     0, format,
+                     GL_UNSIGNED_BYTE,
+                     image.data);
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 static

@@ -10,6 +10,9 @@
 
 #include "graphics/graphics.h" // graphics_context, graphics_*
 #include "graphics/viewport.h" // viewport
+#include "graphics/loader.h" // load_image_data
+
+#include "resources/spritefont.8x8.h" // IBM8x8*
 
 struct term_context {
     struct window_context * window;
@@ -18,6 +21,7 @@ struct term_context {
     struct term_cursor_state cursor;
 };
 
+static bool term_setup(struct window_size);
 static void term_invalidate(void);
 
 static void term_toggle_fullscreen(void);
@@ -26,6 +30,8 @@ static void term_get_display_size(enum term_size, struct window_size *);
 static void term_get_display_params(struct term_settings,
                                     struct window_size,
                                     struct window_params *);
+
+static void term_callback_font_loaded(struct graphics_image);
 
 static struct term_context terminal;
 
@@ -53,17 +59,9 @@ term_open(struct term_settings const settings)
         return false;
     }
 
-    struct viewport viewport;
-    
-    viewport.offset.width = 0;
-    viewport.offset.height = 0;
-    
-    viewport.resolution.width = display.width;
-    viewport.resolution.height = display.height;
-    
-    terminal.graphics = graphics_init(viewport);
-    
-    term_invalidate();
+    if (!term_setup(display)) {
+        return false;
+    }
     
     return true;
 }
@@ -131,6 +129,44 @@ term_cursor(void)
         .location = terminal.cursor.location,
         .scroll = terminal.cursor.scroll
     };
+}
+
+static
+bool
+term_setup(struct window_size const display)
+{
+    struct viewport viewport;
+    
+    viewport.offset.width = 0;
+    viewport.offset.height = 0;
+    
+    viewport.resolution.width = display.width;
+    viewport.resolution.height = display.height;
+    
+    terminal.graphics = graphics_init(viewport);
+    
+    if (terminal.graphics == NULL) {
+        return false;
+    }
+    
+    load_image_data(IBM8x8_FONT, IBM8x8_LENGTH, term_callback_font_loaded);
+    
+    term_invalidate();
+    
+    return true;
+}
+
+static
+void
+term_callback_font_loaded(struct graphics_image const image)
+{
+    struct graphics_font font;
+    
+    font.columns = IBM8x8_COLUMNS;
+    font.rows = IBM8x8_ROWS;
+    font.codepage = IBM8x8_CODEPAGE;
+    
+    graphics_set_font(terminal.graphics, image, font);
 }
 
 static

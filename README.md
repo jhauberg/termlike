@@ -48,11 +48,12 @@ A few dependencies are required to keep the scope of the project down. Most of t
 
 **Requires installation:**
 
-- [`GLFW3`](https://github.com/glfw/glfw) handles **cross-platform window creation**
+* [`GLFW3`](https://github.com/glfw/glfw) handles **cross-platform window creation**
 
 **Included:**
 
-- [`gl3w`](https://github.com/skaslev/gl3w) for **OpenGL Core Profile** header loading
+* [`gl3w`](https://github.com/skaslev/gl3w) for **OpenGL Core Profile** header loading
+* [`stb_image`](https://github.com/nothings/stb) provides **image loading** capabilities (png)
 
 ## License
 

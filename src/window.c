@@ -68,7 +68,7 @@ window_create(struct window_params const params)
 {
     glfwSetErrorCallback(window_callback_error);
     
-    if (!glfwInit()) {
+    if (glfwInit() != GLFW_TRUE) {
         fprintf(stderr, "GLFW (%s) failed to initialize",
                 glfwGetVersionString());
         
@@ -91,17 +91,20 @@ window_create(struct window_params const params)
                                             &position);
     
     if (window == NULL) {
+        window_terminate(NULL);
+        
         return NULL;
     }
     
     glfwSetScrollCallback(window, window_callback_scroll);
-    
     // setting swap interval requires an initialized window/OpenGL context
     glfwSwapInterval(params.swap_interval);
     
-    // initializing gl3w requires an OpenGL context
-    if (gl3wInit()) {
+    if (gl3wInit() != GL3W_OK) {
+        // initializing gl3w requires an OpenGL context
         fprintf(stderr, "gl3w failed to initialize");
+        
+        window_terminate(NULL);
         
         return NULL;
     }
@@ -119,12 +122,17 @@ window_create(struct window_params const params)
 void
 window_terminate(struct window_context * const context)
 {
-    glfwSetFramebufferSizeCallback(context->window, NULL);
     glfwSetErrorCallback(NULL);
+    
+    if (context != NULL) {
+        glfwSetScrollCallback(context->window, NULL);
+    }
     
     glfwTerminate();
     
-    free(context);
+    if (context != NULL) {
+        free(context);
+    }
 }
 
 void
@@ -284,20 +292,15 @@ window_open(char const * const title,
         GLFWmonitor * const monitor = glfwGetPrimaryMonitor();
         
         if (monitor) {
-            GLFWvidmode const * const mode = glfwGetVideoMode(monitor);
-            
-            struct window_size const monitor_display = (struct window_size) {
-                .width = mode->width,
-                .height = mode->height
-            };
+            GLFWvidmode const * const display_mode = glfwGetVideoMode(monitor);
             
             // make windows appear as centered when switching from fullscreen
             // as they would otherwise appear at (0, 0)- corner of the screen
-            position->x = (monitor_display.width / 2) - (display.width / 2);
-            position->y = (monitor_display.height / 2) - (display.height / 2);
+            position->x = (display_mode->width / 2) - (display.width / 2);
+            position->y = (display_mode->height / 2) - (display.height / 2);
             
-            window = glfwCreateWindow(monitor_display.width,
-                                      monitor_display.height,
+            window = glfwCreateWindow(display_mode->width,
+                                      display_mode->height,
                                       title,
                                       monitor,
                                       NULL);
@@ -310,11 +313,9 @@ window_open(char const * const title,
                                   NULL);
     }
     
-    if (window == NULL) {
-        return NULL;
+    if (window != NULL) {
+        glfwMakeContextCurrent(window);
     }
-    
-    glfwMakeContextCurrent(window);
     
     return window;
 }

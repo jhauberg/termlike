@@ -42,6 +42,11 @@ static void graphics_process_errors(void);
 static void graphics_setup(struct graphics_context *);
 static void graphics_teardown(struct graphics_context *);
 
+static void graphics_setup_screen_shader(struct graphics_context *);
+static void graphics_setup_screen_texture(struct graphics_context *);
+static void graphics_setup_screen_buffer(struct graphics_context *);
+static void graphics_setup_screen_vbo(struct graphics_context *);
+
 static GLuint graphics_compile_shader(GLenum type, GLchar const * source);
 static GLuint graphics_link_program(GLuint vs, GLuint fs);
 
@@ -124,6 +129,158 @@ graphics_get_viewport(struct graphics_context const * const context)
 }
 
 static
+void
+graphics_setup(struct graphics_context * const context)
+{
+    glClearColor(0, 0, 0, 1);
+    // clear depth should be set once and not changed afterwards
+    glClearDepth(1.0);
+    
+    graphics_setup_screen_shader(context);
+    graphics_setup_screen_texture(context);
+    graphics_setup_screen_buffer(context);
+    graphics_setup_screen_vbo(context);
+}
+
+static
+void
+graphics_teardown(struct graphics_context * const context)
+{
+    glDeleteFramebuffers(1, &context->screen.framebuffer);
+    glDeleteRenderbuffers(1, &context->screen.renderbuffer);
+    glDeleteTextures(1, &context->screen.texture_id);
+    glDeleteProgram(context->screen.renderable.program);
+    glDeleteVertexArrays(1, &context->screen.renderable.vao);
+    glDeleteBuffers(1, &context->screen.renderable.vbo);
+}
+
+static
+void
+graphics_setup_screen_shader(struct graphics_context * const context)
+{
+    char const * const vertex_shader =
+    "#version 330 core\n"
+    "layout (location = 0) in vec3 vertex_position;\n"
+    "layout (location = 1) in vec2 vertex_texture_coord;\n"
+    "out vec2 texture_coord;\n"
+    "void main() {\n"
+    "    gl_Position = vec4(vertex_position, 1);\n"
+    "    texture_coord = vertex_texture_coord.st;\n"
+    "}\n";
+    
+    char const * const fragment_shader =
+    "#version 330 core\n"
+    "in vec2 texture_coord;\n"
+    "uniform sampler2D sampler;\n"
+    "layout (location = 0) out vec4 fragment_color;\n"
+    "void main() {\n"
+    "    vec4 sampled_color = texture(sampler, texture_coord.st);\n"
+    "    fragment_color = sampled_color;\n"
+    "}\n";
+    
+    GLuint const vs = graphics_compile_shader(GL_VERTEX_SHADER,
+                                              vertex_shader);
+    GLuint const fs = graphics_compile_shader(GL_FRAGMENT_SHADER,
+                                              fragment_shader);
+    
+    context->screen.renderable.program = graphics_link_program(vs, fs);
+    
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+}
+
+static
+void
+graphics_setup_screen_texture(struct graphics_context * const context)
+{
+    glGenTextures(1, &context->screen.texture_id);
+    glBindTexture(GL_TEXTURE_2D, context->screen.texture_id); {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+                     context->viewport.resolution.width,
+                     context->viewport.resolution.height,
+                     0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+static
+void
+graphics_setup_screen_buffer(struct graphics_context * const context)
+{
+    glGenFramebuffers(1, &context->screen.framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, context->screen.framebuffer); {
+        glGenRenderbuffers(1, &context->screen.renderbuffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, context->screen.renderbuffer); {
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
+                                  context->viewport.resolution.width,
+                                  context->viewport.resolution.height);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+                                      GL_DEPTH_ATTACHMENT,
+                                      GL_RENDERBUFFER,
+                                      context->screen.renderbuffer);
+            glFramebufferTexture(GL_FRAMEBUFFER,
+                                 GL_COLOR_ATTACHMENT0,
+                                 context->screen.texture_id,
+                                 0);
+        }
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        
+        GLenum const draw_buffers[1] = {
+            GL_COLOR_ATTACHMENT0
+        };
+        
+        glDrawBuffers(1, draw_buffers);
+        
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) !=
+            GL_FRAMEBUFFER_COMPLETE) {
+            fprintf(stderr, "OpenGL: screen framebuffer is invalid");
+        }
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+static
+void
+graphics_setup_screen_vbo(struct graphics_context * const context)
+{
+    static struct vertex const vertices[4] = {
+        { .position = { -1, -1, 0 }, .texture_coord = { 0, 0 } },
+        { .position = { -1,  1, 0 }, .texture_coord = { 0, 1 } },
+        { .position = {  1, -1, 0 }, .texture_coord = { 1, 0 } },
+        { .position = {  1,  1, 0 }, .texture_coord = { 1, 1 } },
+    };
+    
+    glGenBuffers(1, &context->screen.renderable.vbo);
+    glGenVertexArrays(1, &context->screen.renderable.vao);
+    
+    glBindVertexArray(context->screen.renderable.vao); {
+        glBindBuffer(GL_ARRAY_BUFFER, context->screen.renderable.vbo); {
+            glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
+                         GL_STATIC_DRAW);
+            
+            glVertexAttribPointer(0 /* position location */,
+                                  3 /* components per vertex */,
+                                  GL_FLOAT, GL_FALSE /* not normalized */,
+                                  sizeof(struct vertex),
+                                  0);
+            glEnableVertexAttribArray(0);
+            
+            glVertexAttribPointer(1 /* texture coord location */,
+                                  2 /* components per vertex */,
+                                  GL_FLOAT, GL_FALSE,
+                                  sizeof(struct vertex),
+                                  (GLvoid *)(sizeof(struct vector3)));
+            glEnableVertexAttribArray(1);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+    glBindVertexArray(0);
+}
+
+static
 GLuint
 graphics_compile_shader(GLenum const type,
                         GLchar const * const source)
@@ -177,143 +334,6 @@ graphics_link_program(GLuint const vs,
     }
     
     return program;
-}
-
-static
-void
-graphics_setup(struct graphics_context * const context)
-{
-    char const * const vertex_shader =
-    "#version 330 core\n"
-    "layout (location = 0) in vec3 vertex_position;\n"
-    "layout (location = 1) in vec2 vertex_texture_coord;\n"
-    "out vec2 texture_coord;\n"
-    "void main() {\n"
-    "    gl_Position = vec4(vertex_position, 1);\n"
-    "    texture_coord = vertex_texture_coord.st;\n"
-    "}\n";
-    
-    char const * const fragment_shader =
-    "#version 330 core\n"
-    "in vec2 texture_coord;\n"
-    "uniform sampler2D sampler;\n"
-    "layout (location = 0) out vec4 fragment_color;\n"
-    "void main() {\n"
-    "    vec4 sampled_color = texture(sampler, texture_coord.st);\n"
-    "    fragment_color = sampled_color;\n"
-    "}\n";
-    
-    GLuint const vs = graphics_compile_shader(GL_VERTEX_SHADER,
-                                              vertex_shader);
-    GLuint const fs = graphics_compile_shader(GL_FRAGMENT_SHADER,
-                                              fragment_shader);
-    
-    if (!vs && !fs) {
-        return;
-    }
-    
-    context->screen.renderable.program = graphics_link_program(vs, fs);
-    
-    glDeleteShader(vs);
-    glDeleteShader(fs);
-    
-    if (!context->screen.renderable.program) {
-        return;
-    }
-    
-    struct viewport const viewport = context->viewport;
-    
-    glClearColor(0, 0, 0, 1);
-    // clear depth should be set once and not changed afterwards
-    glClearDepth(1.0);
-    
-    int32_t const w = viewport.resolution.width;
-    int32_t const h = viewport.resolution.height;
-    
-    glGenFramebuffers(1, &context->screen.framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, context->screen.framebuffer); {
-        glGenTextures(1, &context->screen.texture_id);
-        glBindTexture(GL_TEXTURE_2D, context->screen.texture_id); {
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-                         w, h,
-                         0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-        }
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        glGenRenderbuffers(1, &context->screen.renderbuffer);
-        glBindRenderbuffer(GL_RENDERBUFFER, context->screen.renderbuffer); {
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, w, h);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER,
-                                      GL_DEPTH_ATTACHMENT,
-                                      GL_RENDERBUFFER,
-                                      context->screen.renderbuffer);
-            glFramebufferTexture(GL_FRAMEBUFFER,
-                                 GL_COLOR_ATTACHMENT0,
-                                 context->screen.texture_id,
-                                 0);
-        }
-        glBindRenderbuffer(GL_RENDERBUFFER, 0);
-        
-        GLenum const draw_buffers[1] = {
-            GL_COLOR_ATTACHMENT0
-        };
-        
-        glDrawBuffers(1, draw_buffers);
-        
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) !=
-            GL_FRAMEBUFFER_COMPLETE) {
-            return;
-        }
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    
-    static struct vertex const vertices[4] = {
-        { .position = { -1, -1, 0 }, .texture_coord = { 0, 0 } },
-        { .position = { -1,  1, 0 }, .texture_coord = { 0, 1 } },
-        { .position = {  1, -1, 0 }, .texture_coord = { 1, 0 } },
-        { .position = {  1,  1, 0 }, .texture_coord = { 1, 1 } },
-    };
-    
-    glGenBuffers(1, &context->screen.renderable.vbo);
-    glGenVertexArrays(1, &context->screen.renderable.vao);
-    
-    glBindVertexArray(context->screen.renderable.vao); {
-        glBindBuffer(GL_ARRAY_BUFFER, context->screen.renderable.vbo); {
-            glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
-                         GL_STATIC_DRAW);
-            
-            glVertexAttribPointer(0 /* position location */,
-                                  3 /* number of position components per vertex */,
-                                  GL_FLOAT, GL_FALSE /* values are not normalized */,
-                                  sizeof(struct vertex) /* offset to next vertex */,
-                                  0 /* position component is the first, so no offset */);
-            glEnableVertexAttribArray(0);
-            
-            glVertexAttribPointer(1 /* texture coord location */,
-                                  2 /* number of color components per vertex */,
-                                  GL_FLOAT, GL_FALSE,
-                                  sizeof(struct vertex),
-                                  (GLvoid *)(sizeof(struct vector3)) /* offset to color component */);
-            glEnableVertexAttribArray(1);
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
-    glBindVertexArray(0);
-}
-
-static
-void
-graphics_teardown(struct graphics_context * const context)
-{
-    glDeleteFramebuffers(1, &context->screen.framebuffer);
-    glDeleteRenderbuffers(1, &context->screen.renderbuffer);
-    glDeleteTextures(1, &context->screen.texture_id);
-    glDeleteProgram(context->screen.renderable.program);
-    glDeleteVertexArrays(1, &context->screen.renderable.vao);
-    glDeleteBuffers(1, &context->screen.renderable.vbo);
 }
 
 static

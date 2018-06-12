@@ -19,7 +19,11 @@ struct term_context {
 };
 
 static void term_invalidate(void);
+
 static void term_get_display_size(enum term_size, struct window_size *);
+static void term_get_display_params(struct term_settings,
+                                    struct window_size,
+                                    struct window_params *);
 
 static struct term_context terminal;
 
@@ -30,21 +34,11 @@ term_open(struct term_settings const settings)
         window_terminate(terminal.window);
     }
     
-    struct window_size native = { 0, 0 };
-    
-    term_get_display_size(settings.size, &native);
-    
+    struct window_size display;
     struct window_params params;
     
-    params.title = settings.title != NULL ? settings.title : "";
-    params.pixel_size = settings.pixel_size > 0 ? settings.pixel_size : 1;
-    params.swap_interval = settings.vsync ? 1 : 0;
-    params.fullscreen = settings.fullscreen;
-    
-    params.display = (struct window_size) {
-        .width = native.width * params.pixel_size,
-        .height = native.height * params.pixel_size
-    };
+    term_get_display_size(settings.size, &display);
+    term_get_display_params(settings, display, &params);
     
     if (params.display.width == 0 ||
         params.display.height == 0) {
@@ -62,8 +56,8 @@ term_open(struct term_settings const settings)
     viewport.offset.width = 0;
     viewport.offset.height = 0;
     
-    viewport.resolution.width = native.width;
-    viewport.resolution.height = native.height;
+    viewport.resolution.width = display.width;
+    viewport.resolution.height = display.height;
     
     terminal.graphics = graphics_init(viewport);
     
@@ -76,7 +70,6 @@ bool
 term_close(void)
 {
     graphics_release(terminal.graphics);
-    
     window_terminate(terminal.window);
     
     return true;
@@ -159,7 +152,23 @@ term_invalidate(void)
 
 static
 void
-term_get_display_size(enum term_size size, struct window_size * const display)
+term_get_display_params(struct term_settings const settings,
+                        struct window_size const resolution,
+                        struct window_params * const params)
+{
+    params->title = settings.title != NULL ? settings.title : "";
+    params->pixel_size = settings.pixel_size > 0 ? settings.pixel_size : 1;
+    params->swap_interval = settings.vsync ? 1 : 0;
+    params->fullscreen = settings.fullscreen;
+    
+    params->display.width = resolution.width * params->pixel_size;
+    params->display.height = resolution.height * params->pixel_size;
+}
+
+static
+void
+term_get_display_size(enum term_size const size,
+                      struct window_size * const display)
 {
     switch (size) {
         case TERM_SIZE_320: {
@@ -167,7 +176,9 @@ term_get_display_size(enum term_size size, struct window_size * const display)
             display->height = 240;
         } break;
             
-        default:
-            break;
+        default: {
+            display->width = 0;
+            display->height = 0;
+        } break;
     }
 }

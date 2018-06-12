@@ -10,14 +10,10 @@ enum term_key {
     TERM_KEY_CONFIRM,
     TERM_KEY_ESCAPE,
     TERM_KEY_SPACE,
-    TERM_KEY_TOGGLE_FULLSCREEN,
     TERM_KEY_MOUSE_LEFT,
     TERM_KEY_MOUSE_RIGHT,
     TERM_KEY_ANY
 };
-
-#define TERM_KEY_FIRST (TERM_KEY_UP)
-#define TERM_KEY_MAX (TERM_KEY_ANY + 1)
 
 struct term_cursor_scroll {
     double horizontal;

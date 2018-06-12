@@ -101,7 +101,7 @@ term_render(void)
     
     window_read(window, &terminal.keys, &terminal.cursor);
 
-    if (term_key_released(TERM_KEY_TOGGLE_FULLSCREEN)) {
+    if (term_key_released((enum term_key)TERM_KEY_TOGGLE_FULLSCREEN)) {
         window_set_fullscreen(window, !window_is_fullscreen(window));
      
         // note that, generally, the graphics context should be invalidated

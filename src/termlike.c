@@ -6,9 +6,10 @@
 #include <stdbool.h> // bool
 
 #include "keys.h" // term_key_state
-#include "window.h" // window_size, window_params, window_*
 
-#include "graphics/graphics.h" // graphics_context, graphics_*
+#include "platform/window.h" // window_size, window_params, window_*
+
+#include "graphics/renderer.h" // graphics_context, graphics_*
 #include "graphics/viewport.h" // viewport
 #include "graphics/loader.h" // load_image_data
 

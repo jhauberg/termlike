@@ -22,8 +22,8 @@
  #pragma clang diagnostic pop
 #endif
 
-#include "keys.h" // term_key_state
-#include "window.h" // window_*
+#include "../../keys.h" // term_key_state
+#include "../window.h" // window_*
 
 struct window_position {
     int32_t x;

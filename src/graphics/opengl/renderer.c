@@ -1,4 +1,4 @@
-#include "../graphics.h" // graphics_*
+#include "../renderer.h" // graphics_*
 #include "../viewport.h" // viewport, viewport_clip
 
 #include <stdio.h> // fprintf

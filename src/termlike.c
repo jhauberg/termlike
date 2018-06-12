@@ -20,6 +20,8 @@ struct term_context {
 
 static void term_invalidate(void);
 
+static void term_toggle_fullscreen(void);
+
 static void term_get_display_size(enum term_size, struct window_size *);
 static void term_get_display_params(struct term_settings,
                                     struct window_size,
@@ -95,13 +97,7 @@ term_render(void)
     window_read(window, &terminal.keys, &terminal.cursor);
 
     if (term_key_released((enum term_key)TERM_KEY_TOGGLE_FULLSCREEN)) {
-        window_set_fullscreen(window, !window_is_fullscreen(window));
-     
-        // note that, generally, the graphics context should be invalidated
-        // whenever the window is resized in any way- however, since the window
-        // is currently limited to the initial size, resizing *only* happens
-        // when switching between fullscreen/windowed
-        term_invalidate();
+        term_toggle_fullscreen();
     }
 
     graphics_begin(terminal.graphics);
@@ -148,6 +144,21 @@ term_invalidate(void)
                                 &viewport.framebuffer.height);
     
     graphics_invalidate(terminal.graphics, viewport);
+}
+
+static
+void
+term_toggle_fullscreen(void)
+{
+    struct window_context * const window = terminal.window;
+    
+    window_set_fullscreen(window, !window_is_fullscreen(window));
+    
+    // note that generally, the graphics context should be invalidated
+    // whenever the window is resized in any way- however, since the window
+    // is currently limited to the initial size, resizing *only* happens
+    // when switching between fullscreen/windowed
+    term_invalidate();
 }
 
 static

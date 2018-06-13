@@ -10,6 +10,10 @@
 #include "platform/window.h" // window_size, window_params, window_*
 #include "platform/timer.h" // timer, timer_*
 
+#ifdef DEBUG
+ #include "platform/profiler.h" // profiler_*
+#endif
+
 #include "graphics/renderer.h" // graphics_context, graphics_*
 #include "graphics/viewport.h" // viewport
 #include "graphics/loader.h" // load_image_data
@@ -139,12 +143,18 @@ term_run(uint16_t const frequency)
     }
     timer_end(terminal.timer, &interpolate);
     
+#ifdef DEBUG
+    profiler_begin();
+#endif
     graphics_begin(terminal.graphics); {
         if (terminal.draw_func) {
             terminal.draw_func(interpolate);
         }
     }
     graphics_end(terminal.graphics);
+#ifdef DEBUG
+    profiler_end();
+#endif
     
     window_present(window);
 }
@@ -203,7 +213,9 @@ term_setup(struct window_size const display)
     load_image_data(IBM8x8_FONT, IBM8x8_LENGTH, term_callback_font_loaded);
     
     term_invalidate();
-    
+#ifdef DEBUG
+    profiler_reset();
+#endif
     return true;
 }
 

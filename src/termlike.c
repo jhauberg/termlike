@@ -80,6 +80,13 @@ term_close(void)
     timer_release(terminal.timer);
     
     window_terminate(terminal.window);
+ 
+    terminal.graphics = NULL;
+    terminal.timer = NULL;
+    terminal.window = NULL;
+    
+    terminal.draw_func = NULL;
+    terminal.tick_func = NULL;
     
     return true;
 }
@@ -109,7 +116,7 @@ term_set_ticking(term_tick_callback * const tick_func)
 }
 
 void
-term_update(uint16_t const frequency)
+term_run(uint16_t const frequency)
 {
     struct window_context * const window = terminal.window;
     

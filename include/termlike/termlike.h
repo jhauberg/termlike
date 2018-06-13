@@ -21,7 +21,7 @@ void term_set_closing(bool close);
 void term_set_drawing(term_draw_callback *);
 void term_set_ticking(term_tick_callback *);
 
-void term_update(uint16_t frequency);
+void term_run(uint16_t frequency);
 
 bool term_key_down(enum term_key);
 bool term_key_pressed(enum term_key);

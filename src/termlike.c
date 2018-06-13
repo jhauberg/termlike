@@ -144,15 +144,16 @@ term_run(uint16_t const frequency)
     timer_end(terminal.timer, &interpolate);
     
 #ifdef DEBUG
-    profiler_begin();
+    profiler_begin(); {
 #endif
-    graphics_begin(terminal.graphics); {
-        if (terminal.draw_func) {
-            terminal.draw_func(interpolate);
+        graphics_begin(terminal.graphics); {
+            if (terminal.draw_func) {
+                terminal.draw_func(interpolate);
+            }
         }
-    }
-    graphics_end(terminal.graphics);
+        graphics_end(terminal.graphics);
 #ifdef DEBUG
+    }
     profiler_end();
 #endif
     
@@ -209,6 +210,9 @@ term_setup(struct window_size const display)
     if (terminal.timer == NULL) {
         return false;
     }
+    
+    terminal.draw_func = NULL;
+    terminal.tick_func = NULL;
     
     load_image_data(IBM8x8_FONT, IBM8x8_LENGTH, term_callback_font_loaded);
     

@@ -8,6 +8,7 @@
 #include "keys.h" // term_key_state
 
 #include "platform/window.h" // window_size, window_params, window_*
+#include "platform/timer.h" // timer, timer_*
 
 #include "graphics/renderer.h" // graphics_context, graphics_*
 #include "graphics/viewport.h" // viewport
@@ -16,14 +17,19 @@
 #include "resources/spritefont.8x8.h" // IBM8x8*
 
 struct term_context {
+    term_draw_callback * draw_func;
+    term_tick_callback * tick_func;
     struct window_context * window;
     struct graphics_context * graphics;
+    struct timer * timer;
     struct term_key_state keys;
     struct term_cursor_state cursor;
 };
 
 static bool term_setup(struct window_size);
 static void term_invalidate(void);
+
+static void term_handle_internal_input(void);
 
 static void term_toggle_fullscreen(void);
 
@@ -71,6 +77,8 @@ bool
 term_close(void)
 {
     graphics_release(terminal.graphics);
+    timer_release(terminal.timer);
+    
     window_terminate(terminal.window);
     
     return true;
@@ -89,17 +97,46 @@ term_set_closing(bool const close)
 }
 
 void
-term_render(void)
+term_set_drawing(term_draw_callback * const draw_func)
+{
+    terminal.draw_func = draw_func;
+}
+
+void
+term_set_ticking(term_tick_callback * const tick_func)
+{
+    terminal.tick_func = tick_func;
+}
+
+void
+term_update(uint16_t const frequency)
 {
     struct window_context * const window = terminal.window;
     
     window_read(window, &terminal.keys, &terminal.cursor);
-
-    if (term_key_released((enum term_key)TERM_KEY_TOGGLE_FULLSCREEN)) {
-        term_toggle_fullscreen();
+    
+    term_handle_internal_input();
+    
+    double step = 0;
+    double interpolate = 0;
+    
+    timer_begin(terminal.timer); {
+        while (timer_tick(terminal.timer, frequency, &step)) {
+            // update input (again) for every tick this frame
+            window_read(window, &terminal.keys, &terminal.cursor);
+            
+            if (terminal.tick_func) {
+                terminal.tick_func(step);
+            }
+        }
     }
-
-    graphics_begin(terminal.graphics);
+    timer_end(terminal.timer, &interpolate);
+    
+    graphics_begin(terminal.graphics); {
+        if (terminal.draw_func) {
+            terminal.draw_func(interpolate);
+        }
+    }
     graphics_end(terminal.graphics);
     
     window_present(window);
@@ -150,6 +187,12 @@ term_setup(struct window_size const display)
         return false;
     }
     
+    terminal.timer = timer_init();
+    
+    if (terminal.timer == NULL) {
+        return false;
+    }
+    
     load_image_data(IBM8x8_FONT, IBM8x8_LENGTH, term_callback_font_loaded);
     
     term_invalidate();
@@ -181,6 +224,15 @@ term_invalidate(void)
                                 &viewport.framebuffer.height);
     
     graphics_invalidate(terminal.graphics, viewport);
+}
+
+static
+void
+term_handle_internal_input(void)
+{
+    if (term_key_released((enum term_key)TERM_KEY_TOGGLE_FULLSCREEN)) {
+        term_toggle_fullscreen();
+    }
 }
 
 static

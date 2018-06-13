@@ -40,7 +40,7 @@ struct window_context {
 };
 
 static void window_callback_error(int32_t error, char const * description);
-static void window_callback_scroll(GLFWwindow * window, double x, double y);
+static void window_callback_scroll(GLFWwindow *, double x, double y);
 
 static GLFWwindow * window_open(char const * title,
                                 struct window_size display,
@@ -52,6 +52,9 @@ static void window_make_windowed(GLFWwindow *,
                                  struct window_size);
 static void window_make_fullscreen(GLFWwindow *,
                                    struct window_position * previous);
+
+static void window_read_keys(GLFWwindow *, struct term_key_state *);
+static void window_read_cursor(GLFWwindow *, struct term_cursor_state *);
 
 struct cursor_scroll {
     double x_offset;
@@ -198,14 +201,23 @@ window_read(struct window_context * const context,
             struct term_key_state * const keys,
             struct term_cursor_state * const cursor)
 {
+    GLFWwindow * const window = context->window;
+    
+    window_read_keys(window, keys);
+    window_read_cursor(window, cursor);
+}
+
+static
+void
+window_read_keys(GLFWwindow * const window,
+                 struct term_key_state * const keys)
+{
     bool down_previously[TERM_KEY_MAX];
     
     for (int32_t input = TERM_KEY_FIRST; input < TERM_KEY_MAX; input++) {
         down_previously[input] = keys->down[input];
     }
     
-    GLFWwindow * const window = context->window;
-
     bool const is_modified =
         glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_RIGHT_ALT) == GLFW_PRESS ||
@@ -262,7 +274,13 @@ window_read(struct window_context * const context,
         keys->released[input] = down_previously[input] && !keys->down[input];
         keys->pressed[input] = !down_previously[input] && keys->down[input];
     }
-    
+}
+
+static
+void
+window_read_cursor(GLFWwindow * const window,
+                   struct term_cursor_state * const cursor)
+{
     double cursor_x = 0;
     double cursor_y = 0;
     

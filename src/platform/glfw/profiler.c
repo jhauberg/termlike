@@ -36,6 +36,7 @@ static struct profiler_stats stats;
 void
 profiler_reset(void)
 {
+    stats.draw_count = 0;
     stats.frame_time = 0;
     stats.frame_time_avg = 0;
     stats.frames_per_second = 0;
@@ -48,6 +49,12 @@ void
 profiler_begin(void)
 {
     stats.draw_count = 0;
+}
+
+void
+profiler_increment_draw_count(uint8_t const amount)
+{
+    stats.draw_count += amount;
 }
 
 void

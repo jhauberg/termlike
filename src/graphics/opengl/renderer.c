@@ -1,39 +1,29 @@
 #include "../renderer.h" // graphics_*
 #include "../viewport.h" // viewport, viewport_clip
 
+#include "renderable.h" // renderable, vector2, vector3
+#include "glyph_renderer.h" // glyph_renderer, glyphs_*
+
 #include <stdio.h> // fprintf
 #include <stdlib.h> // malloc, free
 
 #include <gl3w/GL/gl3w.h> // gl*, GL*
 
-struct renderable {
-    GLuint program;
-    GLuint vbo;
-    GLuint vao;
-};
-
-struct renderable_frame {
+struct frame_renderable {
     struct renderable renderable;
     GLuint texture_id;
     GLuint framebuffer;
     GLuint renderbuffer;
 };
 
-struct vector2 {
-    float x, y;
-};
-
-struct vector3 {
-    float x, y, z;
-};
-
-struct vertex {
+struct frame_vertex {
     struct vector3 position;
     struct vector2 texture_coord;
 };
 
 struct graphics_context {
-    struct renderable_frame screen;
+    struct glyph_renderer * batch;
+    struct frame_renderable screen;
     struct viewport viewport;
     struct graphics_font font;
     GLuint font_texture_id;
@@ -50,9 +40,6 @@ static void graphics_setup_screen_buffer(struct graphics_context *);
 static void graphics_setup_screen_vbo(struct graphics_context *);
 
 static void graphics_create_texture(struct graphics_image, GLuint * texture_id);
-
-static GLuint graphics_compile_shader(GLenum type, GLchar const * source);
-static GLuint graphics_link_program(GLuint vs, GLuint fs);
 
 struct graphics_context *
 graphics_init(struct viewport const viewport)
@@ -89,19 +76,15 @@ graphics_begin(struct graphics_context const * const context)
 }
 
 void
-graphics_end(struct graphics_context const * const context)
+graphics_end(struct graphics_context * const context)
 {
+    glyphs_flush(context->batch);
+    
     struct viewport_clip clip = viewport_get_clip(context->viewport);
     
     glBindFramebuffer(GL_FRAMEBUFFER, 0); {
         glViewport(clip.x, clip.y, clip.area.width, clip.area.height);
-        
-        // note that we don't need to clear this framebuffer, as we're
-        // expecting to overwrite every pixel every frame anyway (with the
-        // opaque texture of the post framebuffer) however; if we wanted to
-        // apply color to the letter/pillar-boxed bars, we could do that here
-        // by clearing the color buffer
-        
+
         glUseProgram(context->screen.renderable.program);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, context->screen.texture_id);
@@ -120,10 +103,131 @@ graphics_end(struct graphics_context const * const context)
 }
 
 void
+graphics_draw(struct graphics_context const * const context,
+              struct graphics_color const color,
+              int32_t const x,
+              int32_t const y,
+              float const z,
+              uint32_t const code)
+{
+    int32_t const table_size = context->font.columns * context->font.rows;
+    
+    int32_t table_index = -1;
+    
+    if (context->font.codepage != NULL) {
+        for (int32_t i = 0; i < table_size; i++) {
+            if (context->font.codepage[i] == code) {
+                table_index = i;
+                
+                break;
+            }
+        }
+    }
+    
+    if (table_index < 0 ||
+        table_index > table_size) {
+        table_index = -1;
+    }
+    
+    if (table_index == -1) {
+        return;
+    }
+    
+    int32_t const character_row = table_index / context->font.columns;
+    int32_t const character_column = table_index % context->font.columns;
+    
+    float const texture_width = context->font.columns * context->font.size;
+    float const texture_height = context->font.rows * context->font.size;
+    
+    struct vector2 source;
+    
+    source.x = character_column * context->font.size;
+    source.y = character_row * context->font.size;
+    // flip it
+    source.y = (texture_height - context->font.size) - source.y;
+
+    float const angle = 0;
+    
+    struct glyph_vertex vertices[6];
+    
+    float const l = 0;
+    float const r = context->font.size;
+    float const b = 0;
+    float const t = context->font.size;
+    
+    struct vector2 const bl = { .x = l, .y = b };
+    struct vector2 const tl = { .x = l, .y = t };
+    struct vector2 const tr = { .x = r, .y = t };
+    struct vector2 const br = { .x = r, .y = b };
+    
+    vertices[0].position = (struct vector3) { .x = tl.x, .y = tl.y, .z = 0 };
+    vertices[1].position = (struct vector3) { .x = br.x, .y = br.y, .z = 0 };
+    vertices[2].position = (struct vector3) { .x = bl.x, .y = bl.y, .z = 0 };
+    
+    vertices[3].position = (struct vector3) { .x = tl.x, .y = tl.y, .z = 0 };
+    vertices[4].position = (struct vector3) { .x = tr.x, .y = tr.y, .z = 0 };
+    vertices[5].position = (struct vector3) { .x = br.x, .y = br.y, .z = 0 };
+    
+    struct vector2 const uv_min = {
+        .x = source.x / texture_width,
+        .y = source.y / texture_height
+    };
+    
+    struct vector2 const uv_max = {
+        .x = (source.x + context->font.size) / texture_width,
+        .y = (source.y + context->font.size) / texture_height
+    };
+    
+    struct vector2 const uv_bl = { .x = uv_min.x, .y = uv_min.y };
+    struct vector2 const uv_tl = { .x = uv_min.x, .y = uv_max.y };
+    struct vector2 const uv_tr = { .x = uv_max.x, .y = uv_max.y };
+    struct vector2 const uv_br = { .x = uv_max.x, .y = uv_min.y };
+    
+    vertices[0].texture_coord = uv_tl;
+    vertices[1].texture_coord = uv_br;
+    vertices[2].texture_coord = uv_bl;
+    
+    vertices[3].texture_coord = uv_tl;
+    vertices[4].texture_coord = uv_tr;
+    vertices[5].texture_coord = uv_br;
+    
+    struct color tint = {
+        .r = color.r,
+        .g = color.g,
+        .b = color.b,
+        .a = color.a
+    };
+    
+    vertices[0].color = tint;
+    vertices[1].color = tint;
+    vertices[2].color = tint;
+    
+    vertices[3].color = tint;
+    vertices[4].color = tint;
+    vertices[5].color = tint;
+    
+    struct vector3 origin = {
+        .x = x,
+        .y = y,
+        .z = z
+    };
+    
+    glyphs_add(context->batch,
+               vertices,
+               origin,
+               angle,
+               context->font_texture_id);
+}
+
+void
 graphics_set_font(struct graphics_context * const context,
                   struct graphics_image const image,
                   struct graphics_font const font)
 {
+    if (context->font_texture_id != 0) {
+        glDeleteTextures(1, &context->font_texture_id);
+    }
+    
     graphics_create_texture(image, &context->font_texture_id);
     
     context->font = font;
@@ -134,6 +238,8 @@ graphics_invalidate(struct graphics_context * const context,
                     struct viewport const viewport)
 {
     context->viewport = viewport_box(viewport);
+    
+    glyphs_invalidate(context->batch, context->viewport);
 }
 
 struct viewport
@@ -154,12 +260,21 @@ graphics_setup(struct graphics_context * const context)
     graphics_setup_screen_texture(context);
     graphics_setup_screen_buffer(context);
     graphics_setup_screen_vbo(context);
+    
+    context->font.codepage = NULL;
+    context->font.columns = 0;
+    context->font.rows = 0;
+    context->font_texture_id = 0;
+    
+    context->batch = glyphs_init(context->viewport);
 }
 
 static
 void
 graphics_teardown(struct graphics_context * const context)
 {
+    glyphs_release(context->batch);
+    
     glDeleteTextures(1, &context->font_texture_id);
     glDeleteTextures(1, &context->screen.texture_id);
     glDeleteFramebuffers(1, &context->screen.framebuffer);
@@ -261,7 +376,7 @@ static
 void
 graphics_setup_screen_vbo(struct graphics_context * const context)
 {
-    static struct vertex const vertices[4] = {
+    static struct frame_vertex const vertices[4] = {
         { .position = { -1, -1, 0 }, .texture_coord = { 0, 0 } },
         { .position = { -1,  1, 0 }, .texture_coord = { 0, 1 } },
         { .position = {  1, -1, 0 }, .texture_coord = { 1, 0 } },
@@ -279,14 +394,14 @@ graphics_setup_screen_vbo(struct graphics_context * const context)
             glVertexAttribPointer(0 /* position location */,
                                   3 /* components per vertex */,
                                   GL_FLOAT, GL_FALSE /* not normalized */,
-                                  sizeof(struct vertex),
+                                  sizeof(struct frame_vertex),
                                   0);
             glEnableVertexAttribArray(0);
             
             glVertexAttribPointer(1 /* texture coord location */,
                                   2 /* components per vertex */,
                                   GL_FLOAT, GL_FALSE,
-                                  sizeof(struct vertex),
+                                  sizeof(struct frame_vertex),
                                   (GLvoid *)(sizeof(struct vector3)));
             glEnableVertexAttribArray(1);
         }
@@ -332,7 +447,6 @@ graphics_create_texture(struct graphics_image const image,
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-static
 GLuint
 graphics_compile_shader(GLenum const type,
                         GLchar const * const source)
@@ -359,7 +473,6 @@ graphics_compile_shader(GLenum const type,
     return shader;
 }
 
-static
 GLuint
 graphics_link_program(GLuint const vs,
                       GLuint const fs)

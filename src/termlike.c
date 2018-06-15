@@ -1,11 +1,25 @@
 #include <termlike/termlike.h> // term_*
+#include <termlike/layer.h> // term_layer
 #include <termlike/config.h> // term_settings, term_size
 #include <termlike/input.h> // term_key, term_cursor_state
 
 #include <stdlib.h> // NULL
+#include <stdint.h> // uint16_t, uint32_t, int32_t
 #include <stdbool.h> // bool
+#include <string.h> // strncpy, strlen
 
+#ifdef DEBUG
+ #include <assert.h> // assert
+#endif
+
+#include <utf8.h> // utf8_decode
+
+#include "internal.h" // layer_z
 #include "keys.h" // term_key_state
+
+#include "graphics/renderer.h" // graphics_context, graphics_*
+#include "graphics/viewport.h" // viewport
+#include "graphics/loader.h" // load_image_data
 
 #include "platform/window.h" // window_size, window_params, window_*
 #include "platform/timer.h" // timer, timer_*
@@ -14,15 +28,30 @@
  #include "platform/profiler.h" // profiler_*
 #endif
 
-#include "graphics/renderer.h" // graphics_context, graphics_*
-#include "graphics/viewport.h" // viewport
-#include "graphics/loader.h" // load_image_data
-
+#include "resources/cp437.h" // CP437
 #include "resources/spritefont.8x8.h" // IBM8x8*
+
+/**
+ * The number of bytes that the internal text buffer must be zero-padded with.
+ 
+ * This is required for UTF8 decoding.
+ */
+#define BUFFER_PADDING 4
+/**
+ * The size of the internal text buffer.
+ *
+ * This value must be at least 1 higher than the amount of required padding.
+ */
+#define MAX_BUFFER_SIZE 128 // todo: this is low. consider max=width*height
+/**
+ * The maximum length of a printed string.
+ */
+#define MAX_TEXT_LENGTH (MAX_BUFFER_SIZE - BUFFER_PADDING)
 
 struct term_context {
     term_draw_callback * draw_func;
     term_tick_callback * tick_func;
+    char buffer[MAX_BUFFER_SIZE];
     struct window_context * window;
     struct graphics_context * graphics;
     struct timer * timer;
@@ -32,6 +61,16 @@ struct term_context {
 
 static bool term_setup(struct window_size);
 static void term_invalidate(void);
+
+/**
+ * Copy a string to the internal buffer, preparing it for drawing.
+ *
+ * Before copying, the string is validated against buffer limitations.
+ * If valid, the string is copied and the buffer is zero-padded appropriately.
+ *
+ * Return true if string was copied, false otherwise.
+ */
+static bool term_copy(char const *);
 
 static void term_handle_internal_input(void);
 
@@ -160,6 +199,70 @@ term_run(uint16_t const frequency)
     window_present(window);
 }
 
+void
+term_print(int32_t const x,
+           int32_t const y,
+           struct term_color const color,
+           struct term_layer const layer,
+           char const * const text)
+{
+    bool const text_was_prepared = term_copy(text);
+    
+#if DEBUG
+    assert(text_was_prepared);
+#endif
+    
+    if (!text_was_prepared) {
+        return;
+    }
+    
+    int32_t x1 = x;
+    int32_t y1 = y;
+    
+    float const z = layer_z(layer);
+    
+    struct viewport const viewport = graphics_get_viewport(terminal.graphics);
+    
+    struct graphics_color tint = {
+        .r = color.r / 255.0f,
+        .g = color.g / 255.0f,
+        .b = color.b / 255.0f,
+        .a = color.a
+    };
+    
+    char * text_ptr = terminal.buffer;
+    
+    int32_t decoding_error;
+    uint32_t character;
+    
+    while (*text_ptr) {
+        // decode and advance the text pointer
+        text_ptr = utf8_decode(text_ptr, &character, &decoding_error);
+        
+        if (decoding_error != 0) {
+            // error
+        }
+        
+        if (character == '\n') {
+            y1 += IBM8x8_CELL_SIZE;
+            x1 = x;
+            
+            continue;
+        } else if (character == ' ') {
+            // skip
+        } else {
+            graphics_draw(terminal.graphics,
+                          tint,
+                          x1,
+                          viewport.resolution.height - IBM8x8_CELL_SIZE - y1,
+                          z,
+                          character);
+        }
+        
+        x1 += IBM8x8_CELL_SIZE;
+    }
+}
+
 bool
 term_key_down(enum term_key const key)
 {
@@ -191,6 +294,8 @@ static
 bool
 term_setup(struct window_size const display)
 {
+    memset(terminal.buffer, '\0', sizeof(terminal.buffer));
+    
     struct viewport viewport;
     
     viewport.offset.width = 0;
@@ -229,10 +334,11 @@ term_callback_font_loaded(struct graphics_image const image)
 {
     struct graphics_font font;
     
+    font.codepage = CP437;
     font.columns = IBM8x8_COLUMNS;
     font.rows = IBM8x8_ROWS;
-    font.codepage = IBM8x8_CODEPAGE;
-    
+    font.size = IBM8x8_CELL_SIZE;
+        
     graphics_set_font(terminal.graphics, image, font);
 }
 
@@ -247,6 +353,26 @@ term_invalidate(void)
                                 &viewport.framebuffer.height);
     
     graphics_invalidate(terminal.graphics, viewport);
+}
+
+static
+bool
+term_copy(char const * const text)
+{
+    size_t const lenght = strlen(text);
+    
+    if (lenght >= MAX_TEXT_LENGTH) {
+        return false;
+    }
+    
+    strncpy(terminal.buffer, text, lenght);
+    
+    for (uint16_t i = 0; i < BUFFER_PADDING; i++) {
+        // null-terminate the buffer and add padding (utf8 decoding)
+        terminal.buffer[lenght + i] = '\0';
+    }
+    
+    return true;
 }
 
 static

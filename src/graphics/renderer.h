@@ -13,6 +13,11 @@ struct graphics_font {
     uint32_t const * codepage;
     uint16_t columns;
     uint16_t rows;
+    uint16_t size;
+};
+
+struct graphics_color {
+    float r, g, b, a;
 };
 
 struct graphics_context;
@@ -23,17 +28,13 @@ struct graphics_context * graphics_init(struct viewport);
 void graphics_release(struct graphics_context *);
 
 void graphics_begin(struct graphics_context const *);
-void graphics_end(struct graphics_context const *);
+void graphics_end(struct graphics_context *);
 
-// todo: so, graphics responsibilities:
-//  * load font texture
-//  * draw part of texture
-//    oh... but that is actually going to be the spritebatcher..
-//    is that assumed part of the graphics impl or can we separate it?
-//    i guess not, a Metal implementation would probably do it differently..?
-// actually, i guess whether it's a naive or batched approach shouldnt matter
-// for the consumer- it's an implementation detail!
-// so yes, it should be part of graphics api how it is handled!
+void graphics_draw(struct graphics_context const *,
+                   struct graphics_color color,
+                   int32_t x, int32_t y, float z,
+                   uint32_t code);
+
 void graphics_set_font(struct graphics_context *,
                        struct graphics_image,
                        struct graphics_font);

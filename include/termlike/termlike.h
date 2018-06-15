@@ -2,9 +2,11 @@
 
 #include <termlike/config.h> // term_settings :completeness
 #include <termlike/input.h> // term_key :completeness
+#include <termlike/layer.h> // term_layer :completeness
+#include <termlike/color.h> // term_color :completeness
 
 #include <stdbool.h> // bool
-#include <stdint.h> // uint16_t
+#include <stdint.h> // uint16_t, int32_t
 
 #define TERM_FREQUENCY_DEFAULT 30
 #define TERM_FREQUENCY_ONCE_A_SECOND 1
@@ -22,6 +24,11 @@ void term_set_drawing(term_draw_callback *);
 void term_set_ticking(term_tick_callback *);
 
 void term_run(uint16_t frequency);
+
+void term_print(int32_t x, int32_t y,
+                struct term_color,
+                struct term_layer,
+                char const * text);
 
 bool term_key_down(enum term_key);
 bool term_key_pressed(enum term_key);

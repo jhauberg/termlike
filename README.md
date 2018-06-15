@@ -46,13 +46,14 @@ This project is in a very early stage of development. For the time being, build 
 
 A few dependencies are required to keep the scope of the project down. Most of these are small and already included as part of the repository (see [external](/external)).
 
-**Requires installation:**
+**Requires linkage:**
 
 * [`glfw/GLFW3`](https://github.com/glfw/glfw) handles **cross-platform window creation**
 
 **Included:**
 
 * [`skaslev/gl3w`](https://github.com/skaslev/gl3w) for **OpenGL Core Profile** header loading
+* [`datenwolf/linmath`](https://github.com/datenwolf/linmath.h) provides **math functions**
 * [`nothings/stb_image`](https://github.com/nothings/stb) provides **image loading** capabilities (png)
 * [`skeeto/branchless-utf8`](https://github.com/skeeto/branchless-utf8) provides **UTF8 decoding**
 

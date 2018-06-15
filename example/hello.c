@@ -2,20 +2,15 @@
 
 #include <stdlib.h> // exit, EXIT_FAILURE
 #include <stdint.h> // int32_t
-#include <stdbool.h> // bool
+#include <stdbool.h> // bool :completeness
 
 static
 void
 draw(double const interp)
 {
     (void)interp;
-}
-
-static
-void
-tick(double const step)
-{
-    (void)step;
+    
+    term_print(0, 0, TERM_COLOR_WHITE, TERM_LAYER_DEFAULT, "Hello.");
 }
 
 int32_t
@@ -24,20 +19,19 @@ main(void)
     if (!term_open(term_defaults("Termlike"))) {
         exit(EXIT_FAILURE);
     }
-
-    term_set_drawing(draw);
-    term_set_ticking(tick);
     
+    term_set_drawing(draw);
+
     while (!term_is_closing()) {
         // note that this key check is not done in tick()
         // input can be "lost" if there's too long between ticks
         if (term_key_down(TERM_KEY_ESCAPE)) {
             term_set_closing(true);
         }
-        
-        term_run(TERM_FREQUENCY_DEFAULT);
+
+        term_run(TERM_FREQUENCY_ONCE_A_SECOND);
     }
-    
+
     term_close();
     
     return 0;

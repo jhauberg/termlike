@@ -9,6 +9,13 @@ struct term_color const TERM_COLOR_WHITE = {
     .b = 255
 };
 
+struct term_color const TERM_COLOR_BLACK = {
+    .a = 1,
+    .r = 0,
+    .g = 0,
+    .b = 0
+};
+
 struct term_color
 colored(uint8_t const red,
       uint8_t const green,

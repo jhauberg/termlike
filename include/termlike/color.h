@@ -8,6 +8,7 @@ struct term_color {
 };
 
 extern struct term_color const TERM_COLOR_WHITE;
+extern struct term_color const TERM_COLOR_BLACK;
 
 /**
  * Return an opaque color.

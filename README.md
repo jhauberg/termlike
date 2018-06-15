@@ -27,7 +27,7 @@ main(void)
             term_set_closing(true);
         }
         
-        term_render();
+        term_run(TERM_FREQUENCY_DEFAULT);
     }
     
     term_close();

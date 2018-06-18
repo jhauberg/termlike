@@ -321,7 +321,8 @@ term_cursor(void)
 {
     struct viewport const viewport = graphics_get_viewport(terminal.graphics);
     
-    double const pixel = viewport_pixel(viewport);
+    double const scale = window_get_pixel_scale(terminal.window);
+    double const pixel = viewport_pixel(viewport) / scale;
     
     struct term_cursor_location location = terminal.cursor.location;
     

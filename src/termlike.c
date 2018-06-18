@@ -486,11 +486,15 @@ term_print_character(int32_t const x,
     // flip it
     y = viewport.resolution.height - IBM8x8_CELL_SIZE - y;
     
+    struct graphics_position position = {
+        .x = state->x + x,
+        .y = y,
+        .z = state->z
+    };
+    
     graphics_draw(terminal.graphics,
                   state->tint,
-                  state->x + x,
-                  y,
-                  state->z,
+                  position,
                   character);
 }
 

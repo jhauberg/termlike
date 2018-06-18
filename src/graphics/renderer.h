@@ -20,6 +20,12 @@ struct graphics_color {
     float r, g, b, a;
 };
 
+struct graphics_position {
+    float z;
+    int32_t x;
+    int32_t y;
+};
+
 struct graphics_context;
 struct viewport;
 
@@ -31,8 +37,8 @@ void graphics_begin(struct graphics_context const *);
 void graphics_end(struct graphics_context *);
 
 void graphics_draw(struct graphics_context const *,
-                   struct graphics_color color,
-                   int32_t x, int32_t y, float z,
+                   struct graphics_color,
+                   struct graphics_position,
                    uint32_t code);
 
 void graphics_set_font(struct graphics_context *,

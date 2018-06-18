@@ -105,9 +105,7 @@ graphics_end(struct graphics_context * const context)
 void
 graphics_draw(struct graphics_context const * const context,
               struct graphics_color const color,
-              int32_t const x,
-              int32_t const y,
-              float const z,
+              struct graphics_position const position,
               uint32_t const code)
 {
     int32_t const table_size = context->font.columns * context->font.rows;
@@ -207,9 +205,9 @@ graphics_draw(struct graphics_context const * const context,
     vertices[5].color = tint;
     
     struct vector3 origin = {
-        .x = x,
-        .y = y,
-        .z = z
+        .x = position.x,
+        .y = position.y,
+        .z = position.z
     };
     
     glyphs_add(context->batch,

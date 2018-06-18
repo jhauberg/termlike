@@ -11,6 +11,21 @@
 #define TERM_FREQUENCY_DEFAULT 30
 #define TERM_FREQUENCY_ONCE_A_SECOND 1
 
+struct term_location {
+    int32_t x, y;
+};
+
+static
+inline
+struct term_location
+located(int32_t const x, int32_t const y)
+{
+    return (struct term_location) {
+        .x = x,
+        .y = y
+    };
+}
+
 typedef void term_draw_callback(double interpolation);
 typedef void term_tick_callback(double step);
 
@@ -25,7 +40,7 @@ void term_set_ticking(term_tick_callback *);
 
 void term_run(uint16_t frequency);
 
-void term_print(int32_t x, int32_t y,
+void term_print(struct term_location,
                 struct term_color,
                 struct term_layer,
                 char const * text);

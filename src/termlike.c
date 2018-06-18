@@ -117,13 +117,15 @@ static void term_characters(term_character_callback *, void *);
  *
  * This function can be passed to `term_characters(..)` as a character callback.
  */
-static void term_print_character(int32_t x, int32_t y, uint32_t character, void *);
+static void term_print_character(int32_t x, int32_t y, uint32_t character,
+                                 void *);
 /**
  * Measure a character at an offset.
  *
  * This function can be passed to `term_characters(..)` as a character callback.
  */
-static void term_measure_character(int32_t x, int32_t y, uint32_t character, void *);
+static void term_measure_character(int32_t x, int32_t y, uint32_t character,
+                                   void *);
 
 static void term_callback_font_loaded(struct graphics_image);
 
@@ -244,8 +246,7 @@ term_run(uint16_t const frequency)
 }
 
 void
-term_print(int32_t const x,
-           int32_t const y,
+term_print(struct term_location const location,
            struct term_color const color,
            struct term_layer const layer,
            char const * const text)
@@ -260,8 +261,8 @@ term_print(int32_t const x,
     // from these initial values
     struct term_state_print state;
     
-    state.x = x;
-    state.y = y;
+    state.x = location.x;
+    state.y = location.y;
     state.z = layer_z(layer);
 
     state.tint = (struct graphics_color) {

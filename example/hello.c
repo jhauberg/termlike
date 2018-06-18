@@ -11,6 +11,7 @@ draw(double const interp)
     (void)interp;
     
     term_print(0, 0, TERM_COLOR_WHITE, TERM_LAYER_DEFAULT, "Hello.");
+    term_print(located(0, 0), TERM_COLOR_BLACK, layered(1), "Hello.");
 }
 
 int32_t

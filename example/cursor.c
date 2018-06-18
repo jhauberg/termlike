@@ -10,13 +10,18 @@ draw(double const interp)
 {
     (void)interp;
     
+    char const * const pointer = "█";
+    
     struct term_cursor_state const cursor = term_cursor();
     
-    term_print(cursor.location.x - 8,
-               cursor.location.y - 8,
+    int32_t w, h;
+    
+    term_measure(pointer, &w, &h);
+    term_print(located(cursor.location.x - (w / 2),
+                       cursor.location.y - (h / 2)),
                TERM_COLOR_WHITE,
                layered(1),
-               "█");
+               pointer);
 }
 
 int32_t

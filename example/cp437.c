@@ -85,20 +85,25 @@ draw(double const interp)
 {
     (void)interp;
     
+    int32_t w, h;
+    
+    term_measure("█", &w, &h);
+    
     char buf[4];
     
     uint32_t i = 0;
+    
     for (int32_t row = 0; row < 16; row++) {
         for (int32_t column = 0; column < 16; column++) {
             uint32_t c = CP437[i++];
             
             utf8_encode(buf, c);
             
-            int32_t const x = column * 8;
-            int32_t const y = row * 8;
+            int32_t const x = column * w;
+            int32_t const y = row * h;
             
-            term_print(x, y, colored(255, 255, 225), layered(0), "█");
-            term_print(x, y, colored(0, 0, 0), layered(1), buf);
+            term_print(located(x, y), colored(255, 255, 225), layered(0), "█");
+            term_print(located(x, y), colored(0, 0, 0), layered(1), buf);
         }
     }
 }

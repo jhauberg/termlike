@@ -17,7 +17,7 @@ draw(double const interp)
 int32_t
 main(void)
 {
-    if (!term_open(term_defaults("Termlike"))) {
+    if (!term_open(defaults("Termlike"))) {
         exit(EXIT_FAILURE);
     }
     

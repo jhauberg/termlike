@@ -111,7 +111,7 @@ draw(double const interp)
 int32_t
 main(void)
 {
-    if (!term_open(term_defaults("Termlike: CP437"))) {
+    if (!term_open(defaults("Termlike: CP437"))) {
         exit(EXIT_FAILURE);
     }
 

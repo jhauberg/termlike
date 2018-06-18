@@ -15,8 +15,7 @@ struct term_location {
     int32_t x, y;
 };
 
-static
-inline
+static inline
 struct term_location
 located(int32_t const x, int32_t const y)
 {

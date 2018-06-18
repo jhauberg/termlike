@@ -27,7 +27,7 @@ struct term_settings {
 
 static inline
 struct term_settings
-term_defaults(char const * const title)
+defaults(char const * const title)
 {
     return (struct term_settings) {
         .title = title,

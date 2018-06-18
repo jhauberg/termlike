@@ -27,7 +27,7 @@ draw(double const interp)
 int32_t
 main(void)
 {
-    if (!term_open(term_defaults("Termlike: Cursor"))) {
+    if (!term_open(defaults("Termlike: Cursor"))) {
         exit(EXIT_FAILURE);
     }
     

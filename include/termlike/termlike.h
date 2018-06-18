@@ -30,6 +30,10 @@ void term_print(int32_t x, int32_t y,
                 struct term_layer,
                 char const * text);
 
+void term_measure(char const * text,
+                  int32_t * width,
+                  int32_t * height);
+
 bool term_key_down(enum term_key);
 bool term_key_pressed(enum term_key);
 bool term_key_released(enum term_key);

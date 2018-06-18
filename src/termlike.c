@@ -8,10 +8,6 @@
 #include <stdbool.h> // bool
 #include <string.h> // strncpy, strlen
 
-#ifdef DEBUG
- #include <assert.h> // assert
-#endif
-
 #include <utf8.h> // utf8_decode
 
 #include "internal.h" // layer_z
@@ -48,6 +44,26 @@
  */
 #define MAX_TEXT_LENGTH (MAX_BUFFER_SIZE - BUFFER_PADDING)
 
+/**
+ * Provides values for accumulating the required dimensions of
+ * printable characters in a buffer.
+ */
+struct term_state_measure {
+    int32_t width;
+    int32_t height;
+};
+
+/**
+ * Provides initial values for positioning and coloring of printable
+ * characters in a buffer.
+ */
+struct term_state_print {
+    struct graphics_color tint;
+    float z;
+    int32_t x;
+    int32_t y;
+};
+
 struct term_context {
     term_draw_callback * draw_func;
     term_tick_callback * tick_func;
@@ -58,6 +74,11 @@ struct term_context {
     struct term_key_state keys;
     struct term_cursor_state cursor;
 };
+
+/**
+ * Represents a function that reacts to a character at an offset in a buffer.
+ */
+typedef void term_character_callback(int32_t, int32_t, uint32_t, void *);
 
 static bool term_setup(struct window_size);
 static void term_invalidate(void);
@@ -80,6 +101,29 @@ static void term_get_display_size(enum term_size, struct window_size *);
 static void term_get_display_params(struct term_settings,
                                     struct window_size,
                                     struct window_params *);
+
+/**
+ * Run through each printable character in the internal buffer and issue a
+ * callback at each offset.
+ *
+ * The buffer is read from left to right, and newlines do not trigger callbacks.
+ *
+ * Functions that require stateful unrolls can provide a generic void pointer
+ * that will be passed along with each callback.
+ */
+static void term_characters(term_character_callback *, void *);
+/**
+ * Print a character at an offset.
+ *
+ * This function can be passed to `term_characters(..)` as a character callback.
+ */
+static void term_print_character(int32_t x, int32_t y, uint32_t character, void *);
+/**
+ * Measure a character at an offset.
+ *
+ * This function can be passed to `term_characters(..)` as a character callback.
+ */
+static void term_measure_character(int32_t x, int32_t y, uint32_t character, void *);
 
 static void term_callback_font_loaded(struct graphics_image);
 
@@ -206,61 +250,51 @@ term_print(int32_t const x,
            struct term_layer const layer,
            char const * const text)
 {
-    bool const text_was_prepared = term_copy(text);
-    
-#if DEBUG
-    assert(text_was_prepared);
-#endif
-    
-    if (!text_was_prepared) {
+    if (!term_copy(text)) {
         return;
     }
     
-    int32_t x1 = x;
-    int32_t y1 = y;
+    // initialize a state for printing contents of the buffer;
+    // this state will hold positional values for the upper-left origin
+    // of the string of characters; each character is drawn at an offset
+    // from these initial values
+    struct term_state_print state;
     
-    float const z = layer_z(layer);
-    
-    struct viewport const viewport = graphics_get_viewport(terminal.graphics);
-    
-    struct graphics_color tint = {
+    state.x = x;
+    state.y = y;
+    state.z = layer_z(layer);
+
+    state.tint = (struct graphics_color) {
         .r = color.r / 255.0f,
         .g = color.g / 255.0f,
         .b = color.b / 255.0f,
         .a = color.a
     };
     
-    char * text_ptr = terminal.buffer;
-    
-    int32_t decoding_error;
-    uint32_t character;
-    
-    while (*text_ptr) {
-        // decode and advance the text pointer
-        text_ptr = utf8_decode(text_ptr, &character, &decoding_error);
-        
-        if (decoding_error != 0) {
-            // error
-        }
-        
-        if (character == '\n') {
-            y1 += IBM8x8_CELL_SIZE;
-            x1 = x;
-            
-            continue;
-        } else if (character == ' ') {
-            // skip
-        } else {
-            graphics_draw(terminal.graphics,
-                          tint,
-                          x1,
-                          viewport.resolution.height - IBM8x8_CELL_SIZE - y1,
-                          z,
-                          character);
-        }
-        
-        x1 += IBM8x8_CELL_SIZE;
+    term_characters(term_print_character, &state);
+}
+
+void
+term_measure(char const * const text,
+             int32_t * const width,
+             int32_t * const height)
+{
+    if (!term_copy(text)) {
+        return;
     }
+    
+    // initialize a state for measuring contents of the buffer;
+    // this state will hold the smallest possible bounding box that
+    // can contain all would-be printed characters
+    struct term_state_measure state;
+    
+    state.width = 0;
+    state.height = 0;
+    
+    term_characters(term_measure_character, &state);
+    
+    *width = state.width;
+    *height = state.height;
 }
 
 bool
@@ -341,20 +375,6 @@ term_setup(struct window_size const display)
 
 static
 void
-term_callback_font_loaded(struct graphics_image const image)
-{
-    struct graphics_font font;
-    
-    font.codepage = CP437;
-    font.columns = IBM8x8_COLUMNS;
-    font.rows = IBM8x8_ROWS;
-    font.size = IBM8x8_CELL_SIZE;
-        
-    graphics_set_font(terminal.graphics, image, font);
-}
-
-static
-void
 term_invalidate(void)
 {
     struct viewport viewport = graphics_get_viewport(terminal.graphics);
@@ -364,26 +384,6 @@ term_invalidate(void)
                                 &viewport.framebuffer.height);
     
     graphics_invalidate(terminal.graphics, viewport);
-}
-
-static
-bool
-term_copy(char const * const text)
-{
-    size_t const lenght = strlen(text);
-    
-    if (lenght >= MAX_TEXT_LENGTH) {
-        return false;
-    }
-    
-    strncpy(terminal.buffer, text, lenght);
-    
-    for (uint16_t i = 0; i < BUFFER_PADDING; i++) {
-        // null-terminate the buffer and add padding (utf8 decoding)
-        terminal.buffer[lenght + i] = '\0';
-    }
-    
-    return true;
 }
 
 static
@@ -408,6 +408,127 @@ term_toggle_fullscreen(void)
     // is currently limited to the initial size, resizing *only* happens
     // when switching between fullscreen/windowed
     term_invalidate();
+}
+
+static
+bool
+term_copy(char const * const text)
+{
+    size_t const lenght = strlen(text);
+    
+    if (lenght >= MAX_TEXT_LENGTH) {
+        return false;
+    }
+    
+    strncpy(terminal.buffer, text, lenght);
+    
+    for (uint16_t i = 0; i < BUFFER_PADDING; i++) {
+        // null-terminate the buffer and add padding (utf8 decoding)
+        terminal.buffer[lenght + i] = '\0';
+    }
+    
+    return true;
+}
+
+static
+void
+term_characters(term_character_callback * const callback, void * const state)
+{
+    char * text_ptr = terminal.buffer;
+    
+    int32_t decoding_error;
+    uint32_t character;
+    
+    int32_t x = 0;
+    
+    int32_t x_offset = 0;
+    int32_t y_offset = 0;
+    
+    while (*text_ptr) {
+        // decode and advance the text pointer
+        text_ptr = utf8_decode(text_ptr, &character, &decoding_error);
+        
+        if (decoding_error != 0) {
+            // error
+        }
+        
+        if (character == '\n') {
+            y_offset += IBM8x8_CELL_SIZE;
+            x_offset = x;
+            
+            continue;
+        } else {
+            callback(x_offset, y_offset, character, state);
+        }
+        
+        x_offset += IBM8x8_CELL_SIZE;
+    }
+}
+
+static
+void
+term_print_character(int32_t const x,
+                     int32_t y,
+                     uint32_t const character,
+                     void * const data)
+{
+    if (character == ' ') {
+        // don't draw whitespace
+        return;
+    }
+    
+    struct term_state_print * const state = (struct term_state_print *)data;
+    
+    struct viewport const viewport = graphics_get_viewport(terminal.graphics);
+    
+    // accumulate it
+    y = state->y + y;
+    // flip it
+    y = viewport.resolution.height - IBM8x8_CELL_SIZE - y;
+    
+    graphics_draw(terminal.graphics,
+                  state->tint,
+                  state->x + x,
+                  y,
+                  state->z,
+                  character);
+}
+
+static
+void
+term_measure_character(int32_t const x,
+                       int32_t const y,
+                       uint32_t const character,
+                       void * const data)
+{
+    (void)character;
+    
+    struct term_state_measure * const state = (struct term_state_measure *)data;
+    
+    int32_t const right = x + IBM8x8_CELL_SIZE;
+    int32_t const bottom = y + IBM8x8_CELL_SIZE;
+    
+    if (right > state->width) {
+        state->width = right;
+    }
+    
+    if (bottom > state->height) {
+        state->height = bottom;
+    }
+}
+
+static
+void
+term_callback_font_loaded(struct graphics_image const image)
+{
+    struct graphics_font font;
+    
+    font.codepage = CP437;
+    font.columns = IBM8x8_COLUMNS;
+    font.rows = IBM8x8_ROWS;
+    font.size = IBM8x8_CELL_SIZE;
+    
+    graphics_set_font(terminal.graphics, image, font);
 }
 
 static

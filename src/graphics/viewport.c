@@ -42,6 +42,13 @@ viewport_box(struct viewport viewport)
     return viewport;
 }
 
+double
+viewport_pixel(struct viewport const viewport)
+{
+    return (viewport.framebuffer.width + viewport.framebuffer.height) /
+        (viewport.resolution.width + viewport.resolution.height);
+}
+
 static
 enum viewport_mode
 viewport_get_mode(struct viewport const viewport,

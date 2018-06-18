@@ -288,6 +288,7 @@ window_read_cursor(GLFWwindow * const window,
     
     cursor->location.x = (int32_t)floor(cursor_x);
     cursor->location.y = (int32_t)floor(cursor_y);
+    
     cursor->scroll.horizontal = accumulated_cursor_scroll.x_offset;
     cursor->scroll.vertical = accumulated_cursor_scroll.y_offset;
 }

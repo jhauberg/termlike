@@ -28,3 +28,5 @@ enum viewport_mode {
 struct viewport_clip viewport_get_clip(struct viewport);
 
 struct viewport viewport_box(struct viewport);
+
+double viewport_pixel(struct viewport);

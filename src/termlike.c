@@ -284,8 +284,19 @@ term_key_released(enum term_key const key)
 struct term_cursor_state
 term_cursor(void)
 {
+    struct viewport const viewport = graphics_get_viewport(terminal.graphics);
+    
+    double const pixel = viewport_pixel(viewport);
+    
+    struct term_cursor_location location = terminal.cursor.location;
+    
+    if (pixel > 1) {
+        location.x = (int32_t)(location.x / pixel);
+        location.y = (int32_t)(location.y / pixel);
+    }
+
     return (struct term_cursor_state) {
-        .location = terminal.cursor.location,
+        .location = location,
         .scroll = terminal.cursor.scroll
     };
 }

@@ -78,7 +78,7 @@ struct term_context {
 /**
  * Represents a function that reacts to a character at an offset in a buffer.
  */
-typedef void term_character_callback(int32_t, int32_t, uint32_t, void *);
+typedef void term_character_callback(int32_t x, int32_t y, uint32_t c, void *);
 
 static bool term_setup(struct window_size);
 static void term_invalidate(void);

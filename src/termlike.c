@@ -319,18 +319,39 @@ term_key_released(enum term_key const key)
 struct term_cursor_state
 term_cursor(void)
 {
-    struct viewport const viewport = graphics_get_viewport(terminal.graphics);
-    
-    double const scale = window_get_pixel_scale(terminal.window);
-    double const pixel = viewport_pixel(viewport) / scale;
-    
     struct term_cursor_location location = terminal.cursor.location;
     
-    if (pixel > 1) {
-        location.x = (int32_t)(location.x / pixel);
-        location.y = (int32_t)(location.y / pixel);
-    }
+    // the viewport is needed to transform cursor location from screen-space
+    // coordinates to world-space coordinates
+    struct viewport const viewport = graphics_get_viewport(terminal.graphics);
+    
+    // determine backing pixel-scale (to support retina/high-dpi displays)
+    float horz_pixel_scale, vert_pixel_scale;
+    
+    window_get_pixel_scale(terminal.window,
+                           &horz_pixel_scale, &vert_pixel_scale);
+    
+    // offset cursor location by the dimensions taken up by any boxed bars
+    location.x -= (viewport.offset.width / 2) / horz_pixel_scale;
+    location.y -= (viewport.offset.height / 2) / vert_pixel_scale;
+    
+    // determine pixel sizes (pixels are stretched in fullscreen)
+    float horz_pixel_size, vert_pixel_size;
 
+    viewport_pixel_size(viewport, &horz_pixel_size, &vert_pixel_size);
+
+    // scale pixel sizes by the backing pixel-scale
+    horz_pixel_size /= horz_pixel_scale;
+    vert_pixel_size /= vert_pixel_scale;
+    
+    // determine aspect ratio to scale cursor location by
+    float const aspect = horz_pixel_size > vert_pixel_size ?
+        vert_pixel_size : horz_pixel_size;
+
+    // finally determine the cursor location within our world space
+    location.x = (int32_t)(location.x / aspect);
+    location.y = (int32_t)(location.y / aspect);
+    
     return (struct term_cursor_state) {
         .location = location,
         .scroll = terminal.cursor.scroll

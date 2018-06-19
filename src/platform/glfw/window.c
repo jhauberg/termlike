@@ -185,14 +185,12 @@ window_present(struct window_context const * const context)
     glfwPollEvents();
 }
 
-double
-window_get_pixel_scale(struct window_context const * const context)
+void
+window_get_pixel_scale(struct window_context const * const context,
+                       float * const horizontal,
+                       float * const vertical)
 {
-    float x, y;
-    
-    glfwGetWindowContentScale(context->window, &x, &y);
-    
-    return x;
+    glfwGetWindowContentScale(context->window, horizontal, vertical);
 }
 
 void

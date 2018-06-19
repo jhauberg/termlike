@@ -42,11 +42,13 @@ viewport_box(struct viewport viewport)
     return viewport;
 }
 
-double
-viewport_pixel(struct viewport const viewport)
+void
+viewport_pixel_size(struct viewport const viewport,
+                    float * const horizontal,
+                    float * const vertical)
 {
-    return (viewport.framebuffer.width + viewport.framebuffer.height) /
-        (viewport.resolution.width + viewport.resolution.height);
+    *horizontal = (float)viewport.framebuffer.width / viewport.resolution.width;
+    *vertical = (float)viewport.framebuffer.height / viewport.resolution.height;
 }
 
 static

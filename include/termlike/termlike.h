@@ -52,4 +52,4 @@ bool term_key_down(enum term_key);
 bool term_key_pressed(enum term_key);
 bool term_key_released(enum term_key);
 
-struct term_cursor_state term_cursor(void);
+void term_cursor(struct term_cursor_state *);

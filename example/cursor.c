@@ -13,7 +13,9 @@ draw(double const interp)
     char const * const pointer =
         term_key_down(TERM_KEY_MOUSE_LEFT) ? "▓" : "█";
     
-    struct term_cursor_state const cursor = term_cursor();
+    struct term_cursor_state cursor;
+    
+    term_cursor(&cursor);
     
     int32_t w, h;
     

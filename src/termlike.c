@@ -324,10 +324,11 @@ term_key_released(enum term_key const key)
     return terminal.keys.released[key];
 }
 
-struct term_cursor_state
-term_cursor(void)
+void
+term_cursor(struct term_cursor_state * const cursor)
 {
-    struct term_cursor_location location = terminal.cursor.location;
+    cursor->location = terminal.cursor.location;
+    cursor->scroll = terminal.cursor.scroll;
     
     // the viewport is needed to transform cursor location from screen-space
     // coordinates to world-space coordinates
@@ -340,8 +341,8 @@ term_cursor(void)
                            &horz_pixel_scale, &vert_pixel_scale);
     
     // offset cursor location by the dimensions taken up by any boxed bars
-    location.x -= (viewport.offset.width / 2) / horz_pixel_scale;
-    location.y -= (viewport.offset.height / 2) / vert_pixel_scale;
+    cursor->location.x -= (viewport.offset.width / 2) / horz_pixel_scale;
+    cursor->location.y -= (viewport.offset.height / 2) / vert_pixel_scale;
     
     // determine pixel sizes (pixels are stretched in fullscreen)
     float horz_pixel_size, vert_pixel_size;
@@ -357,13 +358,8 @@ term_cursor(void)
         vert_pixel_size : horz_pixel_size;
 
     // finally determine the cursor location within our world space
-    location.x = (int32_t)(location.x / aspect);
-    location.y = (int32_t)(location.y / aspect);
-    
-    return (struct term_cursor_state) {
-        .location = location,
-        .scroll = terminal.cursor.scroll
-    };
+    cursor->location.x = (int32_t)(cursor->location.x / aspect);
+    cursor->location.y = (int32_t)(cursor->location.y / aspect);
 }
 
 static

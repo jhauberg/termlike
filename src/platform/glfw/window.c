@@ -99,6 +99,10 @@ window_create(struct window_params const params)
         return NULL;
     }
     
+    if (params.hide_cursor) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    }
+    
     glfwSetScrollCallback(window, window_callback_scroll);
     // setting swap interval requires an initialized window/OpenGL context
     glfwSwapInterval(params.swap_interval);

@@ -13,7 +13,7 @@ struct term_settings {
     /** Size of the display within the window, in pixels.
      *
      * Actual window size is determined by pixel-size and may be larger
-     * than the display. */
+     * than the intended resolution. */
     enum term_size size;
     /** Size of a pixel.
      *

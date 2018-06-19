@@ -576,6 +576,7 @@ term_get_display_params(struct term_settings const settings,
     params->pixel_size = settings.pixel_size > 0 ? settings.pixel_size : 1;
     params->swap_interval = settings.vsync ? 1 : 0;
     params->fullscreen = settings.fullscreen;
+    params->hide_cursor = true;
     
     params->display.width = resolution.width * params->pixel_size;
     params->display.height = resolution.height * params->pixel_size;

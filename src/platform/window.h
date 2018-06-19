@@ -19,6 +19,8 @@ struct window_params {
     uint8_t pixel_size;
     /** Determines whether the context is running in fullscreen */
     bool fullscreen;
+    /** Determines whether the cursor should be hidden */
+    bool hide_cursor;
 };
 
 struct window_context;

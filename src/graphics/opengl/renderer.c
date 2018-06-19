@@ -24,8 +24,10 @@ struct frame_vertex {
 struct graphics_context {
     struct glyph_renderer * batch;
     struct frame_renderable screen;
-    struct viewport viewport;
     struct graphics_font font;
+    struct color clear;
+    struct color bars;
+    struct viewport viewport;
     GLuint font_texture_id;
 };
 
@@ -70,7 +72,8 @@ graphics_begin(struct graphics_context const * const context)
     glBindFramebuffer(GL_FRAMEBUFFER, context->screen.framebuffer); {
         glViewport(0, 0, width, height);
         
-        glClearColor(0, 0, 0, 1);
+        glClearColor(context->clear.r, context->clear.g, context->clear.b,
+                     context->clear.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 }
@@ -85,6 +88,10 @@ graphics_end(struct graphics_context * const context)
     glBindFramebuffer(GL_FRAMEBUFFER, 0); {
         glViewport(clip.x, clip.y, clip.area.width, clip.area.height);
 
+        glClearColor(context->bars.r, context->bars.g, context->bars.b,
+                     context->bars.a);
+        glClear(GL_COLOR_BUFFER_BIT);
+        
         glUseProgram(context->screen.renderable.program);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, context->screen.texture_id);
@@ -250,7 +257,6 @@ static
 void
 graphics_setup(struct graphics_context * const context)
 {
-    glClearColor(0, 0, 0, 1);
     // clear depth should be set once and not changed afterwards
     glClearDepth(1.0);
     
@@ -258,6 +264,20 @@ graphics_setup(struct graphics_context * const context)
     graphics_setup_screen_texture(context);
     graphics_setup_screen_buffer(context);
     graphics_setup_screen_vbo(context);
+    
+    context->clear = (struct color) {
+        .r = 0,
+        .g = 0,
+        .b = 0,
+        .a = 1
+    };
+    
+    context->bars = (struct color) {
+        .r = 0.1f,
+        .g = 0.1f,
+        .b = 0.1f,
+        .a = 1
+    };
     
     context->font.codepage = NULL;
     context->font.columns = 0;

@@ -10,7 +10,8 @@ draw(double const interp)
 {
     (void)interp;
     
-    char const * const pointer = "█";
+    char const * const pointer =
+        term_key_down(TERM_KEY_MOUSE_LEFT) ? "▓" : "█";
     
     struct term_cursor_state const cursor = term_cursor();
     

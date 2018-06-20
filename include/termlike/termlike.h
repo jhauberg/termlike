@@ -2,6 +2,7 @@
 
 #include <termlike/config.h> // term_settings :completeness
 #include <termlike/input.h> // term_key :completeness
+#include <termlike/location.h> // term_location :completeness
 #include <termlike/layer.h> // term_layer :completeness
 #include <termlike/color.h> // term_color :completeness
 
@@ -11,20 +12,6 @@
 #define TERM_FREQUENCY_DEFAULT 30
 #define TERM_FREQUENCY_FAST 60
 #define TERM_FREQUENCY_ONCE_A_SECOND 1
-
-struct term_location {
-    int32_t x, y;
-};
-
-static inline
-struct term_location
-located(int32_t const x, int32_t const y)
-{
-    return (struct term_location) {
-        .x = x,
-        .y = y
-    };
-}
 
 typedef void term_draw_callback(double interpolation);
 typedef void term_tick_callback(double step);

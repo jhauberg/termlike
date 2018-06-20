@@ -213,12 +213,18 @@ graphics_draw(struct graphics_context const * const context,
     vertices[4].color = tint;
     vertices[5].color = tint;
     
-    struct vector3 origin = {
-        .x = position.x + half,
-        .y = position.y + half,
-        .z = position.z
-    };
+    struct viewport const viewport = graphics_get_viewport(context);
     
+    float const flipped_y = (viewport.resolution.height -
+                             context->font.size -
+                             position.y);
+    
+    struct vector3 origin;
+    
+    origin.x = position.x + half;
+    origin.y = flipped_y + half;
+    origin.z = position.z;
+
     glyphs_add(context->batch,
                vertices,
                origin,

@@ -485,11 +485,6 @@ term_print_character(struct buffer_offset const offset,
         location.y = state->origin.y + location.y;
     }
     
-    // flip on the vertical axis
-    struct viewport const viewport = graphics_get_viewport(terminal.graphics);
-    
-    location.y = viewport.resolution.height - dimensions.height - location.y;
-    
     struct graphics_position position = {
         .x = location.x,
         .y = location.y,

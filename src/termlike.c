@@ -37,6 +37,14 @@ struct term_state_measure {
 };
 
 /**
+ * Provides a count that can be accumulated for each printable character
+ * in a buffer.
+ */
+struct term_state_count {
+    size_t count;
+};
+
+/**
  * Provides initial values for positioning and coloring of printable
  * characters in a buffer.
  */
@@ -78,6 +86,15 @@ static void term_get_display_params(struct term_settings,
  * This function can be passed to a buffer as a character callback.
  */
 static void term_print_character(struct buffer_offset,
+                                 struct buffer_dimens,
+                                 uint32_t character,
+                                 void *);
+/**
+ * Count a character in a buffer.
+ *
+ * This function can be passed to a buffer as a character callback.
+ */
+static void term_count_character(struct buffer_offset,
                                  struct buffer_dimens,
                                  uint32_t character,
                                  void *);
@@ -251,6 +268,24 @@ term_print(struct term_location const location,
     };
     
     buffer_characters(terminal.buffer, term_print_character, &state);
+}
+
+void
+term_count(char const * const text,
+           size_t * const length)
+{
+    if (!buffer_copy(terminal.buffer, text)) {
+        return;
+    }
+    
+    // initialize a state for counting number of printable characters
+    struct term_state_count state;
+    
+    state.count = 0;
+    
+    buffer_characters(terminal.buffer, term_count_character, &state);
+    
+    *length = state.count;
 }
 
 void
@@ -457,6 +492,22 @@ term_print_character(struct buffer_offset offset,
                   // and scaled
                   state->scale,
                   character);
+}
+
+static
+void
+term_count_character(struct buffer_offset const offset,
+                     struct buffer_dimens const dimensions,
+                     uint32_t const character,
+                     void * const data)
+{
+    (void)offset;
+    (void)dimensions;
+    (void)character;
+    
+    struct term_state_count * const state = (struct term_state_count *)data;
+    
+    state->count += 1;
 }
 
 static

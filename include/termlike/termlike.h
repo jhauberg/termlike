@@ -34,6 +34,8 @@ void term_print(struct term_location,
                 float scale,
                 char const * text);
 
+void term_count(char const * text,
+                size_t * length);
 void term_measure(char const * text,
                   int32_t * width,
                   int32_t * height);

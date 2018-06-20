@@ -6,11 +6,9 @@
 #include <stdlib.h> // NULL
 #include <stdint.h> // uint16_t, uint32_t, int32_t
 #include <stdbool.h> // bool
-#include <string.h> // strncpy, strlen
-
-#include <utf8.h> // utf8_decode
 
 #include "internal.h" // layer_z
+#include "buffer.h" // buffer, buffer_*
 #include "keys.h" // term_key_state
 
 #include "graphics/renderer.h" // graphics_context, graphics_*
@@ -26,23 +24,6 @@
 
 #include "resources/cp437.h" // CP437
 #include "resources/spritefont.8x8.h" // IBM8x8*
-
-/**
- * The number of bytes that the internal text buffer must be zero-padded with.
- 
- * This is required for UTF8 decoding.
- */
-#define BUFFER_PADDING 4
-/**
- * The size of the internal text buffer.
- *
- * This value must be at least 1 higher than the amount of required padding.
- */
-#define MAX_BUFFER_SIZE 128 // todo: this is low. consider max=width*height
-/**
- * The maximum length of a printed string.
- */
-#define MAX_TEXT_LENGTH (MAX_BUFFER_SIZE - BUFFER_PADDING)
 
 /**
  * Provides values for accumulating the required dimensions of
@@ -67,31 +48,16 @@ struct term_state_print {
 struct term_context {
     term_draw_callback * draw_func;
     term_tick_callback * tick_func;
-    char buffer[MAX_BUFFER_SIZE];
     struct window_context * window;
     struct graphics_context * graphics;
     struct timer * timer;
+    struct buffer * buffer;
     struct term_key_state keys;
     struct term_cursor_state cursor;
 };
 
-/**
- * Represents a function that reacts to a character at an offset in a buffer.
- */
-typedef void term_character_callback(int32_t x, int32_t y, uint32_t c, void *);
-
 static bool term_setup(struct window_size);
 static void term_invalidate(void);
-
-/**
- * Copy a string to the internal buffer, preparing it for drawing.
- *
- * Before copying, the string is validated against buffer limitations.
- * If valid, the string is copied and the buffer is zero-padded appropriately.
- *
- * Return true if string was copied, false otherwise.
- */
-static bool term_copy(char const *);
 
 static void term_handle_internal_input(void);
 
@@ -103,26 +69,16 @@ static void term_get_display_params(struct term_settings,
                                     struct window_params *);
 
 /**
- * Run through each printable character in the internal buffer and issue a
- * callback at each offset.
- *
- * The buffer is read from left to right, and newlines do not trigger callbacks.
- *
- * Functions that require stateful unrolls can provide a generic void pointer
- * that will be passed along with each callback.
- */
-static void term_characters(term_character_callback *, void *);
-/**
  * Print a character at an offset.
  *
- * This function can be passed to `term_characters(..)` as a character callback.
+ * This function can be passed to a buffer as a character callback.
  */
 static void term_print_character(int32_t x, int32_t y, uint32_t character,
                                  void *);
 /**
  * Measure a character at an offset.
  *
- * This function can be passed to `term_characters(..)` as a character callback.
+ * This function can be passed to a buffer as a character callback.
  */
 static void term_measure_character(int32_t x, int32_t y, uint32_t character,
                                    void *);
@@ -167,6 +123,7 @@ term_close(void)
 {
     graphics_release(terminal.graphics);
     timer_release(terminal.timer);
+    buffer_release(terminal.buffer);
     
     window_terminate(terminal.window);
  
@@ -259,7 +216,7 @@ term_print(struct term_location const location,
            struct term_layer const layer,
            char const * const text)
 {
-    if (!term_copy(text)) {
+    if (!buffer_copy(terminal.buffer, text)) {
         return;
     }
     
@@ -280,7 +237,7 @@ term_print(struct term_location const location,
         .a = color.a
     };
     
-    term_characters(term_print_character, &state);
+    buffer_characters(terminal.buffer, term_print_character, &state);
 }
 
 void
@@ -288,7 +245,7 @@ term_measure(char const * const text,
              int32_t * const width,
              int32_t * const height)
 {
-    if (!term_copy(text)) {
+    if (!buffer_copy(terminal.buffer, text)) {
         return;
     }
     
@@ -300,7 +257,7 @@ term_measure(char const * const text,
     state.width = 0;
     state.height = 0;
     
-    term_characters(term_measure_character, &state);
+    buffer_characters(terminal.buffer, term_measure_character, &state);
     
     *width = state.width;
     *height = state.height;
@@ -366,8 +323,6 @@ static
 bool
 term_setup(struct window_size const display)
 {
-    memset(terminal.buffer, '\0', sizeof(terminal.buffer));
-    
     struct viewport viewport;
     
     viewport.offset.width = 0;
@@ -387,6 +342,11 @@ term_setup(struct window_size const display)
     if (terminal.timer == NULL) {
         return false;
     }
+ 
+    terminal.buffer = buffer_init((struct buffer_dimens) {
+        IBM8x8_CELL_SIZE,
+        IBM8x8_CELL_SIZE
+    });
     
     terminal.draw_func = NULL;
     terminal.tick_func = NULL;
@@ -435,61 +395,6 @@ term_toggle_fullscreen(void)
     // is currently limited to the initial size, resizing *only* happens
     // when switching between fullscreen/windowed
     term_invalidate();
-}
-
-static
-bool
-term_copy(char const * const text)
-{
-    size_t const lenght = strlen(text);
-    
-    if (lenght >= MAX_TEXT_LENGTH) {
-        return false;
-    }
-    
-    strncpy(terminal.buffer, text, lenght);
-    
-    for (uint16_t i = 0; i < BUFFER_PADDING; i++) {
-        // null-terminate the buffer and add padding (utf8 decoding)
-        terminal.buffer[lenght + i] = '\0';
-    }
-    
-    return true;
-}
-
-static
-void
-term_characters(term_character_callback * const callback, void * const state)
-{
-    char * text_ptr = terminal.buffer;
-    
-    int32_t decoding_error;
-    uint32_t character;
-    
-    int32_t x = 0;
-    
-    int32_t x_offset = 0;
-    int32_t y_offset = 0;
-    
-    while (*text_ptr) {
-        // decode and advance the text pointer
-        text_ptr = utf8_decode(text_ptr, &character, &decoding_error);
-        
-        if (decoding_error != 0) {
-            // error
-        }
-        
-        if (character == '\n') {
-            y_offset += IBM8x8_CELL_SIZE;
-            x_offset = x;
-            
-            continue;
-        } else {
-            callback(x_offset, y_offset, character, state);
-        }
-        
-        x_offset += IBM8x8_CELL_SIZE;
-    }
 }
 
 static

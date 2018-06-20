@@ -40,9 +40,8 @@ struct term_state_measure {
  */
 struct term_state_print {
     struct graphics_color tint;
+    struct term_location origin;
     float z;
-    int32_t x;
-    int32_t y;
 };
 
 struct term_context {
@@ -63,7 +62,8 @@ static void term_handle_internal_input(void);
 
 static void term_toggle_fullscreen(void);
 
-static void term_get_display_size(enum term_size, struct window_size *);
+static void term_get_display_size(enum term_size,
+                                  struct window_size *);
 static void term_get_display_params(struct term_settings,
                                     struct window_size,
                                     struct window_params *);
@@ -230,8 +230,8 @@ term_print(struct term_location const location,
     // from these initial values
     struct term_state_print state;
     
-    state.x = location.x;
-    state.y = location.y;
+    state.origin.x = location.x;
+    state.origin.y = location.y;
     state.z = layer_z(layer);
 
     state.tint = (struct graphics_color) {
@@ -418,12 +418,12 @@ term_print_character(struct buffer_offset offset,
     struct viewport const viewport = graphics_get_viewport(terminal.graphics);
     
     // accumulate it
-    offset.y = state->y + offset.y;
+    offset.y = state->origin.y + offset.y;
     // flip it
     offset.y = viewport.resolution.height - dimensions.height - offset.y;
     
     struct graphics_position position = {
-        .x = state->x + offset.x,
+        .x = state->origin.x + offset.x,
         .y = offset.y,
         .z = state->z
     };

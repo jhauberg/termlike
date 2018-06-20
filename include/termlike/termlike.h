@@ -9,6 +9,7 @@
 #include <stdint.h> // uint16_t, int32_t
 
 #define TERM_FREQUENCY_DEFAULT 30
+#define TERM_FREQUENCY_FAST 60
 #define TERM_FREQUENCY_ONCE_A_SECOND 1
 
 struct term_location {

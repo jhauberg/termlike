@@ -68,11 +68,11 @@ buffer_copy(struct buffer * const buffer, char const * const text)
 }
 
 void
-buffer_characters(struct buffer * const buffer,
+buffer_characters(struct buffer const * const buffer,
                   buffer_char_callback * const callback,
                   void * const state)
 {
-    char * text_ptr = buffer->text;
+    char const * text_ptr = buffer->text;
     
     int32_t decoding_error;
     uint32_t character;

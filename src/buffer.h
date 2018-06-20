@@ -51,4 +51,4 @@ bool buffer_copy(struct buffer *, char const *);
  * Functions that require stateful unrolls can provide a generic void pointer
  * that will be passed along with each callback.
  */
-void buffer_characters(struct buffer *, buffer_char_callback *, void *);
+void buffer_characters(struct buffer const *, buffer_char_callback *, void *);

@@ -9,8 +9,8 @@ void
 draw(double const interp)
 {
     (void)interp;
-        
-    term_print(located(1, 1), TERM_COLOR_BLACK, layered(1), "Hello.");
+    
+    term_print(located(2, 2), TERM_COLOR_WHITE, layered(1), TERM_TRANSFORM_NONE, "Hello.");
 }
 
 int32_t

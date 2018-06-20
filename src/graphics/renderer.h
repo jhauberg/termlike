@@ -39,6 +39,8 @@ void graphics_end(struct graphics_context *);
 void graphics_draw(struct graphics_context const *,
                    struct graphics_color,
                    struct graphics_position,
+                   float angle,
+                   float scale,
                    uint32_t code);
 
 void graphics_set_font(struct graphics_context *,

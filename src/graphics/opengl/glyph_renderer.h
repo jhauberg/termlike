@@ -16,6 +16,7 @@ void glyphs_add(struct glyph_renderer *,
                 struct glyph_vertex const * vertices,
                 struct vector3 origin,
                 float angle,
+                float scale,
                 GLuint texture_id);
 
 void glyphs_invalidate(struct glyph_renderer *, struct viewport);

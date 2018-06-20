@@ -113,6 +113,8 @@ void
 graphics_draw(struct graphics_context const * const context,
               struct graphics_color const color,
               struct graphics_position const position,
+              float const angle,
+              float const scale,
               uint32_t const code)
 {
     int32_t const table_size = context->font.columns * context->font.rows;
@@ -151,14 +153,14 @@ graphics_draw(struct graphics_context const * const context,
     // flip it
     source.y = (texture_height - context->font.size) - source.y;
 
-    float const angle = 0;
-    
     struct glyph_vertex vertices[6];
     
-    float const l = 0;
-    float const r = context->font.size;
-    float const b = 0;
-    float const t = context->font.size;
+    float const half = context->font.size / 2.0f;
+    
+    float const l = -half;
+    float const r = half;
+    float const b = -half;
+    float const t = half;
     
     struct vector2 const bl = { .x = l, .y = b };
     struct vector2 const tl = { .x = l, .y = t };
@@ -212,8 +214,8 @@ graphics_draw(struct graphics_context const * const context,
     vertices[5].color = tint;
     
     struct vector3 origin = {
-        .x = position.x,
-        .y = position.y,
+        .x = position.x + half,
+        .y = position.y + half,
         .z = position.z
     };
     
@@ -221,6 +223,7 @@ graphics_draw(struct graphics_context const * const context,
                vertices,
                origin,
                angle,
+               scale,
                context->font_texture_id);
 }
 

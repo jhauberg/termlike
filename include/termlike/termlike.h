@@ -30,6 +30,8 @@ void term_run(uint16_t frequency);
 void term_print(struct term_location,
                 struct term_color,
                 struct term_layer,
+                int32_t angle,
+                float scale,
                 char const * text);
 
 void term_measure(char const * text,

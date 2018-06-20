@@ -160,6 +160,7 @@ glyphs_add(struct glyph_renderer * const batch,
            struct glyph_vertex const * const vertices,
            struct vector3 const origin,
            float const angle,
+           float const scale,
            GLuint const texture_id)
 {
     if (batch->current_texture_id != 0 &&
@@ -178,8 +179,6 @@ glyphs_add(struct glyph_renderer * const batch,
     }
     
     uint32_t const offset = batch->count * GLYPH_VERTEX_COUNT;
-    
-    float const scale = 1;
     
     mat4x4 translated;
     mat4x4_translate(translated, origin.x, origin.y, origin.z);

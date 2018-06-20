@@ -7,6 +7,8 @@
 #include <stdint.h> // uint16_t, uint32_t, int32_t
 #include <stdbool.h> // bool
 
+#include <math.h> // sinf, cosf, M_PI
+
 #include "internal.h" // layer_z
 #include "buffer.h" // buffer, buffer_offset, buffer_dimens, buffer_*
 #include "keys.h" // term_key_state
@@ -42,6 +44,8 @@ struct term_state_print {
     struct graphics_color tint;
     struct term_location origin;
     float z;
+    float scale;
+    float angle;
 };
 
 struct term_context {
@@ -218,6 +222,8 @@ void
 term_print(struct term_location const location,
            struct term_color const color,
            struct term_layer const layer,
+           int32_t const angle,
+           float const scale,
            char const * const text)
 {
     if (!buffer_copy(terminal.buffer, text)) {
@@ -233,6 +239,9 @@ term_print(struct term_location const location,
     state.origin.x = location.x;
     state.origin.y = location.y;
     state.z = layer_z(layer);
+    
+    state.angle = (float)((angle * M_PI) / 180.0); // to radians
+    state.scale = scale;
 
     state.tint = (struct graphics_color) {
         .r = color.r / 255.0f,
@@ -414,16 +423,28 @@ term_print_character(struct buffer_offset offset,
     }
     
     struct term_state_print * const state = (struct term_state_print *)data;
+
+    // scale up the offset vector so that characters are spaced as expected
+    offset.x *= state->scale;
+    offset.y *= state->scale;
     
+    // transform coordinates by angled rotation
+    float const ty = sinf(state->angle);
+    float const tx = cosf(state->angle);
+    
+    float const x = (offset.x * tx) - (offset.y * ty);
+    float const y = (offset.y * tx) - (offset.x * ty);
+    
+    // offset by origin
+    offset.x = state->origin.x + (int32_t)x;
+    offset.y = state->origin.y + (int32_t)y;
+    // flip on the vertical axis
     struct viewport const viewport = graphics_get_viewport(terminal.graphics);
     
-    // accumulate it
-    offset.y = state->origin.y + offset.y;
-    // flip it
     offset.y = viewport.resolution.height - dimensions.height - offset.y;
     
     struct graphics_position position = {
-        .x = state->origin.x + offset.x,
+        .x = offset.x,
         .y = offset.y,
         .z = state->z
     };
@@ -431,6 +452,10 @@ term_print_character(struct buffer_offset offset,
     graphics_draw(terminal.graphics,
                   state->tint,
                   position,
+                  // note that each char is also individually rotated
+                  state->angle,
+                  // and scaled
+                  state->scale,
                   character);
 }
 

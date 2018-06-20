@@ -6,6 +6,14 @@
 struct buffer;
 
 /**
+ * Represents an offset for a printable character in a buffer.
+ */
+struct buffer_offset {
+    int32_t x;
+    int32_t y;
+};
+
+/**
  * Represents the dimensions (in pixels) of each character in a buffer.
  */
 struct buffer_dimens {
@@ -16,7 +24,10 @@ struct buffer_dimens {
 /**
  * Represents a function invoked for each printable character in a buffer.
  */
-typedef void buffer_char_callback(int32_t x, int32_t y, uint32_t c, void *);
+typedef void buffer_char_callback(struct buffer_offset,
+                                  struct buffer_dimens,
+                                  uint32_t c,
+                                  void *);
 
 struct buffer * buffer_init(struct buffer_dimens);
 void buffer_release(struct buffer *);

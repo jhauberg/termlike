@@ -79,8 +79,10 @@ buffer_characters(struct buffer * const buffer,
     
     int32_t x = 0;
     
-    int32_t x_offset = 0;
-    int32_t y_offset = 0;
+    struct buffer_offset offset = {
+        .x = 0,
+        .y = 0
+    };
     
     while (*text_ptr) {
         // decode and advance the text pointer
@@ -91,14 +93,14 @@ buffer_characters(struct buffer * const buffer,
         }
         
         if (character == '\n') {
-            y_offset += buffer->dimensions.height;
-            x_offset = x;
+            offset.y += buffer->dimensions.height;
+            offset.x = x;
             
             continue;
         } else {
-            callback(x_offset, y_offset, character, state);
+            callback(offset, buffer->dimensions, character, state);
         }
         
-        x_offset += buffer->dimensions.width;
+        offset.x += buffer->dimensions.width;
     }
 }

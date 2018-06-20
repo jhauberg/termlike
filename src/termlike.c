@@ -8,7 +8,7 @@
 #include <stdbool.h> // bool
 
 #include "internal.h" // layer_z
-#include "buffer.h" // buffer, buffer_*
+#include "buffer.h" // buffer, buffer_offset, buffer_dimens, buffer_*
 #include "keys.h" // term_key_state
 
 #include "graphics/renderer.h" // graphics_context, graphics_*
@@ -73,14 +73,18 @@ static void term_get_display_params(struct term_settings,
  *
  * This function can be passed to a buffer as a character callback.
  */
-static void term_print_character(int32_t x, int32_t y, uint32_t character,
+static void term_print_character(struct buffer_offset,
+                                 struct buffer_dimens,
+                                 uint32_t character,
                                  void *);
 /**
  * Measure a character at an offset.
  *
  * This function can be passed to a buffer as a character callback.
  */
-static void term_measure_character(int32_t x, int32_t y, uint32_t character,
+static void term_measure_character(struct buffer_offset,
+                                   struct buffer_dimens,
+                                   uint32_t character,
                                    void *);
 
 static void term_callback_font_loaded(struct graphics_image);
@@ -399,8 +403,8 @@ term_toggle_fullscreen(void)
 
 static
 void
-term_print_character(int32_t const x,
-                     int32_t y,
+term_print_character(struct buffer_offset offset,
+                     struct buffer_dimens const dimensions,
                      uint32_t const character,
                      void * const data)
 {
@@ -414,13 +418,13 @@ term_print_character(int32_t const x,
     struct viewport const viewport = graphics_get_viewport(terminal.graphics);
     
     // accumulate it
-    y = state->y + y;
+    offset.y = state->y + offset.y;
     // flip it
-    y = viewport.resolution.height - IBM8x8_CELL_SIZE - y;
+    offset.y = viewport.resolution.height - dimensions.height - offset.y;
     
     struct graphics_position position = {
-        .x = state->x + x,
-        .y = y,
+        .x = state->x + offset.x,
+        .y = offset.y,
         .z = state->z
     };
     
@@ -432,8 +436,8 @@ term_print_character(int32_t const x,
 
 static
 void
-term_measure_character(int32_t const x,
-                       int32_t const y,
+term_measure_character(struct buffer_offset const offset,
+                       struct buffer_dimens const dimensions,
                        uint32_t const character,
                        void * const data)
 {
@@ -441,8 +445,8 @@ term_measure_character(int32_t const x,
     
     struct term_state_measure * const state = (struct term_state_measure *)data;
     
-    int32_t const right = x + IBM8x8_CELL_SIZE;
-    int32_t const bottom = y + IBM8x8_CELL_SIZE;
+    int32_t const right = offset.x + dimensions.width;
+    int32_t const bottom = offset.y + dimensions.height;
     
     if (right > state->width) {
         state->width = right;

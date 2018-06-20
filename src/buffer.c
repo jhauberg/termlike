@@ -90,6 +90,8 @@ buffer_characters(struct buffer const * const buffer,
         
         if (decoding_error != 0) {
             // error
+            
+            break;
         }
         
         if (character == '\n') {

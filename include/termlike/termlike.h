@@ -3,6 +3,7 @@
 #include <termlike/config.h> // term_settings :completeness
 #include <termlike/input.h> // term_key :completeness
 #include <termlike/location.h> // term_location :completeness
+#include <termlike/transform.h> // term_transform :completeness
 #include <termlike/layer.h> // term_layer :completeness
 #include <termlike/color.h> // term_color :completeness
 
@@ -30,8 +31,7 @@ void term_run(uint16_t frequency);
 void term_print(struct term_location,
                 struct term_color,
                 struct term_layer,
-                int32_t angle,
-                float scale,
+                struct term_transform,
                 char const * text);
 
 void term_count(char const * text,

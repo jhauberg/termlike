@@ -1,5 +1,7 @@
 #include <termlike/termlike.h> // term_*
+#include <termlike/location.h> // term_location
 #include <termlike/layer.h> // term_layer
+#include <termlike/transform.h> // term_transform
 #include <termlike/config.h> // term_settings, term_size
 #include <termlike/input.h> // term_key, term_cursor_state
 
@@ -53,7 +55,8 @@ struct term_state_print {
     struct term_location origin;
     float z;
     float scale;
-    float angle;
+    float radians;
+    enum term_rotate rotation;
 };
 
 struct term_context {
@@ -239,8 +242,7 @@ void
 term_print(struct term_location const location,
            struct term_color const color,
            struct term_layer const layer,
-           int32_t const angle,
-           float const scale,
+           struct term_transform const transform,
            char const * const text)
 {
     if (!buffer_copy(terminal.buffer, text)) {
@@ -257,8 +259,9 @@ term_print(struct term_location const location,
     state.origin.y = location.y;
     state.z = layer_z(layer);
     
-    state.angle = (float)((angle * M_PI) / 180.0); // to radians
-    state.scale = scale;
+    state.rotation = transform.rotation;
+    state.radians = (float)((transform.angle * M_PI) / 180.0);
+    state.scale = transform.scale;
 
     state.tint = (struct graphics_color) {
         .r = color.r / 255.0f,
@@ -447,7 +450,7 @@ term_toggle_fullscreen(void)
 
 static
 void
-term_print_character(struct buffer_offset offset,
+term_print_character(struct buffer_offset const offset,
                      struct buffer_dimens const dimensions,
                      uint32_t const character,
                      void * const data)
@@ -458,29 +461,38 @@ term_print_character(struct buffer_offset offset,
     }
     
     struct term_state_print * const state = (struct term_state_print *)data;
-
+    
+    struct term_location location;
+    
     // scale up the offset vector so that characters are spaced as expected
-    offset.x *= state->scale;
-    offset.y *= state->scale;
+    location.x = (int32_t)(offset.x * state->scale);
+    location.y = (int32_t)(offset.y * state->scale);
     
-    // transform coordinates by angled rotation
-    float const ty = sinf(state->angle);
-    float const tx = cosf(state->angle);
+    if (state->rotation == TERM_ROTATE_UNIFORMLY) {
+        // transform coordinates by angled rotation
+        float const ty = sinf(state->radians);
+        float const tx = cosf(state->radians);
+        
+        float const x = (location.x * tx) - (location.y * ty);
+        float const y = (location.y * tx) - (location.x * ty);
+        
+        // offset by origin
+        location.x = state->origin.x + (int32_t)x;
+        location.y = state->origin.y + (int32_t)y;
+    } else {
+        // offset by origin
+        location.x = state->origin.x + location.x;
+        location.y = state->origin.y + location.y;
+    }
     
-    float const x = (offset.x * tx) - (offset.y * ty);
-    float const y = (offset.y * tx) - (offset.x * ty);
-    
-    // offset by origin
-    offset.x = state->origin.x + (int32_t)x;
-    offset.y = state->origin.y + (int32_t)y;
     // flip on the vertical axis
     struct viewport const viewport = graphics_get_viewport(terminal.graphics);
     
-    offset.y = viewport.resolution.height - dimensions.height - offset.y;
+    location.y = viewport.resolution.height - dimensions.height - location.y;
     
     struct graphics_position position = {
-        .x = offset.x,
-        .y = offset.y,
+        .x = location.x,
+        .y = location.y,
         .z = state->z
     };
     
@@ -488,7 +500,7 @@ term_print_character(struct buffer_offset offset,
                   state->tint,
                   position,
                   // note that each char is also individually rotated
-                  state->angle,
+                  state->radians,
                   // and scaled
                   state->scale,
                   character);

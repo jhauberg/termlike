@@ -101,9 +101,9 @@ draw(double const interp)
             
             int32_t const x = column * w;
             int32_t const y = row * h;
-            
-            term_print(located(x, y), colored(255, 255, 225), layered(0), "█");
-            term_print(located(x, y), colored(0, 0, 0), layered(1), buf);
+
+            term_print(positioned(x, y), colored(255, 255, 225), "█");
+            term_print(positionedz(x, y, layered(1)), colored(0, 0, 0), buf);
         }
     }
 }

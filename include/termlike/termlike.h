@@ -2,9 +2,8 @@
 
 #include <termlike/config.h> // term_settings :completeness
 #include <termlike/input.h> // term_key :completeness
-#include <termlike/location.h> // term_location :completeness
+#include <termlike/position.h> // term_position :completeness
 #include <termlike/transform.h> // term_transform :completeness
-#include <termlike/layer.h> // term_layer :completeness
 #include <termlike/color.h> // term_color :completeness
 
 #include <stdbool.h> // bool
@@ -28,11 +27,13 @@ void term_set_ticking(term_tick_callback *);
 
 void term_run(uint16_t frequency);
 
-void term_print(struct term_location,
+void term_print(struct term_position,
                 struct term_color,
-                struct term_layer,
-                struct term_transform,
                 char const * text);
+void term_printt(struct term_position,
+                 struct term_color,
+                 struct term_transform,
+                 char const * text);
 
 void term_count(char const * text,
                 size_t * length);

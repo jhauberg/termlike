@@ -18,12 +18,12 @@ draw(double const interp)
     term_cursor(&cursor);
     
     int32_t w, h;
-    
+
     term_measure(pointer, &w, &h);
-    term_print(located(cursor.location.x - (w / 2),
-                       cursor.location.y - (h / 2)),
+    term_print(positionedz(cursor.location.x - (w / 2),
+                           cursor.location.y - (h / 2),
+                           layered(1)),
                TERM_COLOR_WHITE,
-               layered(1),
                pointer);
 }
 

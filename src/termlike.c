@@ -1,6 +1,6 @@
 #include <termlike/termlike.h> // term_*
-#include <termlike/location.h> // term_location
-#include <termlike/layer.h> // term_layer
+#include <termlike/position.h> // term_location, term_position
+#include <termlike/layer.h> // term_layer :completeness
 #include <termlike/transform.h> // term_transform
 #include <termlike/config.h> // term_settings, term_size
 #include <termlike/input.h> // term_key, term_cursor_state
@@ -239,11 +239,18 @@ term_run(uint16_t const frequency)
 }
 
 void
-term_print(struct term_location const location,
+term_print(struct term_position const position,
            struct term_color const color,
-           struct term_layer const layer,
-           struct term_transform const transform,
            char const * const text)
+{
+    term_printt(position, color, TERM_TRANSFORM_NONE, text);
+}
+
+void
+term_printt(struct term_position const position,
+            struct term_color const color,
+            struct term_transform const transform,
+            char const * const text)
 {
     if (!buffer_copy(terminal.buffer, text)) {
         return;
@@ -255,9 +262,8 @@ term_print(struct term_location const location,
     // from these initial values
     struct term_state_print state;
     
-    state.origin.x = location.x;
-    state.origin.y = location.y;
-    state.z = layer_z(layer);
+    state.origin = position.location;
+    state.z = layer_z(position.layer);
     
     state.rotation = transform.rotation;
     state.radians = (float)((transform.angle * M_PI) / 180.0);
@@ -455,6 +461,8 @@ term_print_character(struct buffer_offset const offset,
                      uint32_t const character,
                      void * const data)
 {
+    (void)dimensions;
+    
     if (character == ' ') {
         // don't draw whitespace
         return;

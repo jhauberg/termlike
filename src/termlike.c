@@ -479,20 +479,11 @@ term_print_character(struct buffer_offset const offset,
     location.y = (int32_t)(offset.y * state->scale);
     
     if (state->rotation == TERM_ROTATE_STRING) {
-        // transform coordinates by angled rotation
-        float const ty = sinf(state->radians);
-        float const tx = cosf(state->radians);
-        
-        float const x = (location.x * tx) - (location.y * ty);
-        float const y = (location.y * tx) - (location.x * ty);
-        
-        // offset by origin
-        location.x = state->origin.x + (int32_t)x;
-        location.y = state->origin.y + (int32_t)y;
+        rotate_point(location, state->origin, -state->radians,
+                     &location);
     } else {
-        // offset by origin
-        location.x = state->origin.x + location.x;
-        location.y = state->origin.y + location.y;
+        location.x += state->origin.x;
+        location.y += state->origin.y;
     }
     
     struct graphics_position position = {

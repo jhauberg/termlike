@@ -1,6 +1,12 @@
 #include <termlike/transform.h> // term_transform
 
+#include <termlike/position.h> // term_location
+
+#include "internal.h" // transform_point
+
 #include <stdint.h> // int32_t
+
+#include <linmath/linmath.h> // mat4x4
 
 struct term_transform const TERM_TRANSFORM_NONE = {
     .scale = SCALE(1),
@@ -40,4 +46,33 @@ transformed(float const scale,
         .angle = angle,
         .rotation = rotation
     };
+}
+
+void
+rotate_point(struct term_location const point,
+             struct term_location const origin,
+             float angle,
+             struct term_location * const location)
+{
+    mat4x4 translated;
+    mat4x4_translate(translated, origin.x, origin.y, 0);
+    
+    mat4x4 rotated;
+    mat4x4_identity(rotated);
+    mat4x4_rotate_Z(rotated, rotated, angle);
+    
+    mat4x4 transform;
+    mat4x4_mul(transform, translated, rotated);
+    
+    vec4 position = {
+        point.x,
+        point.y,
+        0, 1
+    };
+    
+    vec4 transformed_point;
+    mat4x4_mul_vec4(transformed_point, transform, position);
+    
+    location->x = (int32_t)transformed_point[0];
+    location->y = (int32_t)transformed_point[1];
 }

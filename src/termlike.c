@@ -254,9 +254,7 @@ term_printt(struct term_position const position,
             struct term_transform const transform,
             char const * const text)
 {
-    if (!buffer_copy(terminal.buffer, text)) {
-        return;
-    }
+    buffer_copy(terminal.buffer, text);
     
     // initialize a state for printing contents of the buffer;
     // this state will hold positional values for the upper-left origin
@@ -285,9 +283,7 @@ void
 term_count(char const * const text,
            size_t * const length)
 {
-    if (!buffer_copy(terminal.buffer, text)) {
-        return;
-    }
+    buffer_copy(terminal.buffer, text);
     
     // initialize a state for counting number of printable characters
     struct term_state_count state;
@@ -304,9 +300,7 @@ term_measure(char const * const text,
              int32_t * const width,
              int32_t * const height)
 {
-    if (!buffer_copy(terminal.buffer, text)) {
-        return;
-    }
+    buffer_copy(terminal.buffer, text);
     
     // initialize a state for measuring contents of the buffer;
     // this state will hold the smallest possible bounding box that

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdint.h> // int32_t
-#include <stdbool.h> // bool
 
 struct buffer;
 
@@ -38,9 +37,9 @@ void buffer_release(struct buffer *);
  * Before copying, the string is validated against buffer limitations.
  * If valid, the string is copied and the buffer is zero-padded appropriately.
  *
- * Return true if string was copied, false otherwise.
+ * If the string exceeds buffer limits, the string is only partially copied.
  */
-bool buffer_copy(struct buffer *, char const *);
+void buffer_copy(struct buffer *, char const *);
 
 /**
  * Run through all printable characters in a buffer and issue a

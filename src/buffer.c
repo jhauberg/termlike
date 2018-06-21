@@ -2,7 +2,6 @@
 
 #include <stdlib.h> // malloc, free
 #include <stdint.h> // uint32_t, int32_t
-#include <stdbool.h> // bool
 
 #include <string.h> // strncpy, strlen, memset
 
@@ -19,7 +18,7 @@
  *
  * This value must be at least 1 higher than the amount of required padding.
  */
-#define BUFFER_SIZE_MAX 128
+#define BUFFER_SIZE_MAX 256
 /**
  * The maximum length of a printed string.
  */
@@ -48,23 +47,21 @@ buffer_release(struct buffer * const buffer)
     free(buffer);
 }
 
-bool
+void
 buffer_copy(struct buffer * const buffer, char const * const text)
 {
-    size_t const lenght = strlen(text);
+    size_t length = strlen(text);
     
-    if (lenght >= MAX_TEXT_LENGTH) {
-        return false;
+    if (length >= MAX_TEXT_LENGTH) {
+        length = MAX_TEXT_LENGTH;
     }
     
-    strncpy(buffer->text, text, lenght);
+    strncpy(buffer->text, text, length);
     
     for (uint16_t i = 0; i < BUFFER_PADDING; i++) {
         // null-terminate the buffer and add padding (utf8 decoding)
-        buffer->text[lenght + i] = '\0';
+        buffer->text[length + i] = '\0';
     }
-    
-    return true;
 }
 
 void

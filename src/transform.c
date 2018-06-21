@@ -5,7 +5,7 @@
 struct term_transform const TERM_TRANSFORM_NONE = {
     .scale = SCALE(1),
     .angle = ANGLE(0),
-    .rotation = TERM_ROTATE_UNIFORMLY
+    .rotation = TERM_ROTATE_STRING
 };
 
 struct term_transform

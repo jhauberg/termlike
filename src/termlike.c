@@ -476,7 +476,7 @@ term_print_character(struct buffer_offset const offset,
     location.x = (int32_t)(offset.x * state->scale);
     location.y = (int32_t)(offset.y * state->scale);
     
-    if (state->rotation == TERM_ROTATE_UNIFORMLY) {
+    if (state->rotation == TERM_ROTATE_STRING) {
         // transform coordinates by angled rotation
         float const ty = sinf(state->radians);
         float const tx = cosf(state->radians);

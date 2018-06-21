@@ -7,13 +7,13 @@
 
 enum term_rotate {
     /**
-     * Apply rotation to individual characters and the text as a whole.
+     * Apply rotation to the string as a whole.
      */
-    TERM_ROTATE_UNIFORMLY,
+    TERM_ROTATE_STRING,
     /**
-     * Apply rotation only to individual characters; not the text as a whole.
+     * Apply rotation only to individual characters; not the string as a whole.
      */
-    TERM_ROTATE_SINGLY
+    TERM_ROTATE_CHARACTERS
 };
 
 struct term_transform {

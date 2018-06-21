@@ -1,8 +1,7 @@
 #include <termlike/termlike.h> // term_*
 #include <termlike/position.h> // term_location, term_position
-#include <termlike/layer.h> // term_layer :completeness
 #include <termlike/transform.h> // term_transform
-#include <termlike/config.h> // term_settings, term_size
+#include <termlike/config.h> // term_settings
 #include <termlike/input.h> // term_key, term_cursor_state
 
 #include <stdlib.h> // NULL
@@ -76,12 +75,6 @@ static void term_invalidate(void);
 static void term_handle_internal_input(void);
 
 static void term_toggle_fullscreen(void);
-
-static void term_get_display_size(enum term_size,
-                                  struct window_size *);
-static void term_get_display_params(struct term_settings,
-                                    struct window_size,
-                                    struct window_params *);
 
 /**
  * Print a character at an offset.
@@ -560,38 +553,4 @@ term_callback_font_loaded(struct graphics_image const image)
     font.size = IBM8x8_CELL_SIZE;
     
     graphics_set_font(terminal.graphics, image, font);
-}
-
-static
-void
-term_get_display_params(struct term_settings const settings,
-                        struct window_size const resolution,
-                        struct window_params * const params)
-{
-    params->title = settings.title != NULL ? settings.title : "";
-    params->pixel_size = settings.pixel_size > 0 ? settings.pixel_size : 1;
-    params->swap_interval = settings.vsync ? 1 : 0;
-    params->fullscreen = settings.fullscreen;
-    params->hide_cursor = true;
-    
-    params->display.width = resolution.width * params->pixel_size;
-    params->display.height = resolution.height * params->pixel_size;
-}
-
-static
-void
-term_get_display_size(enum term_size const size,
-                      struct window_size * const display)
-{
-    switch (size) {
-        case TERM_SIZE_320: {
-            display->width = 320;
-            display->height = 240;
-        } break;
-            
-        default: {
-            display->width = 0;
-            display->height = 0;
-        } break;
-    }
 }

@@ -25,15 +25,4 @@ struct term_settings {
     bool vsync;
 };
 
-static inline
-struct term_settings
-defaults(char const * const title)
-{
-    return (struct term_settings) {
-        .title = title,
-        .size = TERM_SIZE_320,
-        .pixel_size = 1,
-        .fullscreen = false,
-        .vsync = true
-    };
-}
+struct term_settings defaults(char const * title);

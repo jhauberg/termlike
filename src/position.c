@@ -1,4 +1,4 @@
-#include <termlike/position.h> // term_location :completeness, term_position
+#include <termlike/position.h> // term_position, positioned*
 
 struct term_position
 positioned(int32_t const x, int32_t const y)

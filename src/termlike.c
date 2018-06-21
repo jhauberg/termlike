@@ -183,6 +183,15 @@ term_set_ticking(term_tick_callback * const tick_func)
 }
 
 void
+term_get_display(int32_t * const width, int32_t * const height)
+{
+    struct viewport const viewport = graphics_get_viewport(terminal.graphics);
+    
+    *width = viewport.resolution.width;
+    *height = viewport.resolution.height;
+}
+
+void
 term_run(uint16_t const frequency)
 {
     struct window_context * const window = terminal.window;

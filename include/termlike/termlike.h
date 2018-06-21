@@ -25,6 +25,8 @@ void term_set_closing(bool close);
 void term_set_drawing(term_draw_callback *);
 void term_set_ticking(term_tick_callback *);
 
+void term_get_display(int32_t * width, int32_t * height);
+
 void term_run(uint16_t frequency);
 
 void term_print(struct term_position,
@@ -35,11 +37,8 @@ void term_printt(struct term_position,
                  struct term_transform,
                  char const * text);
 
-void term_count(char const * text,
-                size_t * length);
-void term_measure(char const * text,
-                  int32_t * width,
-                  int32_t * height);
+void term_count(char const * text, size_t * length);
+void term_measure(char const * text, int32_t * width, int32_t * height);
 
 bool term_key_down(enum term_key);
 bool term_key_pressed(enum term_key);

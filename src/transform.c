@@ -2,7 +2,7 @@
 
 #include <termlike/position.h> // term_location
 
-#include "internal.h" // transform_point
+#include "internal.h" // rotate_point
 
 #include <stdint.h> // int32_t
 

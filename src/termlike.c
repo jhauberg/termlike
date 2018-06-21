@@ -8,7 +8,7 @@
 #include <stdint.h> // uint16_t, uint32_t, int32_t
 #include <stdbool.h> // bool
 
-#include <math.h> // sinf, cosf, M_PI
+#include <math.h> // M_PI
 
 #include "internal.h" // layer_z
 #include "buffer.h" // buffer, buffer_offset, buffer_dimens, buffer_*

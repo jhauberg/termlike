@@ -2,6 +2,8 @@
 
 #include <stdint.h> // int32_t
 
+#include "position.h" // term_location :completeness
+
 enum term_key {
     TERM_KEY_UP,
     TERM_KEY_DOWN,
@@ -20,12 +22,7 @@ struct term_cursor_scroll {
     double vertical;
 };
 
-struct term_cursor_location {
-    int32_t x;
-    int32_t y;
-};
-
 struct term_cursor_state {
     struct term_cursor_scroll scroll;
-    struct term_cursor_location location;
+    struct term_location location;
 };

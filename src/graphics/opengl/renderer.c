@@ -233,6 +233,12 @@ graphics_draw(struct graphics_context const * const context,
                context->font_texture_id);
 }
 
+struct graphics_font
+graphics_get_font(struct graphics_context const * const context)
+{
+    return context->font;
+}
+
 void
 graphics_set_font(struct graphics_context * const context,
                   struct graphics_image const image,

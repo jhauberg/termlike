@@ -43,6 +43,7 @@ void graphics_draw(struct graphics_context const *,
                    float scale,
                    uint32_t code);
 
+struct graphics_font graphics_get_font(struct graphics_context const *);
 void graphics_set_font(struct graphics_context *,
                        struct graphics_image,
                        struct graphics_font);

@@ -1,4 +1,4 @@
-#include "buffer.h"
+#include "buffer.h" // buffer, buffer_*
 
 #include <stdlib.h> // malloc, free
 #include <stdint.h> // uint32_t, int32_t
@@ -26,15 +26,12 @@
 
 struct buffer {
     char text[BUFFER_SIZE_MAX];
-    struct buffer_dimens dimensions;
 };
 
 struct buffer *
-buffer_init(struct buffer_dimens dimensions)
+buffer_init(void)
 {
     struct buffer * const buffer = malloc(sizeof(struct buffer));
-    
-    buffer->dimensions = dimensions;
     
     memset(buffer->text, '\0', sizeof(buffer->text));
     
@@ -65,22 +62,15 @@ buffer_copy(struct buffer * const buffer, char const * const text)
 }
 
 void
-buffer_characters(struct buffer const * const buffer,
-                  buffer_char_callback * const callback,
-                  void * const state)
+buffer_foreach(struct buffer const * const buffer,
+               buffer_char_callback * const callback,
+               void * const state)
 {
     char const * text_ptr = buffer->text;
     
     int32_t decoding_error;
     uint32_t character;
-    
-    int32_t x = 0;
-    
-    struct buffer_offset offset = {
-        .x = 0,
-        .y = 0
-    };
-    
+
     while (*text_ptr) {
         // decode and advance the text pointer
         text_ptr = utf8_decode(text_ptr, &character, &decoding_error);
@@ -91,15 +81,6 @@ buffer_characters(struct buffer const * const buffer,
             break;
         }
         
-        if (character == '\n') {
-            offset.y += buffer->dimensions.height;
-            offset.x = x;
-            
-            continue;
-        } else {
-            callback(offset, buffer->dimensions, character, state);
-        }
-        
-        offset.x += buffer->dimensions.width;
+        callback(character, state);
     }
 }

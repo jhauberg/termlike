@@ -5,7 +5,8 @@
 #include "layer.h" // term_layer :completeness
 
 struct term_location {
-    int32_t x, y;
+    int32_t x;
+    int32_t y;
 };
 
 struct term_position {

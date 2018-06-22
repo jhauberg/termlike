@@ -27,7 +27,7 @@ struct timer {
     double scale;
 };
 
-static double const maximum_frame_time = 1.0 / 4; // 4 frames per second
+static double const maximum_frame_time = 1.0 / 4;
 
 struct timer *
 timer_init(void)

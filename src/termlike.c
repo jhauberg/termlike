@@ -538,8 +538,6 @@ static
 void
 term_measure_character(uint32_t const character, void * const data)
 {
-    (void)character;
-    
     struct term_state_measure * const state = (struct term_state_measure *)data;
     
     // offset immediately

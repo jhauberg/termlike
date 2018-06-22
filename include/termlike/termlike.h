@@ -2,6 +2,7 @@
 
 #include <termlike/config.h> // term_settings :completeness
 #include <termlike/input.h> // term_key :completeness
+#include <termlike/bounds.h> // term_bounds :completeness
 #include <termlike/position.h> // term_position :completeness
 #include <termlike/transform.h> // term_transform :completeness
 #include <termlike/color.h> // term_color :completeness
@@ -31,14 +32,28 @@ void term_run(uint16_t frequency);
 
 void term_print(struct term_position,
                 struct term_color,
-                char const * text);
+                char const * characters);
 void term_printt(struct term_position,
                  struct term_color,
                  struct term_transform,
-                 char const * text);
+                 char const * characters);
 
-void term_count(char const * text, size_t * length);
-void term_measure(char const * text, int32_t * width, int32_t * height);
+void term_printstr(struct term_position,
+                   struct term_color,
+                   struct term_bounds,
+                   char const * text);
+void term_printstrt(struct term_position,
+                    struct term_color,
+                    struct term_bounds,
+                    struct term_transform,
+                    char const * text);
+
+void term_count(char const * characters, size_t * length);
+void term_measure(char const * characters, int32_t * width, int32_t * height);
+void term_measurestr(char const * text,
+                     struct term_bounds,
+                     int32_t * width,
+                     int32_t * height);
 
 bool term_key_down(enum term_key);
 bool term_key_pressed(enum term_key);

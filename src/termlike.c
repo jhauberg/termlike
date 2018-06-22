@@ -1,5 +1,6 @@
 #include <termlike/termlike.h> // term_*
 #include <termlike/position.h> // term_location, term_position
+#include <termlike/bounds.h> // term_bounds
 #include <termlike/transform.h> // term_transform
 #include <termlike/config.h> // term_settings
 #include <termlike/input.h> // term_key, term_cursor_state
@@ -11,7 +12,8 @@
 #include <math.h> // M_PI
 
 #include "internal.h" // layer_z
-#include "buffer.h" // buffer, buffer_offset, buffer_dimens, buffer_*
+#include "buffer.h" // buffer, buffer_*
+#include "cursor.h" // cursor, cursor_*
 #include "keys.h" // term_key_state
 
 #include "graphics/renderer.h" // graphics_context, graphics_*
@@ -29,15 +31,6 @@
 #include "resources/spritefont.8x8.h" // IBM8x8*
 
 /**
- * Provides values for accumulating the required dimensions of
- * printable characters in a buffer.
- */
-struct term_state_measure {
-    int32_t width;
-    int32_t height;
-};
-
-/**
  * Provides a count that can be accumulated for each printable character
  * in a buffer.
  */
@@ -46,12 +39,25 @@ struct term_state_count {
 };
 
 /**
+ * Provides values for accumulating the required dimensions of
+ * printable characters in a buffer.
+ */
+struct term_state_measure {
+    struct cursor cursor;
+    struct term_bounds bounds;
+    int32_t width;
+    int32_t height;
+};
+
+/**
  * Provides initial values for positioning and coloring of printable
  * characters in a buffer.
  */
 struct term_state_print {
     struct graphics_color tint;
+    struct cursor cursor;
     struct term_location origin;
+    struct term_bounds bounds;
     float z;
     float scale;
     float radians;
@@ -81,30 +87,21 @@ static void term_toggle_fullscreen(void);
  *
  * This function can be passed to a buffer as a character callback.
  */
-static void term_print_character(struct buffer_offset,
-                                 struct buffer_dimens,
-                                 uint32_t character,
-                                 void *);
+static void term_print_character(uint32_t character, void *);
 /**
  * Count a character in a buffer.
  *
  * This function can be passed to a buffer as a character callback.
  */
-static void term_count_character(struct buffer_offset,
-                                 struct buffer_dimens,
-                                 uint32_t character,
-                                 void *);
+static void term_count_character(uint32_t character, void *);
 /**
  * Measure a character at an offset.
  *
  * This function can be passed to a buffer as a character callback.
  */
-static void term_measure_character(struct buffer_offset,
-                                   struct buffer_dimens,
-                                   uint32_t character,
-                                   void *);
+static void term_measure_character(uint32_t character, void *);
 
-static void term_callback_font_loaded(struct graphics_image);
+static void term_load_font(struct graphics_image);
 
 static struct term_context terminal;
 
@@ -243,16 +240,35 @@ term_run(uint16_t const frequency)
 void
 term_print(struct term_position const position,
            struct term_color const color,
-           char const * const text)
+           char const * const characters)
 {
-    term_printt(position, color, TERM_TRANSFORM_NONE, text);
+    term_printstr(position, color, TERM_BOUNDS_NONE, characters);
 }
 
 void
 term_printt(struct term_position const position,
             struct term_color const color,
             struct term_transform const transform,
-            char const * const text)
+            char const * const characters)
+{
+    term_printstrt(position, color, TERM_BOUNDS_NONE, transform, characters);
+}
+
+void
+term_printstr(struct term_position const position,
+              struct term_color const color,
+              struct term_bounds const bounds,
+              char const * const text)
+{
+    term_printstrt(position, color, bounds, TERM_TRANSFORM_NONE, text);
+}
+
+void
+term_printstrt(struct term_position const position,
+               struct term_color const color,
+               struct term_bounds const bounds,
+               struct term_transform const transform,
+               char const * const text)
 {
     buffer_copy(terminal.buffer, text);
     
@@ -262,13 +278,19 @@ term_printt(struct term_position const position,
     // from these initial values
     struct term_state_print state;
     
+    struct graphics_font const font = graphics_get_font(terminal.graphics);
+    
+    cursor_start(&state.cursor, font.size, font.size);
+    
     state.origin = position.location;
+    state.bounds = bounds;
+    
     state.z = layer_z(position.layer);
     
     state.rotation = transform.rotation;
     state.radians = (float)((transform.angle * M_PI) / 180.0);
     state.scale = transform.scale;
-
+    
     state.tint = (struct graphics_color) {
         .r = color.r / 255.0f,
         .g = color.g / 255.0f,
@@ -276,7 +298,7 @@ term_printt(struct term_position const position,
         .a = color.a
     };
     
-    buffer_characters(terminal.buffer, term_print_character, &state);
+    buffer_foreach(terminal.buffer, term_print_character, &state);
 }
 
 void
@@ -290,15 +312,24 @@ term_count(char const * const text,
     
     state.count = 0;
     
-    buffer_characters(terminal.buffer, term_count_character, &state);
+    buffer_foreach(terminal.buffer, term_count_character, &state);
     
     *length = state.count;
 }
 
 void
-term_measure(char const * const text,
+term_measure(char const * const characters,
              int32_t * const width,
              int32_t * const height)
+{
+    term_measurestr(characters, TERM_BOUNDS_NONE, width, height);
+}
+
+void
+term_measurestr(char const * const text,
+                struct term_bounds const bounds,
+                int32_t * const width,
+                int32_t * const height)
 {
     buffer_copy(terminal.buffer, text);
     
@@ -307,10 +338,16 @@ term_measure(char const * const text,
     // can contain all would-be printed characters
     struct term_state_measure state;
     
+    struct graphics_font const font = graphics_get_font(terminal.graphics);
+    
+    cursor_start(&state.cursor, font.size, font.size);
+    
     state.width = 0;
     state.height = 0;
     
-    buffer_characters(terminal.buffer, term_measure_character, &state);
+    state.bounds = bounds;
+    
+    buffer_foreach(terminal.buffer, term_measure_character, &state);
     
     *width = state.width;
     *height = state.height;
@@ -396,15 +433,12 @@ term_setup(struct window_size const display)
         return false;
     }
  
-    terminal.buffer = buffer_init((struct buffer_dimens) {
-        IBM8x8_CELL_SIZE,
-        IBM8x8_CELL_SIZE
-    });
-    
+    terminal.buffer = buffer_init();
+
     terminal.draw_func = NULL;
     terminal.tick_func = NULL;
     
-    load_image_data(IBM8x8_FONT, IBM8x8_LENGTH, term_callback_font_loaded);
+    load_image_data(IBM8x8_FONT, IBM8x8_LENGTH, term_load_font);
     
     term_invalidate();
 #ifdef DEBUG
@@ -452,25 +486,15 @@ term_toggle_fullscreen(void)
 
 static
 void
-term_print_character(struct buffer_offset const offset,
-                     struct buffer_dimens const dimensions,
-                     uint32_t const character,
-                     void * const data)
+term_print_character(uint32_t const character, void * const data)
 {
-    (void)dimensions;
-    
-    if (character == ' ') {
-        // don't draw whitespace
-        return;
-    }
-    
     struct term_state_print * const state = (struct term_state_print *)data;
     
     struct term_location location;
     
     // scale up the offset vector so that characters are spaced as expected
-    location.x = (int32_t)(offset.x * state->scale);
-    location.y = (int32_t)(offset.y * state->scale);
+    location.x = (int32_t)(state->cursor.offset.x * state->scale);
+    location.y = (int32_t)(state->cursor.offset.y * state->scale);
     
     if (state->rotation == TERM_ROTATE_STRING) {
         rotate_point(location, state->origin, -state->radians,
@@ -494,17 +518,15 @@ term_print_character(struct buffer_offset const offset,
                   // and scaled
                   state->scale,
                   character);
+    
+    // offset after printing
+    cursor_advance(&state->cursor, character, state->bounds);
 }
 
 static
 void
-term_count_character(struct buffer_offset const offset,
-                     struct buffer_dimens const dimensions,
-                     uint32_t const character,
-                     void * const data)
+term_count_character(uint32_t const character, void * const data)
 {
-    (void)offset;
-    (void)dimensions;
     (void)character;
     
     struct term_state_count * const state = (struct term_state_count *)data;
@@ -514,17 +536,17 @@ term_count_character(struct buffer_offset const offset,
 
 static
 void
-term_measure_character(struct buffer_offset const offset,
-                       struct buffer_dimens const dimensions,
-                       uint32_t const character,
-                       void * const data)
+term_measure_character(uint32_t const character, void * const data)
 {
     (void)character;
     
     struct term_state_measure * const state = (struct term_state_measure *)data;
     
-    int32_t const right = offset.x + dimensions.width;
-    int32_t const bottom = offset.y + dimensions.height;
+    // offset immediately
+    cursor_advance(&state->cursor, character, state->bounds);
+    
+    int32_t const right = state->cursor.offset.x;
+    int32_t const bottom = state->cursor.offset.y;
     
     if (right > state->width) {
         state->width = right;
@@ -537,7 +559,7 @@ term_measure_character(struct buffer_offset const offset,
 
 static
 void
-term_callback_font_loaded(struct graphics_image const image)
+term_load_font(struct graphics_image const image)
 {
     struct graphics_font font;
     

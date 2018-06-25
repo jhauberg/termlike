@@ -8,6 +8,7 @@
 #include <stdlib.h> // NULL
 #include <stdint.h> // uint16_t, uint32_t, int32_t
 #include <stdbool.h> // bool
+#include <stdio.h> // sprintf
 
 #include <math.h> // M_PI
 
@@ -73,6 +74,10 @@ struct term_context {
     struct buffer * buffer;
     struct term_key_state keys;
     struct term_cursor_state cursor;
+#ifdef DEBUG
+    char profiling_buffer[64];
+    bool is_profiling;
+#endif
 };
 
 static bool term_setup(struct window_size);
@@ -80,6 +85,9 @@ static void term_invalidate(void);
 
 static void term_handle_internal_input(void);
 
+#ifdef DEBUG
+static void term_toggle_profiling(void);
+#endif
 static void term_toggle_fullscreen(void);
 
 /**
@@ -221,17 +229,62 @@ term_run(uint16_t const frequency)
     term_handle_internal_input();
     
 #ifdef DEBUG
-    profiler_begin(); {
+    if (terminal.is_profiling) {
+        // note that we're fetching stats from *previous* frame
+        // this is necessary to be certain that everything has flushed
+        // and counts are correct (includes profiling visuals)
+        struct profiler_stats stats = profiler_stats();
+        
+        sprintf(terminal.profiling_buffer,
+                "%d (%d)",
+                stats.frames_per_second_avg,
+                stats.draw_count);
+        
+        profiler_begin();
+    }
 #endif
         graphics_begin(terminal.graphics); {
             if (terminal.draw_func) {
                 terminal.draw_func(interpolate);
             }
+            
+#ifdef DEBUG
+            if (terminal.is_profiling) {
+                int32_t w, h;
+                
+                term_get_display(&w, &h);
+                
+                char const * const background = "█";
+                
+                int32_t cw, ch;
+                
+                term_measure(background, &cw, &ch);
+                
+                int32_t const columns = w / cw;
+                
+                for (int32_t i = 0; i < columns; i++) {
+                    term_print(positionedz(i * cw, h-ch, layered_below(TERM_LAYER_TOP)),
+                               colored(255, 255, 225),
+                               background);
+                }
+                
+                term_printstr(positionedz(0, h-ch+1, TERM_LAYER_TOP),
+                              colored(55, 55, 55), TERM_BOUNDS_NONE,
+                              "` to disable");
+                
+                term_measurestr(terminal.profiling_buffer, TERM_BOUNDS_NONE, &cw, &ch);
+                
+                term_printstr(positionedz(w - cw, h-ch+1, TERM_LAYER_TOP),
+                              colored(55, 55, 55), TERM_BOUNDS_NONE,
+                              terminal.profiling_buffer);
+            }
+#endif
         }
         graphics_end(terminal.graphics);
 #ifdef DEBUG
+    if (terminal.is_profiling) {
+        profiler_end();
     }
-    profiler_end();
 #endif
     
     window_present(window);
@@ -442,6 +495,8 @@ term_setup(struct window_size const display)
     
     term_invalidate();
 #ifdef DEBUG
+    terminal.is_profiling = false;
+    
     profiler_reset();
 #endif
     return true;
@@ -467,6 +522,12 @@ term_handle_internal_input(void)
     if (term_key_released((enum term_key)TERM_KEY_TOGGLE_FULLSCREEN)) {
         term_toggle_fullscreen();
     }
+
+#ifdef DEBUG
+    if (term_key_pressed((enum term_key)TERM_KEY_TOGGLE_PROFILING)) {
+        term_toggle_profiling();
+    }
+#endif
 }
 
 static
@@ -483,7 +544,14 @@ term_toggle_fullscreen(void)
     // when switching between fullscreen/windowed
     term_invalidate();
 }
-
+#ifdef DEBUG
+static
+void
+term_toggle_profiling(void)
+{
+    terminal.is_profiling = !terminal.is_profiling;
+}
+#endif
 static
 void
 term_print_character(uint32_t const character, void * const data)

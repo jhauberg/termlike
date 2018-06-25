@@ -343,7 +343,7 @@ term_measurestr(char const * const text,
     cursor_start(&state.cursor, font.size, font.size);
     
     state.width = 0;
-    state.height = 0;
+    state.height = state.cursor.height;
     
     state.bounds = bounds;
     

@@ -6,7 +6,7 @@
 #include <termlike/input.h> // term_key, term_cursor_state
 
 #include <stdlib.h> // NULL
-#include <stdint.h> // uint16_t, uint32_t, int32_t
+#include <stdint.h> // uint16_t, uint32_t, int32_t, size_t
 #include <stdbool.h> // bool
 #include <stdio.h> // sprintf
 
@@ -316,6 +316,21 @@ term_printstr(struct term_position const position,
     term_printstrt(position, color, bounds, TERM_TRANSFORM_NONE, text);
 }
 
+static
+void
+term_wrap_buffer_if_needed(struct term_bounds const bounds)
+{
+    struct graphics_font const font = graphics_get_font(terminal.graphics);
+    
+    if (bounds.width != TERM_BOUNDS_UNBOUNDED) {
+        if (bounds.wrap == TERM_WRAP_WORDS) {
+            size_t const limit = (size_t)(bounds.width / font.size);
+
+            buffer_wrap(terminal.buffer, limit);
+        }
+    }
+}
+
 void
 term_printstrt(struct term_position const position,
                struct term_color const color,
@@ -324,6 +339,8 @@ term_printstrt(struct term_position const position,
                char const * const text)
 {
     buffer_copy(terminal.buffer, text);
+    
+    term_wrap_buffer_if_needed(bounds);
     
     // initialize a state for printing contents of the buffer;
     // this state will hold positional values for the upper-left origin
@@ -386,6 +403,8 @@ term_measurestr(char const * const text,
 {
     buffer_copy(terminal.buffer, text);
     
+    term_wrap_buffer_if_needed(bounds);
+    
     // initialize a state for measuring contents of the buffer;
     // this state will hold the smallest possible bounding box that
     // can contain all would-be printed characters
@@ -396,7 +415,7 @@ term_measurestr(char const * const text,
     cursor_start(&state.cursor, font.size, font.size);
     
     state.width = 0;
-    state.height = state.cursor.height;
+    state.height = 0;
     
     state.bounds = bounds;
     
@@ -564,6 +583,20 @@ term_print_character(uint32_t const character, void * const data)
     location.x = (int32_t)(state->cursor.offset.x * state->scale);
     location.y = (int32_t)(state->cursor.offset.y * state->scale);
     
+    // advance cursor for the next character
+    cursor_advance(&state->cursor, state->bounds, character);
+
+    if (character == '\n' ||
+        character == ' ') {
+        // don't print stuff we don't need to
+        return;
+    }
+
+    if (cursor_is_out_of_bounds(&state->cursor, state->bounds)) {
+        // don't draw anything out of bounds
+        return;
+    }
+    
     if (state->rotation == TERM_ROTATE_STRING) {
         rotate_point(location, state->origin, -state->radians,
                      &location);
@@ -586,9 +619,6 @@ term_print_character(uint32_t const character, void * const data)
                   // and scaled
                   state->scale,
                   character);
-    
-    // offset after printing
-    cursor_advance(&state->cursor, character, state->bounds);
 }
 
 static
@@ -607,12 +637,16 @@ void
 term_measure_character(uint32_t const character, void * const data)
 {
     struct term_state_measure * const state = (struct term_state_measure *)data;
+
+    cursor_advance(&state->cursor, state->bounds, character);
     
-    // offset immediately
-    cursor_advance(&state->cursor, character, state->bounds);
+    if (cursor_is_out_of_bounds(&state->cursor, state->bounds)) {
+        // don't measure further than the specified bounds
+        return;
+    }
     
     int32_t const right = state->cursor.offset.x;
-    int32_t const bottom = state->cursor.offset.y;
+    int32_t const bottom = state->cursor.offset.y + state->cursor.height;
     
     if (right > state->width) {
         state->width = right;

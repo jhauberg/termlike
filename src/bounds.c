@@ -2,8 +2,8 @@
 
 struct term_bounds const TERM_BOUNDS_NONE = {
     .wrap = TERM_WRAP_CHARACTERS,
-    .width = 0,
-    .height = 0
+    .width = TERM_BOUNDS_UNBOUNDED,
+    .height = TERM_BOUNDS_UNBOUNDED
 };
 
 struct term_bounds

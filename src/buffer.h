@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h> // int32_t, uint32_t
+#include <stdint.h> // int32_t, uint32_t, size_t
 
 struct buffer;
 
@@ -29,6 +29,13 @@ void buffer_release(struct buffer *);
  * If the string exceeds buffer limits, the string is only partially copied.
  */
 void buffer_copy(struct buffer *, char const *);
+/**
+ * Apply word-wrapping to the text contents of a buffer.
+ *
+ * This function will alter the contents of the buffer by replacing whitespaces
+ * with linebreaks in cases where wrapping is required.
+ */
+void buffer_wrap(struct buffer *, size_t limit);
 
 /**
  * Run through all printable characters in a buffer and issue a

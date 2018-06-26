@@ -13,6 +13,8 @@ struct term_bounds {
     int32_t height;
 };
 
+#define TERM_BOUNDS_UNBOUNDED (0)
+
 extern struct term_bounds const TERM_BOUNDS_NONE;
 
 struct term_bounds bounded(int32_t width, int32_t height);

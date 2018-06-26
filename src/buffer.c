@@ -62,18 +62,82 @@ buffer_copy(struct buffer * const buffer, char const * const text)
 }
 
 void
+buffer_wrap(struct buffer * const buffer, size_t const limit)
+{
+    size_t num_characters = 0;
+    
+    int32_t decoding_error;
+    uint32_t character;
+    
+    char * next = buffer->text;
+    
+    while (*next) {
+        char * previous = next;
+        
+        next = utf8_decode(next, &character, &decoding_error);
+        
+        if (decoding_error != 0) {
+            // error
+            
+            break;
+        }
+        
+        // we successfully read one character from the buffer
+        num_characters += 1;
+        
+        if (character == '\n') {
+            // we hit an explicit linebreak,
+            // so we can assume that a new line starts here
+            num_characters = 0;
+        }
+
+        if (num_characters < limit) {
+            // we've not yet reached the limit for number of characters per line
+            // so we just continue with reading the next character
+            continue;
+        }
+        
+        // we've reached the limit for number of characters per line,
+        // so backtrack to find a previous whitespace where we can break
+        // note that in a case where no available whitespace can be found,
+        // no breaks will be inserted
+        while (*previous) {
+            if (*previous == ' ') {
+                // and replace it with a line break
+                *previous = '\n';
+                
+                // make sure to begin the next line from this point
+                // we can be sure that this is not "mid-character" for
+                // larger-sized characters, because we specifically found
+                // the whitespace
+                next = previous;
+                
+                break;
+            }
+            
+            // note that we're decrementing by a single byte at a time,
+            // and *not* by 1 character (because each character may be up to
+            // 4 bytes long); in this case, it doesn't matter, because we're
+            // looking for a specific single-byte character: the whitespace
+            previous--;
+        }
+    }
+}
+
+void
 buffer_foreach(struct buffer const * const buffer,
                buffer_char_callback * const callback,
                void * const state)
 {
-    char const * text_ptr = buffer->text;
-    
     int32_t decoding_error;
     uint32_t character;
-
-    while (*text_ptr) {
+    
+    // remove constness to iterate through the buffer
+    char * next = ((struct buffer *)buffer)->text;
+    
+    while (*next) {
         // decode and advance the text pointer
-        text_ptr = utf8_decode(text_ptr, &character, &decoding_error);
+        next = utf8_decode(next, &character, &decoding_error);
         
         if (decoding_error != 0) {
             // error

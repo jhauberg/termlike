@@ -10,7 +10,54 @@ draw(double const interp)
 {
     (void)interp;
     
-    term_print(positioned(2, 2), TERM_COLOR_WHITE, "Hello.");
+    // determine display resolution
+    int32_t w, h;
+    
+    term_get_display(&w, &h);
+    
+    // measure to determine dimensions of any single character
+    int32_t cw, ch;
+    
+    term_measure("A", &cw, &ch);
+    
+    // print a long text, padded to the border of the display
+    char const * const message =
+    "Hello.\n\n"
+    "This example program shows you how to print regular text (like this).\n\n"
+    "Long texts are wrapped when reaching boundaries (if any), either by "
+    "words or individual characters.\n\n"
+    "Any text that exceeds the internal buffer will be cut short.\n\n"
+    "Like thiiis right here!";
+    
+    // define boundaries so the text will wrap inside the display
+    struct term_bounds bounds;
+    
+    int32_t pad_x = cw / 2;
+    int32_t pad_y = ch / 2;
+    
+    bounds = bounded(w - (pad_x * 2),
+                     (h / 2) - (pad_y * 2));
+    
+    // characters exceeding boundaries will be wrapped to the next line
+    bounds.wrap = TERM_WRAP_CHARACTERS;
+    
+    term_printstr(positioned(pad_x, pad_y),
+                  colored(255, 255, 255),
+                  bounds,
+                  message);
+
+    // measure size of the printed text
+    int32_t tw, th;
+    
+    term_measurestr(message, bounds, &tw, &th);
+    
+    // words exceeding boundaries will be wrapped to the next line
+    bounds.wrap = TERM_WRAP_WORDS;
+    
+    term_printstr(positioned(pad_x, pad_y + th + ch * 2),
+                  colored(255, 255, 225),
+                  bounds,
+                  message);
 }
 
 int32_t

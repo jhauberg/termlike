@@ -85,6 +85,11 @@ static void term_invalidate(void);
 
 static void term_handle_internal_input(void);
 
+/**
+ * Copy a string to the internal buffer and apply wrapping.
+ */
+static void term_buffer_str(char const * text, struct term_bounds);
+
 #ifdef DEBUG
 static void term_toggle_profiling(void);
 #endif
@@ -316,21 +321,6 @@ term_printstr(struct term_position const position,
     term_printstrt(position, color, bounds, TERM_TRANSFORM_NONE, text);
 }
 
-static
-void
-term_wrap_buffer_if_needed(struct term_bounds const bounds)
-{
-    struct graphics_font const font = graphics_get_font(terminal.graphics);
-    
-    if (bounds.width != TERM_BOUNDS_UNBOUNDED) {
-        if (bounds.wrap == TERM_WRAP_WORDS) {
-            size_t const limit = (size_t)(bounds.width / font.size);
-
-            buffer_wrap(terminal.buffer, limit);
-        }
-    }
-}
-
 void
 term_printstrt(struct term_position const position,
                struct term_color const color,
@@ -338,9 +328,7 @@ term_printstrt(struct term_position const position,
                struct term_transform const transform,
                char const * const text)
 {
-    buffer_copy(terminal.buffer, text);
-    
-    term_wrap_buffer_if_needed(bounds);
+    term_buffer_str(text, bounds);
     
     // initialize a state for printing contents of the buffer;
     // this state will hold positional values for the upper-left origin
@@ -401,9 +389,7 @@ term_measurestr(char const * const text,
                 int32_t * const width,
                 int32_t * const height)
 {
-    buffer_copy(terminal.buffer, text);
-    
-    term_wrap_buffer_if_needed(bounds);
+    term_buffer_str(text, bounds);
     
     // initialize a state for measuring contents of the buffer;
     // this state will hold the smallest possible bounding box that
@@ -571,6 +557,24 @@ term_toggle_profiling(void)
     terminal.is_profiling = !terminal.is_profiling;
 }
 #endif
+
+static
+void
+term_buffer_str(char const * const text, struct term_bounds const bounds)
+{
+    buffer_copy(terminal.buffer, text);
+    
+    struct graphics_font const font = graphics_get_font(terminal.graphics);
+    
+    if (bounds.width != TERM_BOUNDS_UNBOUNDED) {
+        if (bounds.wrap == TERM_WRAP_WORDS) {
+            size_t const limit = (size_t)(bounds.width / font.size);
+            
+            buffer_wrap(terminal.buffer, limit);
+        }
+    }
+}
+
 static
 void
 term_print_character(uint32_t const character, void * const data)
@@ -580,6 +584,7 @@ term_print_character(uint32_t const character, void * const data)
     struct term_location location;
     
     // scale up the offset vector so that characters are spaced as expected
+    // (note that we grab location before advancing the cursor)
     location.x = (int32_t)(state->cursor.offset.x * state->scale);
     location.y = (int32_t)(state->cursor.offset.y * state->scale);
     

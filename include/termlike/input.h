@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdint.h> // int32_t
-
 #include "position.h" // term_location :completeness
 
 enum term_key {

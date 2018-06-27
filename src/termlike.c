@@ -10,6 +10,8 @@
 #include <stdbool.h> // bool
 #include <stdio.h> // sprintf
 
+#include <assert.h> // assert
+
 #include <math.h> // M_PI, floorf
 
 #include "internal.h" // layer_z
@@ -341,6 +343,9 @@ term_printstrt(struct term_position const position,
                struct term_transform const transform,
                char const * const text)
 {
+    // only allow prints during frames (e.g. between graphics_begin/end)
+    assert(graphics_is_started(terminal.graphics));
+    
     term_buffer_str(text, bounds);
     
     // initialize a state for measuring line widths

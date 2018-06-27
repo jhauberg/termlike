@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h> // uint8_t, int32_t
+#include <stdbool.h> // bool
 
 struct graphics_image {
     int32_t width;
@@ -33,8 +34,10 @@ struct graphics_context * graphics_init(struct viewport);
 
 void graphics_release(struct graphics_context *);
 
-void graphics_begin(struct graphics_context const *);
+void graphics_begin(struct graphics_context *);
 void graphics_end(struct graphics_context *);
+
+bool graphics_is_started(struct graphics_context const *);
 
 void graphics_draw(struct graphics_context const *,
                    struct graphics_color,

@@ -6,6 +6,7 @@
 
 #include <stdio.h> // fprintf
 #include <stdlib.h> // malloc, free
+#include <stdbool.h> // bool
 
 #include <gl3w/GL/gl3w.h> // gl*, GL*
 
@@ -29,6 +30,7 @@ struct graphics_context {
     struct color bars;
     struct viewport viewport;
     GLuint font_texture_id;
+    bool is_started;
 };
 
 static void graphics_process_errors(void);
@@ -64,7 +66,7 @@ graphics_release(struct graphics_context * const context)
 }
 
 void
-graphics_begin(struct graphics_context const * const context)
+graphics_begin(struct graphics_context * const context)
 {
     int32_t const width = context->viewport.resolution.width;
     int32_t const height = context->viewport.resolution.height;
@@ -76,6 +78,8 @@ graphics_begin(struct graphics_context const * const context)
                      context->clear.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
+    
+    context->is_started = true;
 }
 
 void
@@ -107,6 +111,14 @@ graphics_end(struct graphics_context * const context)
     }
     
     graphics_process_errors();
+    
+    context->is_started = false;
+}
+
+bool
+graphics_is_started(struct graphics_context const * const context)
+{
+    return context->is_started;
 }
 
 void
@@ -300,6 +312,8 @@ graphics_setup(struct graphics_context * const context)
     context->font_texture_id = 0;
     
     context->batch = glyphs_init(context->viewport);
+    
+    context->is_started = false;
 }
 
 static

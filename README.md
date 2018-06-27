@@ -8,6 +8,14 @@ The name *Termlike* is in reference to the [*Roguelike*](https://en.wikipedia.or
 
 Termlike is written entirely in **C99** and requires **OpenGL 3.3 (Core Profile)**.
 
+<img src="assets/screenshot.png" width="432" height="374">
+
+### Limitations
+
+Termlike *only* supports the 256 glyphs defined by [Codepage 437](https://en.wikipedia.org/wiki/Code_page_437), and provides a built-in font that resembles the one found on the original [IBM PC](https://en.wikipedia.org/wiki/IBM_PC).
+
+There is no support for custom fonts or tiles. This is by design.
+
 ## Usage
 
 Termlike is intended as a static library (`libterm.a`) that you link into your program.

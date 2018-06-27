@@ -1,6 +1,6 @@
 #include <termlike/termlike.h> // term_*
 #include <termlike/position.h> // term_location, term_position
-#include <termlike/bounds.h> // term_bounds
+#include <termlike/bounds.h> // term_bounds, aligned, TERM_ALIGN_*, TERM_WRAP_*
 #include <termlike/transform.h> // term_transform
 #include <termlike/config.h> // term_settings
 #include <termlike/input.h> // term_key, term_cursor_state
@@ -10,7 +10,7 @@
 #include <stdbool.h> // bool
 #include <stdio.h> // sprintf
 
-#include <math.h> // M_PI
+#include <math.h> // M_PI, floorf
 
 #include "internal.h" // layer_z
 #include "buffer.h" // buffer, buffer_*
@@ -39,6 +39,10 @@ struct term_state_count {
     size_t count;
 };
 
+struct term_lines {
+    int32_t widths[256]; // todo: MAX_BUFFER_SIZE
+};
+
 /**
  * Provides values for accumulating the required dimensions of
  * printable characters in a buffer.
@@ -46,8 +50,7 @@ struct term_state_count {
 struct term_state_measure {
     struct cursor cursor;
     struct term_bounds bounds;
-    int32_t width;
-    int32_t height;
+    struct term_lines lines;
 };
 
 /**
@@ -59,6 +62,7 @@ struct term_state_print {
     struct cursor cursor;
     struct term_location origin;
     struct term_bounds bounds;
+    struct term_lines lines;
     float z;
     float scale;
     float radians;
@@ -108,7 +112,7 @@ static void term_print_character(uint32_t character, void *);
  */
 static void term_count_character(uint32_t character, void *);
 /**
- * Measure a character at an offset.
+ * Measure a character in a buffer.
  *
  * This function can be passed to a buffer as a character callback.
  */
@@ -268,19 +272,20 @@ term_run(uint16_t const frequency)
                 int32_t const columns = w / cw;
                 
                 for (int32_t i = 0; i < columns; i++) {
-                    term_print(positionedz(i * cw, h-ch, layered_below(TERM_LAYER_TOP)),
+                    term_print(positionedz(i * cw, h-ch,
+                                           layered_below(TERM_LAYER_TOP)),
                                colored(255, 255, 225),
                                background);
                 }
                 
                 term_printstr(positionedz(0, h-ch+1, TERM_LAYER_TOP),
-                              colored(55, 55, 55), TERM_BOUNDS_NONE,
+                              colored(55, 55, 55),
+                              aligned(TERM_ALIGN_LEFT),
                               "` to disable");
-                
-                term_measurestr(terminal.profiling_buffer, TERM_BOUNDS_NONE, &cw, &ch);
-                
-                term_printstr(positionedz(w - cw, h-ch+1, TERM_LAYER_TOP),
-                              colored(55, 55, 55), TERM_BOUNDS_NONE,
+
+                term_printstr(positionedz(w, h-ch+1, TERM_LAYER_TOP),
+                              colored(55, 55, 55),
+                              aligned(TERM_ALIGN_RIGHT),
                               terminal.profiling_buffer);
             }
 #endif
@@ -300,7 +305,9 @@ term_print(struct term_position const position,
            struct term_color const color,
            char const * const characters)
 {
-    term_printstr(position, color, TERM_BOUNDS_NONE, characters);
+    term_printt(position, color,
+                TERM_TRANSFORM_NONE,
+                characters);
 }
 
 void
@@ -309,7 +316,10 @@ term_printt(struct term_position const position,
             struct term_transform const transform,
             char const * const characters)
 {
-    term_printstrt(position, color, TERM_BOUNDS_NONE, transform, characters);
+    term_printstrt(position, color,
+                   TERM_BOUNDS_NONE,
+                   transform,
+                   characters);
 }
 
 void
@@ -318,7 +328,10 @@ term_printstr(struct term_position const position,
               struct term_bounds const bounds,
               char const * const text)
 {
-    term_printstrt(position, color, bounds, TERM_TRANSFORM_NONE, text);
+    term_printstrt(position, color,
+                   bounds,
+                   TERM_TRANSFORM_NONE,
+                   text);
 }
 
 void
@@ -330,17 +343,28 @@ term_printstrt(struct term_position const position,
 {
     term_buffer_str(text, bounds);
     
+    // initialize a state for measuring line widths
+    // this is needed to be able to align lines horizontally
+    struct term_state_measure measure;
+    
+    struct graphics_font const font = graphics_get_font(terminal.graphics);
+    
+    cursor_start(&measure.cursor, font.size, font.size);
+    
+    measure.bounds = bounds;
+    
+    buffer_foreach(terminal.buffer, term_measure_character, &measure);
+    
     // initialize a state for printing contents of the buffer;
     // this state will hold positional values for the upper-left origin
     // of the string of characters; each character is drawn at an offset
     // from these initial values
     struct term_state_print state;
     
-    struct graphics_font const font = graphics_get_font(terminal.graphics);
-    
     cursor_start(&state.cursor, font.size, font.size);
     
     state.origin = position.location;
+    state.lines = measure.lines;
     state.bounds = bounds;
     
     state.z = layer_z(position.layer);
@@ -363,13 +387,12 @@ void
 term_count(char const * const text,
            size_t * const length)
 {
-    buffer_copy(terminal.buffer, text);
-    
     // initialize a state for counting number of printable characters
     struct term_state_count state;
     
     state.count = 0;
-    
+ 
+    buffer_copy(terminal.buffer, text);
     buffer_foreach(terminal.buffer, term_count_character, &state);
     
     *length = state.count;
@@ -391,24 +414,30 @@ term_measurestr(char const * const text,
 {
     term_buffer_str(text, bounds);
     
-    // initialize a state for measuring contents of the buffer;
-    // this state will hold the smallest possible bounding box that
-    // can contain all would-be printed characters
-    struct term_state_measure state;
+    // initialize a state for measuring the smallest bounding box that
+    // contains all lines of the text, and is within specified bounds
+    struct term_state_measure measure;
     
     struct graphics_font const font = graphics_get_font(terminal.graphics);
     
-    cursor_start(&state.cursor, font.size, font.size);
+    cursor_start(&measure.cursor, font.size, font.size);
     
-    state.width = 0;
-    state.height = 0;
+    measure.bounds = bounds;
     
-    state.bounds = bounds;
+    buffer_foreach(terminal.buffer, term_measure_character, &measure);
     
-    buffer_foreach(terminal.buffer, term_measure_character, &state);
+    int32_t const line_count = measure.cursor.breaks + 1;
     
-    *width = state.width;
-    *height = state.height;
+    *width = 0;
+    *height = line_count * measure.cursor.height;
+    
+    for (int32_t i = 0; i < line_count; i++) {
+        int32_t const line_width = measure.lines.widths[i];
+        
+        if (*width < line_width) {
+            *width = line_width;
+        }
+    }
 }
 
 bool
@@ -589,6 +618,8 @@ term_print_character(uint32_t const character, void * const data)
     location.y = (int32_t)(state->cursor.offset.y * state->scale);
     
     // advance cursor for the next character
+    int32_t const line_index = state->cursor.breaks;
+    
     cursor_advance(&state->cursor, state->bounds, character);
 
     if (character == '\n' ||
@@ -600,6 +631,12 @@ term_print_character(uint32_t const character, void * const data)
     if (cursor_is_out_of_bounds(&state->cursor, state->bounds)) {
         // don't draw anything out of bounds
         return;
+    }
+    
+    if (state->bounds.align == TERM_ALIGN_RIGHT) {
+        location.x -= state->lines.widths[line_index];
+    } else if (state->bounds.align == TERM_ALIGN_CENTER) {
+        location.x -= floorf(state->lines.widths[line_index] / 2);
     }
     
     if (state->rotation == TERM_ROTATE_STRING) {
@@ -643,23 +680,29 @@ term_measure_character(uint32_t const character, void * const data)
 {
     struct term_state_measure * const state = (struct term_state_measure *)data;
 
-    cursor_advance(&state->cursor, state->bounds, character);
-    
     if (cursor_is_out_of_bounds(&state->cursor, state->bounds)) {
         // don't measure further than the specified bounds
         return;
     }
     
-    int32_t const right = state->cursor.offset.x;
-    int32_t const bottom = state->cursor.offset.y + state->cursor.height;
+    int32_t const line_index = state->cursor.breaks;
     
-    if (right > state->width) {
-        state->width = right;
-    }
+    // apply line width immediately, before advancing the cursor
+    // (some lines might break immediately and advancing would increment
+    // the line index, causing the previous line width to be undefined)
+    state->lines.widths[line_index] = state->cursor.offset.x;
     
-    if (bottom > state->height) {
-        state->height = bottom;
+    cursor_advance(&state->cursor, state->bounds, character);
+    
+    if (character != '\n' && state->cursor.breaks != line_index) {
+        // a break was required, but not explicit, so pad previous line width
+        // (note this should only be a thing for character wrapped text)
+        state->lines.widths[line_index] += state->cursor.width;
     }
+  
+    // apply width again for the current line
+    // (it might be the same line, but it could also be the next one)
+    state->lines.widths[state->cursor.breaks] = state->cursor.offset.x;
 }
 
 static

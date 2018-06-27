@@ -38,11 +38,11 @@ draw(double const interp)
     bounds = bounded(w - (pad_x * 2),
                      (h / 2) - (pad_y * 2));
     
-    // characters exceeding boundaries will be wrapped to the next line
-    bounds.wrap = TERM_WRAP_CHARACTERS;
+    // words exceeding boundaries will be wrapped to the next line
+    bounds.wrap = TERM_WRAP_WORDS;
     
     term_printstr(positioned(pad_x, pad_y),
-                  colored(255, 255, 255),
+                  colored(255, 255, 225),
                   bounds,
                   message);
 
@@ -51,11 +51,11 @@ draw(double const interp)
     
     term_measurestr(message, bounds, &tw, &th);
     
-    // words exceeding boundaries will be wrapped to the next line
-    bounds.wrap = TERM_WRAP_WORDS;
+    // characters exceeding boundaries will be wrapped to the next line
+    bounds.wrap = TERM_WRAP_CHARACTERS;
     
     term_printstr(positioned(pad_x, pad_y + th + ch * 2),
-                  colored(255, 255, 225),
+                  colored(255, 255, 245),
                   bounds,
                   message);
 }

@@ -77,8 +77,6 @@ buffer_wrap(struct buffer * const buffer, size_t const limit)
         next = utf8_decode(next, &character, &decoding_error);
         
         if (decoding_error != 0) {
-            // error
-            
             break;
         }
         

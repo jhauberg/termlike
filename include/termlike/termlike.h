@@ -49,6 +49,7 @@ void term_printstrt(struct term_position,
                     char const * text);
 
 void term_count(char const * characters, size_t * amount);
+
 void term_measure(char const * characters, int32_t * width, int32_t * height);
 void term_measurestr(char const * text,
                      struct term_bounds,

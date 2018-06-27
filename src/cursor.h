@@ -9,6 +9,7 @@ struct cursor {
     struct term_location offset;
     int32_t width;
     int32_t height;
+    int32_t breaks;
 };
 
 struct term_bounds;

@@ -18,6 +18,8 @@ cursor_start(struct cursor * const cursor,
     
     cursor->width = width;
     cursor->height = height;
+    
+    cursor->breaks = 0;
 }
 
 void
@@ -73,4 +75,6 @@ cursor_break(struct cursor * const cursor)
 {
     cursor->offset.y += cursor->height;
     cursor->offset.x = 0;
+    
+    cursor->breaks += 1;
 }

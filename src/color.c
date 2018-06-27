@@ -21,14 +21,14 @@ colored(uint8_t const red,
       uint8_t const green,
       uint8_t const blue)
 {
-    return colored_transparency(red, green, blue, 1);
+    return transparent(red, green, blue, 1);
 }
 
 struct term_color
-colored_transparency(uint8_t const red,
-                     uint8_t const green,
-                     uint8_t const blue,
-                     float const alpha)
+transparent(uint8_t const red,
+            uint8_t const green,
+            uint8_t const blue,
+            float const alpha)
 {
     return (struct term_color) {
         .r = red,

@@ -19,7 +19,7 @@ struct term_color colored(uint8_t red,
 /**
  * Return a transparent color.
  */
-struct term_color colored_transparency(uint8_t red,
-                                       uint8_t green,
-                                       uint8_t blue,
-                                       float alpha);
+struct term_color transparent(uint8_t red,
+                              uint8_t green,
+                              uint8_t blue,
+                              float alpha);

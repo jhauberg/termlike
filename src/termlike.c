@@ -96,9 +96,6 @@ static void term_handle_internal_input(void);
  */
 static void term_buffer_str(char const * text, struct term_bounds);
 
-#ifdef DEBUG
-static void term_toggle_profiling(void);
-#endif
 static void term_toggle_fullscreen(void);
 
 /**
@@ -254,45 +251,44 @@ term_run(uint16_t const frequency)
         profiler_begin();
     }
 #endif
-        graphics_begin(terminal.graphics); {
-            if (terminal.draw_func) {
-                terminal.draw_func(interpolate);
+    graphics_begin(terminal.graphics); {
+        if (terminal.draw_func) {
+            terminal.draw_func(interpolate);
+        }
+#ifdef DEBUG
+        if (terminal.is_profiling) {
+            int32_t w, h;
+            
+            term_get_display(&w, &h);
+            
+            char const * const background = "█";
+            
+            int32_t cw, ch;
+            
+            term_measure(background, &cw, &ch);
+            
+            int32_t const columns = w / cw;
+            
+            for (int32_t i = 0; i < columns; i++) {
+                term_print(positionedz(i * cw, h-ch,
+                                       layered_below(TERM_LAYER_TOP)),
+                           colored(255, 255, 225),
+                           background);
             }
             
-#ifdef DEBUG
-            if (terminal.is_profiling) {
-                int32_t w, h;
-                
-                term_get_display(&w, &h);
-                
-                char const * const background = "█";
-                
-                int32_t cw, ch;
-                
-                term_measure(background, &cw, &ch);
-                
-                int32_t const columns = w / cw;
-                
-                for (int32_t i = 0; i < columns; i++) {
-                    term_print(positionedz(i * cw, h-ch,
-                                           layered_below(TERM_LAYER_TOP)),
-                               colored(255, 255, 225),
-                               background);
-                }
-                
-                term_printstr(positionedz(0, h-ch+1, TERM_LAYER_TOP),
-                              colored(55, 55, 55),
-                              aligned(TERM_ALIGN_LEFT),
-                              "` to disable");
+            term_printstr(positionedz(0, h-ch+1, TERM_LAYER_TOP),
+                          colored(55, 55, 55),
+                          aligned(TERM_ALIGN_LEFT),
+                          "` to disable");
 
-                term_printstr(positionedz(w, h-ch+1, TERM_LAYER_TOP),
-                              colored(55, 55, 55),
-                              aligned(TERM_ALIGN_RIGHT),
-                              terminal.profiling_buffer);
-            }
-#endif
+            term_printstr(positionedz(w, h-ch+1, TERM_LAYER_TOP),
+                          colored(55, 55, 55),
+                          aligned(TERM_ALIGN_RIGHT),
+                          terminal.profiling_buffer);
         }
-        graphics_end(terminal.graphics);
+#endif
+    }
+    graphics_end(terminal.graphics);
 #ifdef DEBUG
     if (terminal.is_profiling) {
         profiler_end();
@@ -564,7 +560,7 @@ term_handle_internal_input(void)
 
 #ifdef DEBUG
     if (term_key_pressed((enum term_key)TERM_KEY_TOGGLE_PROFILING)) {
-        term_toggle_profiling();
+        terminal.is_profiling = !terminal.is_profiling;
     }
 #endif
 }
@@ -583,14 +579,6 @@ term_toggle_fullscreen(void)
     // when switching between fullscreen/windowed
     term_invalidate();
 }
-#ifdef DEBUG
-static
-void
-term_toggle_profiling(void)
-{
-    terminal.is_profiling = !terminal.is_profiling;
-}
-#endif
 
 static
 void

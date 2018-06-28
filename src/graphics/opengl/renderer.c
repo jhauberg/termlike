@@ -124,9 +124,7 @@ graphics_is_started(struct graphics_context const * const context)
 void
 graphics_draw(struct graphics_context const * const context,
               struct graphics_color const color,
-              struct graphics_position const position,
-              float const angle,
-              float const scale,
+              struct graphics_transform const transform,
               uint32_t const code)
 {
     int32_t const table_size = context->font.columns * context->font.rows;
@@ -229,19 +227,23 @@ graphics_draw(struct graphics_context const * const context,
     
     float const flipped_y = (viewport.resolution.height -
                              context->font.size -
-                             position.y);
+                             transform.position.y);
     
     struct vector3 origin;
     
-    origin.x = position.x + half;
+    origin.x = transform.position.x + half;
     origin.y = flipped_y + half;
-    origin.z = position.z;
+    origin.z = transform.position.z;
+    
+    struct glyph_transform transform2;
 
+    transform2.origin = origin;
+    transform2.angle = transform.angle;
+    transform2.scale = transform.scale;
+    
     glyphs_add(context->batch,
                vertices,
-               origin,
-               angle,
-               scale,
+               transform2,
                context->font_texture_id);
 }
 

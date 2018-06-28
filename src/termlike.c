@@ -610,9 +610,9 @@ term_print_character(uint32_t const character, void * const data)
     location.x = (int32_t)(state->cursor.offset.x * state->scale);
     location.y = (int32_t)(state->cursor.offset.y * state->scale);
     
-    // advance cursor for the next character
     int32_t const line_index = state->cursor.breaks;
     
+    // advance cursor for the next character
     cursor_advance(&state->cursor, state->bounds, character);
 
     if (character == '\n' ||
@@ -639,20 +639,20 @@ term_print_character(uint32_t const character, void * const data)
         location.x += state->origin.x;
         location.y += state->origin.y;
     }
-    
-    struct graphics_position position = {
-        .x = location.x,
-        .y = location.y,
-        .z = state->z
+        
+    struct graphics_transform transform = {
+        .position = {
+            .x = location.x,
+            .y = location.y,
+            .z = state->z
+        },
+        .angle = state->radians,
+        .scale = state->scale
     };
     
     graphics_draw(terminal.graphics,
                   state->tint,
-                  position,
-                  // note that each char is also individually rotated
-                  state->radians,
-                  // and scaled
-                  state->scale,
+                  transform,
                   character);
 }
 

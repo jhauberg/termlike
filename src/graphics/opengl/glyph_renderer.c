@@ -158,9 +158,7 @@ glyphs_invalidate(struct glyph_renderer * const batch,
 void
 glyphs_add(struct glyph_renderer * const batch,
            struct glyph_vertex const * const vertices,
-           struct vector3 const origin,
-           float const angle,
-           float const scale,
+           struct glyph_transform const transform,
            GLuint const texture_id)
 {
     if (batch->current_texture_id != 0 &&
@@ -181,19 +179,26 @@ glyphs_add(struct glyph_renderer * const batch,
     uint32_t const offset = batch->count * GLYPH_VERTEX_COUNT;
     
     mat4x4 translated;
-    mat4x4_translate(translated, origin.x, origin.y, origin.z);
+    mat4x4_translate(translated,
+                     transform.origin.x,
+                     transform.origin.y,
+                     transform.origin.z);
     
     mat4x4 rotated;
     mat4x4_identity(rotated);
-    mat4x4_rotate_Z(rotated, rotated, angle);
+    mat4x4_rotate_Z(rotated, rotated,
+                    transform.angle);
     
     mat4x4 scaled;
     mat4x4_identity(scaled);
-    mat4x4_scale_aniso(scaled, scaled, scale, scale, scale);
+    mat4x4_scale_aniso(scaled, scaled,
+                       transform.scale,
+                       transform.scale,
+                       transform.scale);
     
-    mat4x4 transform;
-    mat4x4_mul(transform, translated, rotated);
-    mat4x4_mul(transform, transform, scaled);
+    mat4x4 transformed;
+    mat4x4_mul(transformed, translated, rotated);
+    mat4x4_mul(transformed, transformed, scaled);
     
     for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
         struct glyph_vertex vertex = vertices[i];
@@ -206,7 +211,7 @@ glyphs_add(struct glyph_renderer * const batch,
         
         vec4 world_position;
         
-        mat4x4_mul_vec4(world_position, transform, position);
+        mat4x4_mul_vec4(world_position, transformed, position);
         
         vertex.position = (struct vector3) {
             world_position[0],

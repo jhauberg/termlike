@@ -27,6 +27,12 @@ struct graphics_position {
     int32_t y;
 };
 
+struct graphics_transform {
+    struct graphics_position position;
+    float angle;
+    float scale;
+};
+
 struct graphics_context;
 struct viewport;
 
@@ -41,9 +47,7 @@ bool graphics_is_started(struct graphics_context const *);
 
 void graphics_draw(struct graphics_context const *,
                    struct graphics_color,
-                   struct graphics_position,
-                   float angle,
-                   float scale,
+                   struct graphics_transform,
                    uint32_t code);
 
 struct graphics_font graphics_get_font(struct graphics_context const *);

@@ -9,14 +9,18 @@
 struct glyph_renderer;
 struct viewport;
 
+struct glyph_transform {
+    struct vector3 origin;
+    float angle;
+    float scale;
+};
+
 struct glyph_renderer * glyphs_init(struct viewport);
 void glyphs_release(struct glyph_renderer *);
 
 void glyphs_add(struct glyph_renderer *,
                 struct glyph_vertex const * vertices,
-                struct vector3 origin,
-                float angle,
-                float scale,
+                struct glyph_transform,
                 GLuint texture_id);
 
 void glyphs_invalidate(struct glyph_renderer *, struct viewport);

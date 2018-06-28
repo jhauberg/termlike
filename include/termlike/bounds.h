@@ -27,5 +27,5 @@ extern struct term_bounds const TERM_BOUNDS_NONE;
 struct term_bounds bounded(int32_t width, int32_t height);
 struct term_bounds aligned(enum term_align);
 
-struct term_bounds align(struct term_bounds, enum term_align);
+struct term_bounds boxed(int32_t width, int32_t height, enum term_align);
 

@@ -1,6 +1,6 @@
 #include <termlike/color.h> // term_color, colored*
 
-#include <stdint.h> // uint8_t
+#include <stdint.h> // uint8_t, int32_t
 
 struct term_color const TERM_COLOR_WHITE = {
     .a = 1,
@@ -17,23 +17,28 @@ struct term_color const TERM_COLOR_BLACK = {
 };
 
 struct term_color
-colored(uint8_t const red,
-      uint8_t const green,
-      uint8_t const blue)
+coloredh(int32_t const hex)
 {
-    return transparent(red, green, blue, 1);
+    return colored((hex & 0xFF0000) >> 16,
+                   (hex & 0xFF00) >> 8,
+                   (hex & 0xFF) >> 0);
 }
 
 struct term_color
-transparent(uint8_t const red,
-            uint8_t const green,
-            uint8_t const blue,
-            float const alpha)
+colored(uint8_t const red, uint8_t const green, uint8_t const blue)
 {
     return (struct term_color) {
         .r = red,
         .g = green,
         .b = blue,
-        .a = alpha
+        .a = 1
     };
+}
+
+struct term_color
+transparent(struct term_color color, float const alpha)
+{
+    color.a = alpha;
+    
+    return color;
 }

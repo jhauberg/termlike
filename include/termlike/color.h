@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h> // uint8_t
+#include <stdint.h> // uint8_t, int32_t
 
 struct term_color {
     float a;
@@ -9,6 +9,8 @@ struct term_color {
 
 extern struct term_color const TERM_COLOR_WHITE;
 extern struct term_color const TERM_COLOR_BLACK;
+
+struct term_color coloredh(int32_t hex);
 
 /**
  * Return an opaque color.
@@ -19,7 +21,5 @@ struct term_color colored(uint8_t red,
 /**
  * Return a transparent color.
  */
-struct term_color transparent(uint8_t red,
-                              uint8_t green,
-                              uint8_t blue,
+struct term_color transparent(struct term_color,
                               float alpha);

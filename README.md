@@ -2,11 +2,11 @@
 
 [![code style: compliant](https://img.shields.io/badge/code%20style-compliant-000000.svg)](https://github.com/jhauberg/comply)
 
-A low-profile library for building high-performance and cross-platform games in the aesthetic of traditional text-based games, but with the benefits of modern graphics.
+A low-profile library for building high-performance and cross-platform games in the aesthetic of traditional text-based applications, but with the benefits of modern graphics.
 
 The name *Termlike* is in reference to the [*Roguelike*](https://en.wikipedia.org/wiki/Roguelike) genre of games, which historically has roots in text-based terminals.
 
-Termlike is written entirely in **C99** and requires **OpenGL 3.3 (Core Profile)**.
+Termlike is written in **C99** and requires **OpenGL 3.3** or later.
 
 <img src="assets/screenshot.png" width="432" height="374">
 
@@ -14,7 +14,7 @@ Termlike is written entirely in **C99** and requires **OpenGL 3.3 (Core Profile)
 
 Termlike *only* supports the 256 glyphs defined by [Codepage 437](https://en.wikipedia.org/wiki/Code_page_437), and provides a built-in font that resembles the one found on the original [IBM PC](https://en.wikipedia.org/wiki/IBM_PC).
 
-There is no support for custom fonts or tiles. This is by design.
+There is no support for custom fonts or tiles, nor any plans for it.
 
 ## Usage
 
@@ -44,7 +44,7 @@ main(void)
 }
 ```
 
-Take a look in [example](/example) for more usage samples.
+Take a look in [examples](/example) for more usage samples.
 
 ## Building
 

@@ -415,7 +415,7 @@ graphics_setup_screen_buffer(struct graphics_context * const context)
         
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) !=
             GL_FRAMEBUFFER_COMPLETE) {
-            fprintf(stderr, "OpenGL: screen framebuffer is invalid");
+            fprintf(stderr, "OpenGL: screen framebuffer is invalid\n");
         }
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -514,7 +514,7 @@ graphics_compile_shader(GLenum const type,
         
         glGetShaderInfoLog(shader, sizeof(log), NULL, log);
         
-        fprintf(stderr, "OpenGL: shader compilation error: %s", (char *)log);
+        fprintf(stderr, "OpenGL: shader compilation error: %s\n", (char *)log);
         
         return 0;
     }
@@ -542,7 +542,7 @@ graphics_link_program(GLuint const vs,
         
         glGetProgramInfoLog(program, sizeof(log), NULL, log);
         
-        fprintf(stderr, "OpenGL: program link error: %s", (char *)log);
+        fprintf(stderr, "OpenGL: program link error: %s\n", (char *)log);
         
         return 0;
     }
@@ -557,6 +557,6 @@ graphics_process_errors(void)
     GLenum error;
     
     while ((error = glGetError()) != GL_NO_ERROR) {
-        fprintf(stderr, "OpenGL: %d", error);
+        fprintf(stderr, "OpenGL: %d\n", error);
     }
 }

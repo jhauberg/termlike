@@ -6,7 +6,6 @@
 
 #include <stdio.h> // fprintf
 #include <stdlib.h> // malloc, free
-#include <stdbool.h> // bool
 
 #include <gl3w/GL/gl3w.h> // gl*, GL*
 

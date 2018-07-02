@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdint.h> // uint8_t, int32_t
-#include <stdbool.h> // bool
 
 struct graphics_image {
     int32_t width;

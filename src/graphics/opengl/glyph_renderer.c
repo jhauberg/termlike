@@ -291,16 +291,16 @@ glyphs_draw(struct glyph_renderer const * const renderer)
     glBindTexture(GL_TEXTURE_2D, renderer->current_texture_id); {
         glBindVertexArray(renderer->renderable.vao); {
             glBindBuffer(GL_ARRAY_BUFFER, renderer->renderable.vbo); {
-                GLsizei const count = renderer->batch.count * GLYPH_VERTEX_COUNT;
+                GLsizei const n = renderer->batch.count * GLYPH_VERTEX_COUNT;
                 
                 GLsizeiptr const size =
-                sizeof(struct glyph_vertex) * (uint32_t)count;
+                sizeof(struct glyph_vertex) * (uint32_t)n;
                 
                 glBufferSubData(GL_ARRAY_BUFFER,
                                 0,
                                 size,
                                 renderer->batch.vertices);
-                glDrawArrays(GL_TRIANGLES, 0, count);
+                glDrawArrays(GL_TRIANGLES, 0, n);
 #ifdef DEBUG
                 profiler_increment_draw_count(1);
 #endif

@@ -1,4 +1,4 @@
-#include "command.h"
+#include "command.h" // command, command_index, command_*
 
 #include "internal.h" // layer_z
 
@@ -16,13 +16,13 @@ static int32_t command_compare(void const *, void const *);
 struct command_buffer *
 command_init(void)
 {
-    struct command_buffer * const buffer = malloc(sizeof(struct command_buffer));
+    struct command_buffer * const buf = malloc(sizeof(struct command_buffer));
     
-    buffer->count = 0;
-    buffer->capacity = 64;
-    buffer->commands = malloc(sizeof(struct command) * buffer->capacity);
+    buf->count = 0;
+    buf->capacity = 64;
+    buf->commands = malloc(sizeof(struct command) * buf->capacity);
     
-    return buffer;
+    return buf;
 }
 
 void

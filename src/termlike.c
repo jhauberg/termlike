@@ -92,6 +92,9 @@ struct term_context {
 static bool term_setup(struct window_size);
 static void term_invalidate(void);
 
+static void term_update(uint16_t frequency, double * interpolate);
+static void term_draw(double interpolate);
+
 static void term_handle_internal_input(void);
 
 /**
@@ -220,53 +223,14 @@ term_get_display(int32_t * const width, int32_t * const height)
 void
 term_run(uint16_t const frequency)
 {
-    struct window_context * const window = terminal.window;
-    
-    double step = 0;
     double interpolate = 0;
     
-    timer_begin(terminal.timer); {
-        uint16_t ticks = 0;
-        
-        while (timer_tick(terminal.timer, frequency, &step)) {
-            // update input for every tick this frame
-            window_read(window, &terminal.keys, &terminal.cursor);
-            
-            if (terminal.tick_func) {
-                terminal.tick_func(step);
-            }
-            
-            ticks += 1;
-        }
-        
-        if (ticks == 0) {
-            // make sure to update input at least once per frame
-            // (if time has stopped, then input would never be read)
-            window_read(window, &terminal.keys, &terminal.cursor);
-        }
-    }
-    timer_end(terminal.timer, &interpolate);
-    
+    term_update(frequency, &interpolate);
     term_handle_internal_input();
-    
 #ifdef DEBUG
     profiler_begin();
 #endif
-    graphics_begin(terminal.graphics); {
-        if (terminal.draw_func) {
-            terminal.draw_func(interpolate);
-        }
-        
-#ifdef DEBUG
-        if (terminal.is_profiling) {
-            // note that we're drawing stats from the previous frame
-            profiler_draw();
-        }
-#endif
-        // flush all print commands
-        command_flush(terminal.queue, term_print_command);
-    }
-    graphics_end(terminal.graphics);
+    term_draw(interpolate);
 #ifdef DEBUG
     profiler_end();
     
@@ -280,7 +244,7 @@ term_run(uint16_t const frequency)
     profiler_sum(profiler_stats(), bytes);
 #endif
     
-    window_present(window);
+    window_present(terminal.window);
 }
 
 void
@@ -498,6 +462,55 @@ term_invalidate(void)
                                 &viewport.framebuffer.height);
     
     graphics_invalidate(terminal.graphics, viewport);
+}
+
+static
+void
+term_update(uint16_t const frequency, double * const interpolate)
+{
+    struct window_context * const window = terminal.window;
+    
+    timer_begin(terminal.timer); {
+        uint16_t ticks = 0;
+        double step = 0;
+        
+        while (timer_tick(terminal.timer, frequency, &step)) {
+            // update input for every tick this frame
+            window_read(window, &terminal.keys, &terminal.cursor);
+            
+            if (terminal.tick_func) {
+                terminal.tick_func(step);
+            }
+            
+            ticks += 1;
+        }
+        
+        if (ticks == 0) {
+            // make sure to update input at least once per frame
+            // (if time has stopped, then input would never be read)
+            window_read(window, &terminal.keys, &terminal.cursor);
+        }
+    }
+    timer_end(terminal.timer, interpolate);
+}
+
+static
+void
+term_draw(double const interpolate)
+{
+    graphics_begin(terminal.graphics); {
+        if (terminal.draw_func) {
+            terminal.draw_func(interpolate);
+        }
+#ifdef DEBUG
+        if (terminal.is_profiling) {
+            // note that we're drawing stats from the previous frame
+            profiler_draw();
+        }
+#endif
+        command_flush(terminal.queue, term_print_command);
+    }
+    graphics_end(terminal.graphics);
 }
 
 static

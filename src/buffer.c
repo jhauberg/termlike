@@ -14,12 +14,6 @@
  */
 #define BUFFER_PADDING 4
 /**
- * The size of the internal text buffer.
- *
- * This value must be at least 1 higher than the amount of required padding.
- */
-#define BUFFER_SIZE_MAX 256
-/**
  * The maximum length of a printed string.
  */
 #define MAX_TEXT_LENGTH (BUFFER_SIZE_MAX - BUFFER_PADDING)

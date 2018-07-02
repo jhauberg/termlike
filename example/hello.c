@@ -30,13 +30,11 @@ draw(double const interp)
     "Like thiiis right here!";
     
     // define boundaries so the text will wrap inside the display
-    struct term_bounds bounds;
-    
     int32_t pad_x = cw / 2;
     int32_t pad_y = ch / 2;
     
-    bounds = bounded(w - (pad_x * 2),
-                     (h / 2) - (pad_y * 2));
+    struct term_bounds bounds = bounded(w - (pad_x * 2),
+                                        (h / 2) - (pad_y * 2));
     
     // words exceeding boundaries will be wrapped to the next line
     bounds.wrap = TERM_WRAP_WORDS;
@@ -70,8 +68,6 @@ main(void)
     term_set_drawing(draw);
 
     while (!term_is_closing()) {
-        // note that this key check is not done in tick()
-        // input can be "lost" if there's too long between ticks
         if (term_key_down(TERM_KEY_ESCAPE)) {
             term_set_closing(true);
         }

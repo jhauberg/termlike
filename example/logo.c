@@ -23,7 +23,7 @@ draw_logo(double const interp)
     term_measure(logo, &cw, &ch);
     
     int32_t x = (w / 2) - (cw / 2);
-    int32_t y = (h / 2) - (ch / 2) - 40;
+    int32_t y = (h / 2) - (ch / 2) - 60;
     
     term_print(positionedz(x, y, layered(1)),
                colored(255, 255, 255),
@@ -33,7 +33,7 @@ draw_logo(double const interp)
     
     for (int32_t i = 1; i < 8; i++) {
         term_printt(positionedz(x, y, layered(0)),
-                    transparent(255, 255, 255, alpha),
+                    transparent(colored(255, 255, 255), alpha),
                     transformed(1, -i, TERM_ROTATE_STRING),
                     logo);
         
@@ -42,7 +42,7 @@ draw_logo(double const interp)
 
     term_printstr(positioned((w / 2), h - 60),
                   colored(255, 255, 255),
-                  align(bounded((w / 2) + (w / 4), h / 2), TERM_ALIGN_CENTER),
+                  aligned(TERM_ALIGN_CENTER),
                   "POWERED BY CP437");
 }
 
@@ -56,8 +56,6 @@ main(void)
     term_set_drawing(draw_logo);
     
     while (!term_is_closing()) {
-        // note that this key check is not done in tick()
-        // input can be "lost" if there's too long between ticks
         if (term_key_down(TERM_KEY_ESCAPE)) {
             term_set_closing(true);
         }

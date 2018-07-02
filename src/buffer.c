@@ -124,7 +124,7 @@ buffer_wrap(struct buffer * const buffer, size_t const limit)
 
 void
 buffer_foreach(struct buffer const * const buffer,
-               buffer_char_callback * const callback,
+               buffer_callback * const callback,
                void * const state)
 {
     int32_t decoding_error;

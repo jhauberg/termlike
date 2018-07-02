@@ -15,7 +15,7 @@ struct buffer_offset {
 /**
  * Represents a function invoked for each printable character in a buffer.
  */
-typedef void buffer_char_callback(uint32_t character, void *);
+typedef void buffer_callback(uint32_t character, void *);
 
 struct buffer * buffer_init(void);
 void buffer_release(struct buffer *);
@@ -44,4 +44,4 @@ void buffer_wrap(struct buffer *, size_t limit);
  * Functions that require stateful callbacks can provide a generic void pointer
  * that will be passed along with each issued callback.
  */
-void buffer_foreach(struct buffer const *, buffer_char_callback *, void *);
+void buffer_foreach(struct buffer const *, buffer_callback *, void *);

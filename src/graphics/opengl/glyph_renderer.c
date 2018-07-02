@@ -1,6 +1,6 @@
 #include "glyph_renderer.h" // glyph_renderer, glyphs_*
 
-#include <stdlib.h> // malloc, free, qsort
+#include <stdlib.h> // malloc, free
 
 #include "../viewport.h" // viewport
 
@@ -13,19 +13,21 @@
 #include <gl3w/GL/gl3w.h> // gl*, GL*
 #include <linmath/linmath.h> // mat4x4, mat4x4_*
 
-#define MAX_GLYPHS 2048 // flush when reaching this limit
+#define MAX_GLYPHS 128 // flush when reaching this limit
 
 #define GLYPH_VERTEX_COUNT (2 * 3) // 2 triangles per quad = 6 vertices
 #define GLYPH_BATCH_VERTEX_COUNT (MAX_GLYPHS * GLYPH_VERTEX_COUNT)
 
-static int32_t glyph_compare(void const * glyph, void const * other_glyph);
+struct glyph_batch {
+    struct glyph_vertex vertices[GLYPH_BATCH_VERTEX_COUNT];
+    uint16_t count;
+};
 
 struct glyph_renderer {
-    struct glyph_vertex vertices[GLYPH_BATCH_VERTEX_COUNT];
-    mat4x4 transform;
+    struct glyph_batch batch;
     struct renderable renderable;
+    mat4x4 transform;
     GLuint current_texture_id;
-    uint16_t count;
 };
 
 static void glyphs_state(bool enable);
@@ -34,7 +36,7 @@ static void glyphs_draw(struct glyph_renderer const *);
 struct glyph_renderer *
 glyphs_init(struct viewport const viewport)
 {
-    struct glyph_renderer * batch = malloc(sizeof(struct glyph_renderer));
+    struct glyph_renderer * renderer = malloc(sizeof(struct glyph_renderer));
     
     char const * const vertex_shader =
     "#version 330 core\n"
@@ -71,16 +73,16 @@ glyphs_init(struct viewport const viewport)
     GLuint const fs = graphics_compile_shader(GL_FRAGMENT_SHADER,
                                             fragment_shader);
     
-    batch->renderable.program = graphics_link_program(vs, fs);
+    renderer->renderable.program = graphics_link_program(vs, fs);
     
     glDeleteShader(vs);
     glDeleteShader(fs);
     
-    glGenBuffers(1, &batch->renderable.vbo);
-    glGenVertexArrays(1, &batch->renderable.vao);
+    glGenBuffers(1, &renderer->renderable.vbo);
+    glGenVertexArrays(1, &renderer->renderable.vao);
     
-    glBindVertexArray(batch->renderable.vao); {
-        glBindBuffer(GL_ARRAY_BUFFER, batch->renderable.vbo); {
+    glBindVertexArray(renderer->renderable.vao); {
+        glBindBuffer(GL_ARRAY_BUFFER, renderer->renderable.vbo); {
             GLsizei const stride = sizeof(struct glyph_vertex);
             
             glBufferData(GL_ARRAY_BUFFER,
@@ -114,23 +116,23 @@ glyphs_init(struct viewport const viewport)
     }
     glBindVertexArray(0);
     
-    glyphs_invalidate(batch, viewport);
+    glyphs_invalidate(renderer, viewport);
     
-    return batch;
+    return renderer;
 }
 
 void
-glyphs_release(struct glyph_renderer * const batch)
+glyphs_release(struct glyph_renderer * const renderer)
 {
-    glDeleteProgram(batch->renderable.program);
-    glDeleteVertexArrays(1, &batch->renderable.vao);
-    glDeleteBuffers(1, &batch->renderable.vbo);
+    glDeleteProgram(renderer->renderable.program);
+    glDeleteVertexArrays(1, &renderer->renderable.vao);
+    glDeleteBuffers(1, &renderer->renderable.vbo);
     
-    free(batch);
+    free(renderer);
 }
 
 void
-glyphs_invalidate(struct glyph_renderer * const batch,
+glyphs_invalidate(struct glyph_renderer * const renderer,
                   struct viewport const viewport)
 {
     mat4x4 model;
@@ -145,38 +147,38 @@ glyphs_invalidate(struct glyph_renderer * const batch,
     mat4x4_ortho(projection,
                  0, viewport.resolution.width,
                  0, viewport.resolution.height,
-                 -1,  // near
+                -1,  // near
                  1); // far
     
     mat4x4 model_view;
     mat4x4_mul(model_view, model, view);
-    mat4x4_mul(batch->transform, projection, model_view);
+    mat4x4_mul(renderer->transform, projection, model_view);
     
-    glyphs_reset(batch);
+    glyphs_reset(renderer);
 }
 
 void
-glyphs_add(struct glyph_renderer * const batch,
+glyphs_add(struct glyph_renderer * const renderer,
            struct glyph_vertex const * const vertices,
            struct glyph_transform const transform,
            GLuint const texture_id)
 {
-    if (batch->current_texture_id != 0 &&
-        batch->current_texture_id != texture_id) {
-        if (glyphs_flush(batch)) {
+    if (renderer->current_texture_id != 0 &&
+        renderer->current_texture_id != texture_id) {
+        if (glyphs_flush(renderer)) {
             // texture switch requires flushing (don't flush if not set yet)
         }
     }
     
-    batch->current_texture_id = texture_id;
+    renderer->current_texture_id = texture_id;
     
-    if (batch->count + 1 > MAX_GLYPHS) {
-        if (glyphs_flush(batch)) {
+    if (renderer->batch.count + 1 > MAX_GLYPHS) {
+        if (glyphs_flush(renderer)) {
             // hitting capacity requires flushing
         }
     }
     
-    uint32_t const offset = batch->count * GLYPH_VERTEX_COUNT;
+    uint32_t const offset = renderer->batch.count * GLYPH_VERTEX_COUNT;
     
     mat4x4 translated;
     mat4x4_translate(translated,
@@ -192,9 +194,9 @@ glyphs_add(struct glyph_renderer * const batch,
     mat4x4 scaled;
     mat4x4_identity(scaled);
     mat4x4_scale_aniso(scaled, scaled,
-                       transform.scale,
-                       transform.scale,
-                       transform.scale);
+                       transform.horizontal_scale,
+                       transform.vertical_scale,
+                       1);
     
     mat4x4 transformed;
     mat4x4_mul(transformed, translated, rotated);
@@ -219,35 +221,31 @@ glyphs_add(struct glyph_renderer * const batch,
             world_position[2]
         };
         
-        batch->vertices[offset + i] = vertex;
+        renderer->batch.vertices[offset + i] = vertex;
     }
     
-    batch->count += 1;
+    renderer->batch.count += 1;
 }
 
 bool
-glyphs_flush(struct glyph_renderer * const batch)
+glyphs_flush(struct glyph_renderer * const renderer)
 {
-    if (batch->count == 0) {
+    if (renderer->batch.count == 0) {
         return false;
     }
     
-    qsort(&batch->vertices, batch->count,
-          sizeof(struct glyph_vertex) * GLYPH_VERTEX_COUNT,
-          glyph_compare);
+    glyphs_draw(renderer);
     
-    glyphs_draw(batch);
-    
-    batch->count = 0;
+    renderer->batch.count = 0;
     
     return true;
 }
 
 void
-glyphs_reset(struct glyph_renderer * const batch)
+glyphs_reset(struct glyph_renderer * const renderer)
 {
-    batch->count = 0;
-    batch->current_texture_id = 0;
+    renderer->batch.count = 0;
+    renderer->current_texture_id = 0;
 }
 
 static
@@ -273,27 +271,27 @@ glyphs_state(bool const enable)
 
 static
 void
-glyphs_draw(struct glyph_renderer const * const batch)
+glyphs_draw(struct glyph_renderer const * const renderer)
 {
     glyphs_state(true);
     
-    glUseProgram(batch->renderable.program);
+    glUseProgram(renderer->renderable.program);
     
     // note that this flag will affect entire batch
     GLint const uniform_tint =
-    glGetUniformLocation(batch->renderable.program,
+    glGetUniformLocation(renderer->renderable.program,
                          "enable_additive_tint");
     GLint const uniform_transform =
-    glGetUniformLocation(batch->renderable.program,
+    glGetUniformLocation(renderer->renderable.program,
                          "transform");
     
     glUniform1i(uniform_tint, false);
-    glUniformMatrix4fv(uniform_transform, 1, GL_FALSE, *batch->transform);
+    glUniformMatrix4fv(uniform_transform, 1, GL_FALSE, *renderer->transform);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, batch->current_texture_id); {
-        glBindVertexArray(batch->renderable.vao); {
-            glBindBuffer(GL_ARRAY_BUFFER, batch->renderable.vbo); {
-                GLsizei const count = batch->count * GLYPH_VERTEX_COUNT;
+    glBindTexture(GL_TEXTURE_2D, renderer->current_texture_id); {
+        glBindVertexArray(renderer->renderable.vao); {
+            glBindBuffer(GL_ARRAY_BUFFER, renderer->renderable.vbo); {
+                GLsizei const count = renderer->batch.count * GLYPH_VERTEX_COUNT;
                 
                 GLsizeiptr const size =
                 sizeof(struct glyph_vertex) * (uint32_t)count;
@@ -301,7 +299,7 @@ glyphs_draw(struct glyph_renderer const * const batch)
                 glBufferSubData(GL_ARRAY_BUFFER,
                                 0,
                                 size,
-                                batch->vertices);
+                                renderer->batch.vertices);
                 glDrawArrays(GL_TRIANGLES, 0, count);
 #ifdef DEBUG
                 profiler_increment_draw_count(1);
@@ -315,21 +313,4 @@ glyphs_draw(struct glyph_renderer const * const batch)
     glUseProgram(0);
     
     glyphs_state(false);
-}
-
-static
-int32_t
-glyph_compare(void const * const glyph,
-              void const * const other_glyph)
-{
-    struct glyph_vertex const * lhs = (struct glyph_vertex *)glyph;
-    struct glyph_vertex const * rhs = (struct glyph_vertex *)other_glyph;
-    
-    if (lhs->position.z < rhs->position.z) {
-        return -1;
-    } else if (lhs->position.z > rhs->position.z) {
-        return 1;
-    }
-    
-    return 0;
 }

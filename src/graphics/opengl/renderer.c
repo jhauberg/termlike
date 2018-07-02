@@ -23,14 +23,13 @@ struct frame_vertex {
 };
 
 struct graphics_context {
-    struct glyph_renderer * batch;
+    struct glyph_renderer * glyphs;
     struct frame_renderable screen;
     struct graphics_font font;
     struct color clear;
     struct color bars;
     struct viewport viewport;
     GLuint font_texture_id;
-    bool is_started;
 };
 
 static void graphics_process_errors(void);
@@ -78,14 +77,12 @@ graphics_begin(struct graphics_context * const context)
                      context->clear.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
-    
-    context->is_started = true;
 }
 
 void
 graphics_end(struct graphics_context * const context)
 {
-    glyphs_flush(context->batch);
+    glyphs_flush(context->glyphs);
     
     struct viewport_clip clip = viewport_get_clip(context->viewport);
     
@@ -111,14 +108,6 @@ graphics_end(struct graphics_context * const context)
     }
     
     graphics_process_errors();
-    
-    context->is_started = false;
-}
-
-bool
-graphics_is_started(struct graphics_context const * const context)
-{
-    return context->is_started;
 }
 
 void
@@ -235,15 +224,14 @@ graphics_draw(struct graphics_context const * const context,
     origin.y = flipped_y + half;
     origin.z = transform.position.z;
     
-    struct glyph_transform transform2;
-
-    transform2.origin = origin;
-    transform2.angle = transform.angle;
-    transform2.scale = transform.scale;
-    
-    glyphs_add(context->batch,
+    glyphs_add(context->glyphs,
                vertices,
-               transform2,
+               (struct glyph_transform) {
+                   .origin = origin,
+                   .angle = transform.angle,
+                   .horizontal_scale = transform.horizontal_scale,
+                   .vertical_scale = transform.vertical_scale
+               },
                context->font_texture_id);
 }
 
@@ -273,7 +261,7 @@ graphics_invalidate(struct graphics_context * const context,
 {
     context->viewport = viewport_box(viewport);
     
-    glyphs_invalidate(context->batch, context->viewport);
+    glyphs_invalidate(context->glyphs, context->viewport);
 }
 
 struct viewport
@@ -313,16 +301,14 @@ graphics_setup(struct graphics_context * const context)
     context->font.rows = 0;
     context->font_texture_id = 0;
     
-    context->batch = glyphs_init(context->viewport);
-    
-    context->is_started = false;
+    context->glyphs = glyphs_init(context->viewport);
 }
 
 static
 void
 graphics_teardown(struct graphics_context * const context)
 {
-    glyphs_release(context->batch);
+    glyphs_release(context->glyphs);
     
     glDeleteTextures(1, &context->font_texture_id);
     glDeleteTextures(1, &context->screen.texture_id);

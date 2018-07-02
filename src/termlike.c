@@ -1,6 +1,6 @@
 #include <termlike/termlike.h> // term_*
 #include <termlike/position.h> // term_location, term_position
-#include <termlike/bounds.h> // term_bounds, aligned, TERM_ALIGN_*, TERM_WRAP_*
+#include <termlike/bounds.h> // term_bounds, TERM_ALIGN_*, TERM_WRAP_*
 #include <termlike/transform.h> // term_transform
 #include <termlike/config.h> // term_settings
 #include <termlike/input.h> // term_key, term_cursor_state
@@ -8,14 +8,12 @@
 #include <stdlib.h> // NULL
 #include <stdint.h> // uint16_t, uint32_t, int32_t, size_t
 #include <stdbool.h> // bool
-#include <stdio.h> // sprintf
-
-#include <assert.h> // assert
 
 #include <math.h> // M_PI, floorf
 
-#include "internal.h" // layer_z
+#include "internal.h" // term_get_display_*
 #include "buffer.h" // buffer, buffer_*
+#include "command.h" // command_buffer, command, command_*
 #include "cursor.h" // cursor, cursor_*
 #include "keys.h" // term_key_state
 
@@ -41,6 +39,9 @@ struct term_state_count {
     size_t count;
 };
 
+/**
+ * Provides measured widths for all lines that can fit in the internal buffer.
+ */
 struct term_lines {
     int32_t widths[256]; // todo: MAX_BUFFER_SIZE
 };
@@ -78,6 +79,7 @@ struct term_context {
     struct graphics_context * graphics;
     struct timer * timer;
     struct buffer * buffer;
+    struct command_buffer * queue;
     struct term_key_state keys;
     struct term_cursor_state cursor;
 #ifdef DEBUG
@@ -97,6 +99,13 @@ static void term_handle_internal_input(void);
 static void term_buffer_str(char const * text, struct term_bounds);
 
 static void term_toggle_fullscreen(void);
+
+/**
+ * Handle a command.
+ *
+ * This function can be passed to a command buffer when flushing.
+ */
+static void term_print_command(struct command const *);
 
 /**
  * Print a character at an offset.
@@ -157,14 +166,17 @@ term_close(void)
 {
     graphics_release(terminal.graphics);
     timer_release(terminal.timer);
+    command_release(terminal.queue);
     buffer_release(terminal.buffer);
     
     window_terminate(terminal.window);
  
     terminal.graphics = NULL;
+    terminal.buffer = NULL;
+    terminal.queue = NULL;
     terminal.timer = NULL;
     terminal.window = NULL;
-    
+ 
     terminal.draw_func = NULL;
     terminal.tick_func = NULL;
     
@@ -287,6 +299,8 @@ term_run(uint16_t const frequency)
                           terminal.profiling_buffer);
         }
 #endif
+        // flush all print commands
+        command_flush(terminal.queue, term_print_command);
     }
     graphics_end(terminal.graphics);
 #ifdef DEBUG
@@ -339,49 +353,13 @@ term_printstrt(struct term_position const position,
                struct term_transform const transform,
                char const * const text)
 {
-    // only allow prints during frames (e.g. between graphics_begin/end)
-    assert(graphics_is_started(terminal.graphics));
-    
-    term_buffer_str(text, bounds);
-    
-    // initialize a state for measuring line widths
-    // this is needed to be able to align lines horizontally
-    struct term_state_measure measure;
-    
-    struct graphics_font const font = graphics_get_font(terminal.graphics);
-    
-    cursor_start(&measure.cursor, font.size, font.size);
-    
-    measure.bounds = bounds;
-    
-    buffer_foreach(terminal.buffer, term_measure_character, &measure);
-    
-    // initialize a state for printing contents of the buffer;
-    // this state will hold positional values for the upper-left origin
-    // of the string of characters; each character is drawn at an offset
-    // from these initial values
-    struct term_state_print state;
-    
-    cursor_start(&state.cursor, font.size, font.size);
-    
-    state.origin = position.location;
-    state.lines = measure.lines;
-    state.bounds = bounds;
-    
-    state.z = layer_z(position.layer);
-    
-    state.rotation = transform.rotation;
-    state.radians = (float)((transform.angle * M_PI) / 180.0);
-    state.scale = transform.scale;
-    
-    state.tint = (struct graphics_color) {
-        .r = color.r / 255.0f,
-        .g = color.g / 255.0f,
-        .b = color.b / 255.0f,
-        .a = color.a
-    };
-    
-    buffer_foreach(terminal.buffer, term_print_character, &state);
+    command_push(terminal.queue, (struct command) {
+        .position = position,
+        .color = color,
+        .bounds = bounds,
+        .transform = transform,
+        .text = text
+    });
 }
 
 void
@@ -520,7 +498,8 @@ term_setup(struct window_size const display)
     if (terminal.timer == NULL) {
         return false;
     }
- 
+    
+    terminal.queue = command_init();
     terminal.buffer = buffer_init();
 
     terminal.draw_func = NULL;
@@ -647,7 +626,8 @@ term_print_character(uint32_t const character, void * const data)
             .z = state->z
         },
         .angle = state->radians,
-        .scale = state->scale
+        .horizontal_scale = state->scale,
+        .vertical_scale = state->scale
     };
     
     graphics_draw(terminal.graphics,
@@ -696,6 +676,54 @@ term_measure_character(uint32_t const character, void * const data)
     // apply width again for the current line
     // (it might be the same line, but it could also be the next one)
     state->lines.widths[state->cursor.breaks] = state->cursor.offset.x;
+}
+
+static
+void
+term_print_command(struct command const * const command)
+{
+    term_buffer_str(command->text, command->bounds);
+    
+    // initialize a state for measuring line widths
+    // this is needed to be able to align lines horizontally
+    struct term_state_measure measure;
+    
+    struct graphics_font const font = graphics_get_font(terminal.graphics);
+    
+    cursor_start(&measure.cursor, font.size, font.size);
+    
+    measure.bounds = command->bounds;
+    
+    buffer_foreach(terminal.buffer, term_measure_character, &measure);
+    
+    // initialize a state for printing contents of the buffer;
+    // this state will hold positional values for the upper-left origin
+    // of the string of characters; each character is drawn at an offset
+    // from these initial values
+    struct term_state_print state;
+    
+    cursor_start(&state.cursor, font.size, font.size);
+    
+    state.origin = command->position.location;
+    state.lines = measure.lines;
+    state.bounds = command->bounds;
+    
+    struct command_index const * const index = command_index(command);
+    
+    state.z = index->z;
+    
+    state.rotation = command->transform.rotation;
+    state.radians = (float)((command->transform.angle * M_PI) / 180.0);
+    state.scale = command->transform.scale;
+    
+    state.tint = (struct graphics_color) {
+        .r = command->color.r / 255.0f,
+        .g = command->color.g / 255.0f,
+        .b = command->color.b / 255.0f,
+        .a = command->color.a
+    };
+    
+    buffer_foreach(terminal.buffer, term_print_character, &state);
 }
 
 static

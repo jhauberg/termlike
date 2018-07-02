@@ -29,8 +29,9 @@ struct graphics_position {
 
 struct graphics_transform {
     struct graphics_position position;
+    float horizontal_scale;
+    float vertical_scale;
     float angle;
-    float scale;
 };
 
 struct graphics_context;
@@ -42,8 +43,6 @@ void graphics_release(struct graphics_context *);
 
 void graphics_begin(struct graphics_context *);
 void graphics_end(struct graphics_context *);
-
-bool graphics_is_started(struct graphics_context const *);
 
 void graphics_draw(struct graphics_context const *,
                    struct graphics_color,

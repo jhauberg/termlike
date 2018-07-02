@@ -83,7 +83,6 @@ struct term_context {
     struct term_key_state keys;
     struct term_cursor_state cursor;
 #ifdef DEBUG
-    char profiling_buffer[64];
     bool is_profiling;
 #endif
 };
@@ -249,54 +248,17 @@ term_run(uint16_t const frequency)
     term_handle_internal_input();
     
 #ifdef DEBUG
-    if (terminal.is_profiling) {
-        // note that we're fetching stats from *previous* frame
-        // this is necessary to be certain that everything has flushed
-        // and counts are correct (includes profiling visuals)
-        struct profiler_stats stats = profiler_stats();
-        
-        sprintf(terminal.profiling_buffer,
-                "%d (%d)",
-                stats.frames_per_second_avg,
-                stats.draw_count);
-        
-        profiler_begin();
-    }
+    profiler_begin();
 #endif
     graphics_begin(terminal.graphics); {
         if (terminal.draw_func) {
             terminal.draw_func(interpolate);
         }
+        
 #ifdef DEBUG
         if (terminal.is_profiling) {
-            int32_t w, h;
-            
-            term_get_display(&w, &h);
-            
-            char const * const background = "█";
-            
-            int32_t cw, ch;
-            
-            term_measure(background, &cw, &ch);
-            
-            int32_t const columns = w / cw;
-            
-            for (int32_t i = 0; i < columns; i++) {
-                term_print(positionedz(i * cw, h-ch,
-                                       layered_below(TERM_LAYER_TOP)),
-                           colored(255, 255, 225),
-                           background);
-            }
-            
-            term_printstr(positionedz(0, h-ch+1, TERM_LAYER_TOP),
-                          colored(55, 55, 55),
-                          aligned(TERM_ALIGN_LEFT),
-                          "` to disable");
-
-            term_printstr(positionedz(w, h-ch+1, TERM_LAYER_TOP),
-                          colored(55, 55, 55),
-                          aligned(TERM_ALIGN_RIGHT),
-                          terminal.profiling_buffer);
+            // note that we're drawing stats from the previous frame
+            profiler_draw();
         }
 #endif
         // flush all print commands
@@ -304,9 +266,16 @@ term_run(uint16_t const frequency)
     }
     graphics_end(terminal.graphics);
 #ifdef DEBUG
-    if (terminal.is_profiling) {
-        profiler_end();
-    }
+    profiler_end();
+    
+    size_t bytes;
+    
+    // fetch size of command buffer as an indication of how much memory
+    // is being used to accomodate all print commands for a program
+    command_memuse(terminal.queue, &bytes);
+    
+    // sum up stats from this frame
+    profiler_sum(profiler_stats(), bytes);
 #endif
     
     window_present(window);

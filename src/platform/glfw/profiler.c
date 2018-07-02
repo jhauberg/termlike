@@ -1,6 +1,11 @@
 #include "../profiler.h" // profiler_*
 
-#include <stdint.h> // uint16_t, UINT16_MAX
+#include <termlike/termlike.h> // term_*, TERM_*
+
+#include <stdint.h> // uint16_t, int32_t, UINT16_MAX
+#include <stdio.h> // sprintf
+
+#include <math.h> // ceil
 
 #if defined(__clang__)
  #pragma clang diagnostic push
@@ -31,30 +36,32 @@ static double frame_time_avg = 0;
 static double frame_time_samples = 0; // sample frames to calculate average
 static uint16_t frame_time_sample_count = 0;
 
-static struct profiler_stats stats;
+static char summed[64];
+
+static struct profiler_stats current;
 
 void
 profiler_reset(void)
 {
-    stats.draw_count = 0;
-    stats.frame_time = 0;
-    stats.frame_time_avg = 0;
-    stats.frames_per_second = 0;
-    stats.frames_per_second_min = UINT16_MAX;
-    stats.frames_per_second_max = 0;
-    stats.frames_per_second_avg = 0;
+    current.draw_count = 0;
+    current.frame_time = 0;
+    current.frame_time_avg = 0;
+    current.frames_per_second = 0;
+    current.frames_per_second_min = UINT16_MAX;
+    current.frames_per_second_max = 0;
+    current.frames_per_second_avg = 0;
 }
 
 void
 profiler_begin(void)
 {
-    stats.draw_count = 0;
+    current.draw_count = 0;
 }
 
 void
 profiler_increment_draw_count(uint8_t const amount)
 {
-    stats.draw_count += amount;
+    current.draw_count += amount;
 }
 
 void
@@ -66,17 +73,17 @@ profiler_end(void)
     frame_time = time_since_last_frame;
     last_frame_time = time;
     
-    stats.frames_per_second = (uint16_t)(1.0 / frame_time);
+    current.frames_per_second = (uint16_t)(1.0 / frame_time);
     
-    if (stats.frames_per_second < stats.frames_per_second_min) {
-        stats.frames_per_second_min = stats.frames_per_second;
+    if (current.frames_per_second < current.frames_per_second_min) {
+        current.frames_per_second_min = current.frames_per_second;
     }
     
-    if (stats.frames_per_second > stats.frames_per_second_max) {
-        stats.frames_per_second_max = stats.frames_per_second;
+    if (current.frames_per_second > current.frames_per_second_max) {
+        current.frames_per_second_max = current.frames_per_second;
     }
     
-    frame_samples += stats.frames_per_second;
+    frame_samples += current.frames_per_second;
     frame_sample_count++;
     
     frame_time_samples += frame_time;
@@ -90,21 +97,67 @@ profiler_end(void)
         profiler_update_averages();
     }
     
-    stats.frame_time = frame_time * 1000;
-    stats.frame_time_avg = frame_time_avg * 1000;
+    current.frame_time = frame_time * 1000;
+    current.frame_time_avg = frame_time_avg * 1000;
+}
+
+void
+profiler_draw(void)
+{
+    int32_t w, h;
+    
+    term_get_display(&w, &h);
+    
+    char const * const background = "█";
+    
+    int32_t cw, ch;
+    
+    term_measure(background, &cw, &ch);
+    
+    int32_t const columns = w / cw;
+    
+    int32_t y = h - ch + 0;
+    
+    for (int32_t i = 0; i < columns; i++) {
+        term_printt(positionedz(i * cw, y - 1,
+                                layered_below(TERM_LAYER_TOP)),
+                    colored(255, 255, 225),
+                    scaled(1.25f),
+                    background);
+    }
+    
+    term_printstr(positionedz(0, y, TERM_LAYER_TOP),
+                  colored(55, 55, 55),
+                  aligned(TERM_ALIGN_LEFT),
+                  "` to disable");
+    
+    term_printstr(positionedz(w, y, TERM_LAYER_TOP),
+                  colored(55, 55, 55),
+                  aligned(TERM_ALIGN_RIGHT),
+                  summed);
+}
+
+void
+profiler_sum(struct profiler_stats const stats, size_t const memory)
+{
+    sprintf(summed,
+            "%dFPS %dDRW %.0fKB",
+            stats.frames_per_second_avg,
+            stats.draw_count,
+            ceil(memory / 1024.0));
 }
 
 struct profiler_stats
 profiler_stats(void)
 {
-    return stats;
+    return current;
 }
 
 static
 void
 profiler_update_averages(void)
 {
-    stats.frames_per_second_avg = frame_samples / frame_sample_count;
+    current.frames_per_second_avg = frame_samples / frame_sample_count;
     frame_sample_count = 0;
     frame_samples = 0;
     
@@ -115,6 +168,6 @@ profiler_update_averages(void)
     // reset min/max to show rolling stats rather than historically accurate
     // stats (it's more interesting knowing min/max for the current scene
     // than knowing the 9999+ max fps during the first blank frame)
-    stats.frames_per_second_min = UINT16_MAX;
-    stats.frames_per_second_max = 0;
+    current.frames_per_second_min = UINT16_MAX;
+    current.frames_per_second_max = 0;
 }

@@ -593,7 +593,18 @@ term_print_character(uint32_t const character, void * const data)
         location.x += state->origin.x;
         location.y += state->origin.y;
     }
-        
+
+    struct viewport const viewport = graphics_get_viewport(terminal.graphics);
+    
+    int32_t const w = (int32_t)(state->cursor.width * state->scale);
+    int32_t const h = (int32_t)(state->cursor.height * state->scale);
+    
+    if (location.x + w < 0 || location.x > viewport.resolution.width ||
+        location.y + h < 0 || location.y > viewport.resolution.height) {
+        // cull unnecessary draws
+        return;
+    }
+    
     struct graphics_transform transform = {
         .position = {
             .x = location.x,

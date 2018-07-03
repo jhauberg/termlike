@@ -28,6 +28,8 @@ struct window_context;
 struct term_key_state;
 struct term_cursor_state;
 
+struct viewport;
+
 struct window_context * window_create(struct window_params);
 void window_terminate(struct window_context *);
 
@@ -48,3 +50,7 @@ void window_present(struct window_context const *);
 void window_read(struct window_context *,
                  struct term_key_state *,
                  struct term_cursor_state *);
+
+void window_translate_cursor(struct window_context const *,
+                             struct term_cursor_state *,
+                             struct viewport);

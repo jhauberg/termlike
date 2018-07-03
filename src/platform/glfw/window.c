@@ -22,8 +22,9 @@
  #pragma clang diagnostic pop
 #endif
 
-#include "../../keys.h" // term_key_state
 #include "../window.h" // window_*
+#include "../../keys.h" // term_key_state
+#include "../../graphics/viewport.h" // viewport, viewport_pixel_size
 
 struct window_position {
     int32_t x;
@@ -217,6 +218,38 @@ window_read(struct window_context * const context,
     
     window_read_keys(window, keys);
     window_read_cursor(window, cursor);
+}
+
+void
+window_translate_cursor(struct window_context const * const context,
+                        struct term_cursor_state * const cursor,
+                        struct viewport const viewport)
+{
+    // determine backing pixel-scale (to support retina/high-dpi displays)
+    float horz_pixel_scale, vert_pixel_scale;
+    
+    window_get_pixel_scale(context, &horz_pixel_scale, &vert_pixel_scale);
+    
+    // offset cursor location by the dimensions taken up by any boxed bars
+    cursor->location.x -= (viewport.offset.width / 2) / horz_pixel_scale;
+    cursor->location.y -= (viewport.offset.height / 2) / vert_pixel_scale;
+    
+    // determine pixel sizes (pixels are stretched in fullscreen)
+    float horz_pixel_size, vert_pixel_size;
+    
+    viewport_pixel_size(viewport, &horz_pixel_size, &vert_pixel_size);
+    
+    // scale pixel sizes by the backing pixel-scale
+    horz_pixel_size /= horz_pixel_scale;
+    vert_pixel_size /= vert_pixel_scale;
+    
+    // determine aspect ratio to scale cursor location by
+    float const aspect = horz_pixel_size > vert_pixel_size ?
+        vert_pixel_size : horz_pixel_size;
+    
+    // finally determine the cursor location within our world space
+    cursor->location.x = (int32_t)(cursor->location.x / aspect);
+    cursor->location.y = (int32_t)(cursor->location.y / aspect);
 }
 
 static

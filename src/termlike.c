@@ -100,8 +100,16 @@ static void term_handle_internal_input(void);
 /**
  * Copy a string to the internal buffer and apply wrapping.
  */
-static void term_buffer_str(char const * text, struct term_bounds);
+static void term_copy_str(char const * text,
+                          struct term_bounds,
+                          struct graphics_font);
 
+/**
+ * Toggle between fullscreen and windowed mode for the display.
+ *
+ * Fullscreen mode applies horizontal or vertical bars if needed to retain
+ * the aspect ratio of the display resolution.
+ */
 static void term_toggle_fullscreen(void);
 
 /**
@@ -130,6 +138,14 @@ static void term_count_character(uint32_t character, void *);
  */
 static void term_measure_character(uint32_t character, void *);
 
+/**
+ * Handle a font image being loaded into memory.
+ *
+ * This function can be passed to `load_image_data` as a callback.
+ *
+ * Note that the image data is released immediately after this function has
+ * completed.
+ */
 static void term_load_font(struct graphics_image);
 
 static struct term_context terminal;
@@ -326,13 +342,13 @@ term_measurestr(char const * const text,
                 int32_t * const width,
                 int32_t * const height)
 {
-    term_buffer_str(text, bounds);
+    struct graphics_font const font = graphics_get_font(terminal.graphics);
+    
+    term_copy_str(text, bounds, font);
     
     // initialize a state for measuring the smallest bounding box that
     // contains all lines of the text, and is within specified bounds
     struct term_state_measure measure;
-    
-    struct graphics_font const font = graphics_get_font(terminal.graphics);
     
     cursor_start(&measure.cursor, font.size, font.size);
     
@@ -520,11 +536,11 @@ term_toggle_fullscreen(void)
 
 static
 void
-term_buffer_str(char const * const text, struct term_bounds const bounds)
+term_copy_str(char const * const text,
+              struct term_bounds const bounds,
+              struct graphics_font const font)
 {
     buffer_copy(terminal.buffer, text);
-    
-    struct graphics_font const font = graphics_get_font(terminal.graphics);
     
     if (bounds.width != TERM_BOUNDS_UNBOUNDED) {
         if (bounds.wrap == TERM_WRAP_WORDS) {
@@ -641,13 +657,13 @@ static
 void
 term_print_command(struct command const * const command)
 {
-    term_buffer_str(command->text, command->bounds);
+    struct graphics_font const font = graphics_get_font(terminal.graphics);
+    
+    term_copy_str(command->text, command->bounds, font);
     
     // initialize a state for measuring line widths
     // this is needed to be able to align lines horizontally
     struct term_state_measure measure;
-    
-    struct graphics_font const font = graphics_get_font(terminal.graphics);
     
     cursor_start(&measure.cursor, font.size, font.size);
     

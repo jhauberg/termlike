@@ -557,14 +557,15 @@ term_print_character(uint32_t const character, void * const data)
 {
     struct term_state_print * const state = (struct term_state_print *)data;
     
+    // grab line index before advancing cursor (it might break on next advance)
+    int32_t const line_index = state->cursor.breaks;
+    
     struct term_location location;
     
     // scale up the offset vector so that characters are spaced as expected
     // (note that we grab location before advancing the cursor)
     location.x = (int32_t)(state->cursor.offset.x * state->scale);
     location.y = (int32_t)(state->cursor.offset.y * state->scale);
-    
-    int32_t const line_index = state->cursor.breaks;
     
     // advance cursor for the next character
     cursor_advance(&state->cursor, state->bounds, character);
@@ -586,10 +587,13 @@ term_print_character(uint32_t const character, void * const data)
         location.x -= floorf(state->lines.widths[line_index] / 2);
     }
     
-    if (state->rotation == TERM_ROTATE_STRING) {
+    if (state->rotation == TERM_ROTATE_STRING &&
+        (state->radians > 0 || state->radians < 0)) {
+        // rotation is required, rotate and translate point
         rotate_point(location, state->origin, -state->radians,
                      &location);
     } else {
+        // no rotation required, just translate point
         location.x += state->origin.x;
         location.y += state->origin.y;
     }
@@ -699,7 +703,13 @@ term_print_command(struct command const * const command)
     state.z = index->z;
     
     state.rotation = command->transform.rotation;
-    state.radians = (float)((command->transform.angle * M_PI) / 180.0);
+    
+    if (command->transform.angle != 0) {
+        state.radians = (float)((command->transform.angle * M_PI) / 180.0);
+    } else {
+        state.radians = 0;
+    }
+    
     state.scale = command->transform.scale;
     
     state.tint = (struct graphics_color) {

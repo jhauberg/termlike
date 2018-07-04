@@ -83,6 +83,7 @@ struct term_context {
     struct buffer * buffer;
     struct command_buffer * queue;
     struct term_key_state keys;
+    struct term_key_state previous_keys;
     struct term_cursor_state cursor;
 #ifdef DEBUG
     bool is_profiling;
@@ -94,8 +95,6 @@ static void term_invalidate(void);
 
 static void term_update(uint16_t frequency, double * interpolate);
 static void term_draw(double interpolate);
-
-static void term_handle_internal_input(void);
 
 /**
  * Copy a string to the internal buffer and apply wrapping.
@@ -242,7 +241,6 @@ term_run(uint16_t const frequency)
     double interpolate = 0;
     
     term_update(frequency, &interpolate);
-    term_handle_internal_input();
 #ifdef DEBUG
     profiler_begin();
 #endif
@@ -461,28 +459,52 @@ term_update(uint16_t const frequency, double * const interpolate)
 {
     struct window_context * const window = terminal.window;
     
+    // read input state for this frame
+    // from this point on, input deltas branch off into two synchronized paths;
+    // one for frame related input (e.g. draw, internals)
+    // and one for tick related input (e.g. tick)
+    window_read(window, &terminal.keys, &terminal.cursor);
+    
+    // save a copy of the current key state for this frame
+    struct term_key_state const current_keys = terminal.keys;
+    
+    if (term_key_released((enum term_key)TERM_KEY_TOGGLE_FULLSCREEN)) {
+        term_toggle_fullscreen();
+    }
+    
+#ifdef DEBUG
+    if (term_key_pressed((enum term_key)TERM_KEY_TOGGLE_PROFILING)) {
+        terminal.is_profiling = !terminal.is_profiling;
+    }
+#endif
+    
+    // reset input state as it were during the previous tick
+    // note that this is necessary to syncronize input between ticks and not
+    // between frames (a game may run so fast that it skips ticks during a
+    // frame, and in this case the input delta would be invalid; e.g. you might
+    // want to do something on pressed/released, but those states could never
+    // trigger if it happened during a frame that skipped a tick)
+    terminal.keys = terminal.previous_keys;
+    
     timer_begin(terminal.timer); {
-        uint16_t ticks = 0;
         double step = 0;
-        
         while (timer_tick(terminal.timer, frequency, &step)) {
-            // update input for every tick this frame
+            // update input state from previous tick
             window_read(window, &terminal.keys, &terminal.cursor);
+            // save a copy of the state read during this tick, so that
+            // following ticks use the correct input delta
+            terminal.previous_keys = terminal.keys;
             
             if (terminal.tick_func) {
                 terminal.tick_func(step);
             }
-            
-            ticks += 1;
-        }
-        
-        if (ticks == 0) {
-            // make sure to update input at least once per frame
-            // (if time has stopped, then input would never be read)
-            window_read(window, &terminal.keys, &terminal.cursor);
         }
     }
     timer_end(terminal.timer, interpolate);
+    
+    // finally set key state to that of this frame
+    // (regardless of whether or not a tick occurred during this frame)
+    terminal.keys = current_keys;
 }
 
 static
@@ -502,21 +524,6 @@ term_draw(double const interpolate)
         command_flush(terminal.queue, term_print_command);
     }
     graphics_end(terminal.graphics);
-}
-
-static
-void
-term_handle_internal_input(void)
-{
-    if (term_key_released((enum term_key)TERM_KEY_TOGGLE_FULLSCREEN)) {
-        term_toggle_fullscreen();
-    }
-
-#ifdef DEBUG
-    if (term_key_pressed((enum term_key)TERM_KEY_TOGGLE_PROFILING)) {
-        terminal.is_profiling = !terminal.is_profiling;
-    }
-#endif
 }
 
 static

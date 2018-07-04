@@ -178,7 +178,7 @@ glyphs_add(struct glyph_renderer * const renderer,
         }
     }
     
-    uint32_t const offset = renderer->batch.count * GLYPH_VERTEX_COUNT;
+    mat4x4 transformed;
     
     mat4x4 translated;
     mat4x4_translate(translated,
@@ -188,19 +188,28 @@ glyphs_add(struct glyph_renderer * const renderer,
     
     mat4x4 rotated;
     mat4x4_identity(rotated);
-    mat4x4_rotate_Z(rotated, rotated,
-                    transform.angle);
     
+    if (transform.angle > 0 || transform.angle < 0) {
+        mat4x4_rotate_Z(rotated, rotated,
+                        transform.angle);
+    }
+    
+    mat4x4_mul(transformed, translated, rotated);
+
     mat4x4 scaled;
     mat4x4_identity(scaled);
-    mat4x4_scale_aniso(scaled, scaled,
-                       transform.horizontal_scale,
-                       transform.vertical_scale,
-                       1);
     
-    mat4x4 transformed;
-    mat4x4_mul(transformed, translated, rotated);
+    if (transform.horizontal_scale > 1 || transform.vertical_scale > 1 ||
+        transform.horizontal_scale < 1 || transform.vertical_scale < 1) {
+        mat4x4_scale_aniso(scaled, scaled,
+                           transform.horizontal_scale,
+                           transform.vertical_scale,
+                           1);
+    }
+    
     mat4x4_mul(transformed, transformed, scaled);
+
+    uint32_t const offset = renderer->batch.count * GLYPH_VERTEX_COUNT;
     
     for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
         struct glyph_vertex vertex = vertices[i];

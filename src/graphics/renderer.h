@@ -3,10 +3,10 @@
 #include <stdint.h> // uint8_t, int32_t
 
 struct graphics_image {
+    uint8_t * data;
     int32_t width;
     int32_t height;
     int32_t components;
-    uint8_t * data;
 };
 
 struct graphics_font {

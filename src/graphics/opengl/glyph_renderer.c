@@ -56,16 +56,10 @@ glyphs_init(struct viewport const viewport)
     "#version 330 core\n"
     "in vec2 texture_coord;\n"
     "in vec4 tint;\n"
-    "uniform int enable_additive_tint;\n"
     "uniform sampler2D sampler;\n"
     "layout (location = 0) out vec4 fragment_color;\n"
     "void main() {\n"
-    "    vec4 sampled_color = texture(sampler, texture_coord.st);\n"
-    "    if (enable_additive_tint != 0) {\n"
-    "        fragment_color = (sampled_color + vec4(tint.rgb, 0)) * tint.a;\n"
-    "    } else {\n"
-    "        fragment_color = sampled_color * tint;\n"
-    "    }\n"
+    "    fragment_color = texture(sampler, texture_coord.st) * tint;\n"
     "}";
 
     GLuint const vs = graphics_compile_shader(GL_VERTEX_SHADER,
@@ -285,17 +279,11 @@ glyphs_draw(struct glyph_renderer const * const renderer)
     glyphs_state(true);
     
     glUseProgram(renderer->renderable.program);
-    
-    // note that this flag will affect entire batch
-    GLint const uniform_tint =
-    glGetUniformLocation(renderer->renderable.program,
-                         "enable_additive_tint");
+
     GLint const uniform_transform =
-    glGetUniformLocation(renderer->renderable.program,
-                         "transform");
-    
-    glUniform1i(uniform_tint, false);
+    glGetUniformLocation(renderer->renderable.program, "transform");
     glUniformMatrix4fv(uniform_transform, 1, GL_FALSE, *renderer->transform);
+    
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->current_texture_id); {
         glBindVertexArray(renderer->renderable.vao); {

@@ -13,37 +13,23 @@ draw_logo(double const interp)
     
     term_get_display(&w, &h);
     
-    char const * const logo =
-    "___ ____ ____ _  _ _    _ _  _ ____\n"
-    " |  |___ |__/ |\\/| |    | |_/  |___\n"
-    " |  |___ |  \\ |  | |___ | | \\_ |___";
+    char const * const map =
+    "       ░\n"
+    "       ░\n"
+    " ┌─────∙┐\n"
+    "░∙∙∙∙∙∙∙│\n"
+    " │∙∙@∙∙∙│\n"
+    " │∙∙∙∙∙\n"
+    " │∙∙";
     
-    int32_t cw, ch;
+    int32_t mw, mh;
     
-    term_measure(logo, &cw, &ch);
+    term_measure(map, &mw, &mh);
     
-    int32_t x = (w / 2) - (cw / 2);
-    int32_t y = (h / 2) - (ch / 2) - 60;
-    
-    term_print(positionedz(x, y, layered(1)),
+    term_print(positioned((w / 2) - (mw / 2),
+                          (h / 2) - (mh / 2)),
                colored(255, 255, 255),
-               logo);
-
-    float alpha = 0.2f;
-    
-    for (int32_t i = 1; i < 8; i++) {
-        term_printt(positionedz(x, y, layered(0)),
-                    transparent(colored(255, 255, 255), alpha),
-                    transformed(1, -i, TERM_ROTATE_STRING),
-                    logo);
-        
-        alpha *= 0.8f;
-    }
-
-    term_printstr(positioned((w / 2), h - 60),
-                  colored(255, 255, 255),
-                  aligned(TERM_ALIGN_CENTER),
-                  "POWERED BY CP437");
+               map);
 }
 
 int32_t

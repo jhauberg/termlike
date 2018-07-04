@@ -13,7 +13,7 @@
 #include <gl3w/GL/gl3w.h> // gl*, GL*
 #include <linmath/linmath.h> // mat4x4, mat4x4_*
 
-#define MAX_GLYPHS 128 // flush when reaching this limit
+#define MAX_GLYPHS 2048 // flush when reaching this limit
 
 #define GLYPH_VERTEX_COUNT (2 * 3) // 2 triangles per quad = 6 vertices
 #define GLYPH_BATCH_VERTEX_COUNT (MAX_GLYPHS * GLYPH_VERTEX_COUNT)

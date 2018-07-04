@@ -172,59 +172,84 @@ glyphs_add(struct glyph_renderer * const renderer,
         }
     }
     
-    mat4x4 transformed;
+    bool const requires_scaling = (transform.horizontal_scale > 1 ||
+                                   transform.horizontal_scale < 1 ||
+                                   transform.vertical_scale > 1 ||
+                                   transform.vertical_scale < 1);
     
-    mat4x4 translated;
-    mat4x4_translate(translated,
-                     transform.origin.x,
-                     transform.origin.y,
-                     transform.origin.z);
+    bool const requires_rotation = (transform.angle > 0 ||
+                                    transform.angle < 0);
     
-    mat4x4 rotated;
-    mat4x4_identity(rotated);
+    bool const requires_transformation = (requires_scaling ||
+                                          requires_rotation);
     
-    if (transform.angle > 0 || transform.angle < 0) {
-        mat4x4_rotate_Z(rotated, rotated,
-                        transform.angle);
-    }
+    uint32_t const vertex_offset = renderer->batch.count * GLYPH_VERTEX_COUNT;
     
-    mat4x4_mul(transformed, translated, rotated);
+    if (requires_transformation) {
+        mat4x4 transformed;
+        
+        mat4x4 translated;
+        mat4x4_translate(translated,
+                         transform.origin.x,
+                         transform.origin.y,
+                         transform.origin.z);
+        
+        mat4x4 rotated;
+        mat4x4_identity(rotated);
+        
+        if (requires_rotation) {
+            mat4x4_rotate_Z(rotated, rotated,
+                            transform.angle);
+        }
+        
+        mat4x4_mul(transformed, translated, rotated);
 
-    mat4x4 scaled;
-    mat4x4_identity(scaled);
-    
-    if (transform.horizontal_scale > 1 || transform.vertical_scale > 1 ||
-        transform.horizontal_scale < 1 || transform.vertical_scale < 1) {
-        mat4x4_scale_aniso(scaled, scaled,
-                           transform.horizontal_scale,
-                           transform.vertical_scale,
-                           1);
-    }
-    
-    mat4x4_mul(transformed, transformed, scaled);
-
-    uint32_t const offset = renderer->batch.count * GLYPH_VERTEX_COUNT;
-    
-    for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
-        struct glyph_vertex vertex = vertices[i];
+        mat4x4 scaled;
+        mat4x4_identity(scaled);
         
-        vec4 position = {
-            vertex.position.x,
-            vertex.position.y,
-            vertex.position.z, 1
-        };
+        if (requires_scaling) {
+            mat4x4_scale_aniso(scaled, scaled,
+                               transform.horizontal_scale,
+                               transform.vertical_scale,
+                               1);
+        }
         
-        vec4 world_position;
+        mat4x4_mul(transformed, transformed, scaled);
         
-        mat4x4_mul_vec4(world_position, transformed, position);
-        
-        vertex.position = (struct vector3) {
-            world_position[0],
-            world_position[1],
-            world_position[2]
-        };
-        
-        renderer->batch.vertices[offset + i] = vertex;
+        for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
+            struct glyph_vertex vertex = vertices[i];
+            
+            vec4 position = {
+                vertex.position.x,
+                vertex.position.y,
+                vertex.position.z,
+                1
+            };
+            
+            vec4 world_position;
+            
+            mat4x4_mul_vec4(world_position, transformed, position);
+            
+            vertex.position = (struct vector3) {
+                world_position[0],
+                world_position[1],
+                world_position[2]
+            };
+            
+            renderer->batch.vertices[vertex_offset + i] = vertex;
+        }
+    } else {
+        for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
+            struct glyph_vertex vertex = vertices[i];
+            
+            vertex.position = (struct vector3) {
+                vertex.position.x + transform.origin.x,
+                vertex.position.y + transform.origin.y,
+                vertex.position.z + transform.origin.z
+            };
+            
+            renderer->batch.vertices[vertex_offset + i] = vertex;
+        }
     }
     
     renderer->batch.count += 1;

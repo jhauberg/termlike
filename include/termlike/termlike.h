@@ -13,6 +13,7 @@
 #define TERM_FREQUENCY_DEFAULT 30
 #define TERM_FREQUENCY_FAST 60
 #define TERM_FREQUENCY_ONCE_A_SECOND 1
+#define TERM_FREQUENCY_NONE 0
 
 typedef void term_draw_callback(double interpolation);
 typedef void term_tick_callback(double step);

@@ -74,6 +74,9 @@ struct term_state_print {
     enum term_rotate rotation;
 };
 
+/**
+ * Represents a Termlike display.
+ */
 struct term_context {
     term_draw_callback * draw_func;
     term_tick_callback * tick_func;
@@ -91,14 +94,38 @@ struct term_context {
 #endif
 };
 
+/**
+ * Initialize the terminal display at a given client size (in pixels).
+ *
+ * This includes initializing a renderer, timer and buffers.
+ */
 static bool term_setup(struct window_size);
+/**
+ * Invalidate the terminal display.
+ *
+ * This should be called whenever the window size of the display changes.
+ *
+ * Currently only needed when switching between fullscreen and windowed modes.
+ */
 static void term_invalidate(void);
 
+/**
+ * Update a frame.
+ *
+ * This reads input and calculate deltas since the last frame, then ticks as
+ * many times as needed to keep game state in sync.
+ */
 static void term_update(uint16_t frequency, double * interpolate);
+/**
+ * Render a frame.
+ *
+ * This accumulates all print commands then proceeds to flush them by sorting
+ * and drawing each command back-to-front.
+ */
 static void term_draw(double interpolate);
 
 /**
- * Copy a string to the internal buffer and apply wrapping.
+ * Copy a string to the internal buffer and apply wrapping if needed.
  */
 static void term_copy_str(char const * text,
                           struct term_bounds,
@@ -315,8 +342,7 @@ term_printstrt(struct term_position const position,
 }
 
 void
-term_count(char const * const text,
-           size_t * const length)
+term_count(char const * const text, size_t * const length)
 {
     // initialize a state for counting number of printable characters
     struct term_state_count state;
@@ -491,6 +517,7 @@ term_update(uint16_t const frequency, double * const interpolate)
     
     timer_begin(terminal.timer); {
         double step = 0;
+        
         while (timer_tick(terminal.timer, frequency, &step)) {
             // update input state from previous tick
             window_read(window, &terminal.keys, &terminal.cursor);

@@ -22,7 +22,7 @@
 
 static void profiler_update_averages(void);
 
-static double const frame_average_interval = 1.0; // in seconds
+static double const frame_average_interval = 0.666; // in seconds
 
 static double last_frame_time = 0;
 static double last_average_time = 0;
@@ -141,7 +141,7 @@ void
 profiler_sum(struct profiler_stats const stats, size_t const memory)
 {
     sprintf(summed,
-            "%dFPS %dDRW %.0fKB",
+            "%dFPS %dGPU %.0fKB",
             stats.frames_per_second_avg,
             stats.draw_count,
             ceil(memory / 1024.0));

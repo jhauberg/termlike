@@ -85,6 +85,7 @@ struct term_context {
     struct term_key_state keys;
     struct term_key_state previous_keys;
     struct term_cursor_state cursor;
+    bool is_open;
 #ifdef DEBUG
     bool is_profiling;
 #endif
@@ -147,13 +148,16 @@ static void term_measure_character(uint32_t character, void *);
  */
 static void term_load_font(struct graphics_image);
 
-static struct term_context terminal;
+/**
+ * The one and only terminal object.
+ */
+static struct term_context terminal = (struct term_context const) { 0 };
 
 bool
 term_open(struct term_settings const settings)
 {
-    if (terminal.window != NULL) {
-        window_terminate(terminal.window);
+    if (terminal.is_open) {
+        term_close();
     }
     
     struct window_size display;
@@ -177,29 +181,28 @@ term_open(struct term_settings const settings)
         return false;
     }
     
-    return true;
+    terminal.is_open = true;
+    
+    return terminal.is_open;
 }
 
 bool
 term_close(void)
 {
+    if (!terminal.is_open) {
+        return false;
+    }
+    
     graphics_release(terminal.graphics);
     timer_release(terminal.timer);
     command_release(terminal.queue);
     buffer_release(terminal.buffer);
     
     window_terminate(terminal.window);
- 
-    terminal.graphics = NULL;
-    terminal.buffer = NULL;
-    terminal.queue = NULL;
-    terminal.timer = NULL;
-    terminal.window = NULL;
- 
-    terminal.draw_func = NULL;
-    terminal.tick_func = NULL;
     
-    return true;
+    terminal = (struct term_context const) { 0 };
+
+    return !terminal.is_open;
 }
 
 bool
@@ -517,7 +520,6 @@ term_draw(double const interpolate)
         }
 #ifdef DEBUG
         if (terminal.is_profiling) {
-            // note that we're drawing stats from the previous frame
             profiler_draw();
         }
 #endif

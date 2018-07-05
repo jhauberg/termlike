@@ -16,3 +16,7 @@ struct term_position {
 
 struct term_position positioned(int32_t x, int32_t y);
 struct term_position positionedz(int32_t x, int32_t y, struct term_layer);
+
+struct term_position positioned_offset(struct term_position,
+                                       int32_t dx, int32_t dy);
+struct term_position positioned_layer(struct term_position, struct term_layer);

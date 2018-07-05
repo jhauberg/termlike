@@ -23,3 +23,22 @@ positionedz(int32_t const x, int32_t const y, struct term_layer layer)
         .layer = layer
     };
 }
+
+struct term_position
+positioned_offset(struct term_position position,
+                  int32_t const dx,
+                  int32_t const dy)
+{
+    position.location.x += dx;
+    position.location.y += dy;
+    
+    return position;
+}
+
+struct term_position
+positioned_layer(struct term_position position, struct term_layer const layer)
+{
+    position.layer = layer;
+    
+    return position;
+}

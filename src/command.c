@@ -9,6 +9,9 @@ struct command_buffer {
     struct command * commands;
     uint32_t count;
     uint32_t capacity;
+#ifdef DEBUG
+    uint32_t highest_count;
+#endif
 };
 
 static int32_t command_compare(void const *, void const *);
@@ -19,7 +22,10 @@ command_init(void)
     struct command_buffer * const buf = malloc(sizeof(struct command_buffer));
     
     buf->count = 0;
-    buf->capacity = 64;
+    buf->capacity = 256;
+#ifdef DEBUG
+    buf->highest_count = 0;
+#endif
     buf->commands = malloc(sizeof(struct command) * buf->capacity);
     
     return buf;
@@ -39,6 +45,10 @@ command_push(struct command_buffer * const buffer,
     if (buffer->capacity == buffer->count) {
         buffer->capacity = buffer->capacity * 2;
 
+        if (buffer->capacity >= UINT16_MAX) {
+            buffer->capacity = UINT16_MAX;
+        }
+        
         buffer->commands = realloc(buffer->commands,
                                    sizeof(struct command) * buffer->capacity);
     }
@@ -50,6 +60,11 @@ command_push(struct command_buffer * const buffer,
     
     buffer->commands[buffer->count] = command;
     buffer->count += 1;
+#ifdef DEBUG
+    if (buffer->highest_count < buffer->count) {
+        buffer->highest_count = buffer->count;
+    }
+#endif
 }
 
 void

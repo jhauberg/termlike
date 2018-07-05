@@ -10,6 +10,10 @@
 struct command_buffer;
 
 struct command_index {
+    // note that the order of fields is important
+    // going from top to bottom, top is least significant and bottom is most
+    // this effectively means Z-value is more important than call order
+    // but two indices with identical Z-value will fall back to call order
     uint32_t order;
     float z;
 };
@@ -31,6 +35,6 @@ void command_release(struct command_buffer *);
 void command_push(struct command_buffer *, struct command);
 void command_flush(struct command_buffer *, command_callback *);
 
-void command_memuse(struct command_buffer const *, size_t *);
+void command_memuse(struct command_buffer const *, size_t * memory);
 
 struct command_index * command_index(struct command const *);

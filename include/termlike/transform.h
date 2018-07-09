@@ -16,11 +16,18 @@ enum term_rotate {
     TERM_ROTATE_CHARACTERS
 };
 
-struct term_transform {
+struct term_scale {
     /**
-     * The amount to scale by (1 is no scaling).
+     * The amount to scale by horizontally (1 is no scaling).
      */
-    float scale;
+    float horizontal;
+    /**
+     * The amount to scale by vertically (1 is no scaling).
+     */
+    float vertical;
+};
+
+struct term_rotation {
     /**
      * The angle, in degrees, to apply rotation by (0 is no rotation).
      */
@@ -29,6 +36,17 @@ struct term_transform {
      * The method of rotation to apply.
      */
     enum term_rotate rotation;
+};
+
+struct term_transform {
+    /**
+     * The scaling transformation.
+     */
+    struct term_scale scale;
+    /**
+     * The rotation transformation.
+     */
+    struct term_rotation rotate;
 };
 
 extern struct term_transform const TERM_TRANSFORM_NONE;

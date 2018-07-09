@@ -9,19 +9,23 @@
 #include <linmath/linmath.h> // mat4x4
 
 struct term_transform const TERM_TRANSFORM_NONE = {
-    .scale = SCALE(1),
-    .angle = ANGLE(0),
-    .rotation = TERM_ROTATE_STRING
+    .scale = {
+        .horizontal = SCALE(1),
+        .vertical = SCALE(1)
+    },
+    .rotate = {
+        .angle = ANGLE(0),
+        .rotation = TERM_ROTATE_STRING
+    }
 };
 
 struct term_transform
-rotated(int32_t const angle,
-        enum term_rotate const rotation)
+rotated(int32_t const angle, enum term_rotate const rotation)
 {
     struct term_transform transform = TERM_TRANSFORM_NONE;
     
-    transform.angle = angle;
-    transform.rotation = rotation;
+    transform.rotate.angle = angle;
+    transform.rotate.rotation = rotation;
     
     return transform;
 }
@@ -31,7 +35,8 @@ scaled(float const scale)
 {
     struct term_transform transform = TERM_TRANSFORM_NONE;
     
-    transform.scale = scale;
+    transform.scale.horizontal = scale;
+    transform.scale.vertical = scale;
     
     return transform;
 }
@@ -42,9 +47,14 @@ transformed(float const scale,
             enum term_rotate const rotation)
 {
     return (struct term_transform) {
-        .scale = scale,
-        .angle = angle,
-        .rotation = rotation
+        .scale = {
+            .horizontal = scale,
+            .vertical = scale,
+        },
+        .rotate = {
+            .angle = angle,
+            .rotation = rotation
+        }
     };
 }
 

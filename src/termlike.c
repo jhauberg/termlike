@@ -68,8 +68,8 @@ struct term_state_print {
     struct term_location origin;
     struct term_bounds bounds;
     struct term_lines lines;
+    struct term_scale scale;
     float z;
-    float scale;
     float radians;
     enum term_rotate rotation;
 };
@@ -600,8 +600,8 @@ term_print_character(uint32_t const character, void * const data)
     
     // scale up the offset vector so that characters are spaced as expected
     // (note that we grab location before advancing the cursor)
-    location.x = (int32_t)(state->cursor.offset.x * state->scale);
-    location.y = (int32_t)(state->cursor.offset.y * state->scale);
+    location.x = (int32_t)(state->cursor.offset.x * state->scale.horizontal);
+    location.y = (int32_t)(state->cursor.offset.y * state->scale.vertical);
     
     // advance cursor for the next character
     cursor_advance(&state->cursor, state->bounds, character);
@@ -636,8 +636,8 @@ term_print_character(uint32_t const character, void * const data)
 
     struct viewport const viewport = graphics_get_viewport(terminal.graphics);
     
-    int32_t const w = (int32_t)(state->cursor.width * state->scale);
-    int32_t const h = (int32_t)(state->cursor.height * state->scale);
+    int32_t const w = (int32_t)(state->cursor.width * state->scale.horizontal);
+    int32_t const h = (int32_t)(state->cursor.height * state->scale.vertical);
     
     if (location.x + w < 0 || location.x > viewport.resolution.width ||
         location.y + h < 0 || location.y > viewport.resolution.height) {
@@ -652,8 +652,8 @@ term_print_character(uint32_t const character, void * const data)
             .z = state->z
         },
         .angle = state->radians,
-        .horizontal_scale = state->scale,
-        .vertical_scale = state->scale
+        .horizontal_scale = state->scale.horizontal,
+        .vertical_scale = state->scale.vertical
     };
     
     graphics_draw(terminal.graphics,
@@ -738,10 +738,12 @@ term_print_command(struct command const * const command)
     
     state.z = index->z;
     
-    state.rotation = command->transform.rotation;
+    struct term_rotation const rotate = command->transform.rotate;
     
-    if (command->transform.angle != 0) {
-        state.radians = (float)((command->transform.angle * M_PI) / 180.0);
+    state.rotation = rotate.rotation;
+    
+    if (rotate.angle != 0 && rotate.angle != 360) {
+        state.radians = (float)((rotate.angle * M_PI) / 180.0);
     } else {
         state.radians = 0;
     }

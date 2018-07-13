@@ -13,11 +13,15 @@ enum term_align {
     TERM_ALIGN_CENTER
 };
 
+struct term_dimens {
+    int32_t width;
+    int32_t height;
+};
+
 struct term_bounds {
     enum term_wrap wrap;
     enum term_align align;
-    int32_t width;
-    int32_t height;
+    struct term_dimens size;
 };
 
 #define TERM_BOUNDS_UNBOUNDED (0)

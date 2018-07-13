@@ -578,9 +578,9 @@ term_copy_str(char const * const text,
 {
     buffer_copy(terminal.buffer, text);
     
-    if (bounds.width != TERM_BOUNDS_UNBOUNDED) {
+    if (bounds.size.width != TERM_BOUNDS_UNBOUNDED) {
         if (bounds.wrap == TERM_WRAP_WORDS) {
-            size_t const limit = (size_t)(bounds.width / font.size);
+            size_t const limit = (size_t)(bounds.size.width / font.size);
             
             buffer_wrap(terminal.buffer, limit);
         }
@@ -772,4 +772,43 @@ term_load_font(struct graphics_image const image)
     font.size = IBM8x8_CELL_SIZE;
     
     graphics_set_font(terminal.graphics, image, font);
+}
+
+void
+term_fill(struct term_position const position,
+          struct term_dimens const size,
+          struct term_color const color)
+{
+    term_fillt(position, size, color, TERM_TRANSFORM_NONE);
+}
+
+void
+term_fillt(struct term_position position,
+           struct term_dimens const size,
+           struct term_color const color,
+           struct term_transform transform)
+{
+    char const * const glyph = "█";
+    
+    int32_t cw, ch;
+    
+    term_measure(glyph, &cw, &ch);
+    
+    float const h = (float)((float)size.width / cw);
+    float const v = (float)((float)size.height / ch);
+    
+    transform.scale.horizontal = h * transform.scale.horizontal;
+    transform.scale.vertical = v * transform.scale.vertical;
+    
+    // offset origin by half of the resulting dimensions
+    // (because glyphs are anchored at the center when applying transformations)
+    position.location.x += (cw * transform.scale.horizontal) / 2;
+    position.location.y += (ch * transform.scale.vertical) / 2;
+    
+    // offset by half the size of a single glyph
+    // (because )
+    position.location.x -= cw / 2;
+    position.location.y -= ch / 2;
+    
+    term_printt(position, color, transform, glyph);
 }

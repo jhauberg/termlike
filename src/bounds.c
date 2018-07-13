@@ -3,8 +3,10 @@
 struct term_bounds const TERM_BOUNDS_NONE = {
     .align = TERM_ALIGN_LEFT,
     .wrap = TERM_WRAP_CHARACTERS,
-    .width = TERM_BOUNDS_UNBOUNDED,
-    .height = TERM_BOUNDS_UNBOUNDED
+    .size = {
+        .width = TERM_BOUNDS_UNBOUNDED,
+        .height = TERM_BOUNDS_UNBOUNDED
+    }
 };
 
 struct term_bounds
@@ -25,7 +27,9 @@ boxed(int32_t const width, int32_t const height, enum term_align const align)
     return (struct term_bounds) {
         .align = align,
         .wrap = TERM_WRAP_WORDS,
-        .width = width,
-        .height = height
+        .size = {
+            .width = width,
+            .height = height
+        }
     };
 }

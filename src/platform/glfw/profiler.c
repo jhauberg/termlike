@@ -114,18 +114,15 @@ profiler_draw(void)
     
     term_measure(background, &cw, &ch);
     
-    int32_t const columns = w / cw;
-    
-    int32_t y = h - ch + 0;
-    
-    for (int32_t i = 0; i < columns; i++) {
-        term_printt(positionedz(i * cw, y - 1,
-                                layered_below(TERM_LAYER_TOP)),
-                    colored(255, 255, 225),
-                    scaled(1.25f),
-                    background);
-    }
-    
+    int32_t y = h - ch;
+
+    term_fill(positionedz(0, y - 1, layered_below(TERM_LAYER_TOP)),
+               (struct term_dimens) {
+                   .width = w,
+                   .height = ch + 1
+               },
+               colored(255, 255, 225));
+
     term_printstr(positionedz(0, y, TERM_LAYER_TOP),
                   colored(55, 55, 55),
                   aligned(TERM_ALIGN_LEFT),

@@ -161,3 +161,11 @@ bool term_key_released(enum term_key);
  * Get the cursor state.
  */
 void term_cursor(struct term_cursor_state *);
+
+void term_fill(struct term_position,
+               struct term_dimens,
+               struct term_color);
+void term_fillt(struct term_position,
+                struct term_dimens,
+                struct term_color,
+                struct term_transform);

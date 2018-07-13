@@ -44,10 +44,10 @@ bool
 cursor_is_out_of_bounds(struct cursor const * const cursor,
                         struct term_bounds const bounds)
 {
-    if (bounds.height != TERM_BOUNDS_UNBOUNDED) {
+    if (bounds.size.height != TERM_BOUNDS_UNBOUNDED) {
         int32_t const bottom = cursor->offset.y + cursor->height;
         
-        if (bottom > bounds.height) {
+        if (bottom > bounds.size.height) {
             return true;
         }
     }
@@ -60,10 +60,10 @@ void
 cursor_break_if_needed(struct cursor * const cursor,
                        struct term_bounds const bounds)
 {
-    if (bounds.width != TERM_BOUNDS_UNBOUNDED) {
+    if (bounds.size.width != TERM_BOUNDS_UNBOUNDED) {
         int32_t const right = cursor->offset.x + cursor->width;
         
-        if (right > bounds.width) {
+        if (right > bounds.size.width) {
             cursor_break(cursor);
         }
     }

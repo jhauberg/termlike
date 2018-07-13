@@ -151,14 +151,15 @@ graphics_draw(struct graphics_context const * const context,
     // flip it
     source.y = (texture_height - context->font.size) - source.y;
 
-    struct glyph_vertex vertices[6];
-    
+    // anchor vertices around the center
     float const half = context->font.size / 2.0f;
     
     float const l = -half;
     float const r = half;
     float const b = -half;
     float const t = half;
+    
+    struct glyph_vertex vertices[6];
     
     struct vector2 const bl = { .x = l, .y = b };
     struct vector2 const tl = { .x = l, .y = t };
@@ -217,17 +218,18 @@ graphics_draw(struct graphics_context const * const context,
                              context->font.size -
                              transform.position.y);
     
-    struct vector3 origin;
-    
-    origin.x = transform.position.x + half;
-    origin.y = flipped_y + half;
-    origin.z = transform.position.z;
+    struct vector3 origin = {
+        .x = transform.position.x,
+        .y = flipped_y,
+        .z = transform.position.z
+    };
     
     glyphs_add(context->glyphs,
                vertices,
                (struct glyph_transform) {
                    .origin = origin,
                    .angle = transform.angle,
+                   .offset = half,
                    .horizontal_scale = transform.horizontal_scale,
                    .vertical_scale = transform.vertical_scale
                },
@@ -273,7 +275,6 @@ static
 void
 graphics_setup(struct graphics_context * const context)
 {
-    // clear depth should be set once and not changed afterwards
     glClearDepth(1.0);
     
     graphics_setup_screen_shader(context);

@@ -12,6 +12,7 @@ struct viewport;
 struct glyph_transform {
     struct vector3 origin;
     float angle;
+    float offset;
     float horizontal_scale;
     float vertical_scale;
 };

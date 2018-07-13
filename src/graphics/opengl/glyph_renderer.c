@@ -231,20 +231,21 @@ glyphs_add(struct glyph_renderer * const renderer,
             mat4x4_mul_vec4(world_position, transformed, position);
             
             vertex.position = (struct vector3) {
-                world_position[0],
-                world_position[1],
+                world_position[0] + transform.offset,
+                world_position[1] + transform.offset,
                 world_position[2]
             };
             
             renderer->batch.vertices[vertex_offset + i] = vertex;
         }
     } else {
+        // refactor this- same loop above
         for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
             struct glyph_vertex vertex = vertices[i];
             
             vertex.position = (struct vector3) {
-                vertex.position.x + transform.origin.x,
-                vertex.position.y + transform.origin.y,
+                vertex.position.x + transform.origin.x + transform.offset,
+                vertex.position.y + transform.origin.y + transform.offset,
                 vertex.position.z + transform.origin.z
             };
             

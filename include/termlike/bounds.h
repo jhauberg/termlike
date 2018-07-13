@@ -28,6 +28,8 @@ struct term_bounds {
 
 extern struct term_bounds const TERM_BOUNDS_NONE;
 
+struct term_dimens sized(int32_t width, int32_t height);
+
 struct term_bounds bounded(int32_t width, int32_t height);
 struct term_bounds aligned(enum term_align);
 

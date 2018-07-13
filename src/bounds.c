@@ -9,6 +9,15 @@ struct term_bounds const TERM_BOUNDS_NONE = {
     }
 };
 
+struct term_dimens
+sized(int32_t const width, int32_t const height)
+{
+    return (struct term_dimens) {
+        .width = width,
+        .height = height
+    };
+}
+
 struct term_bounds
 bounded(int32_t width, int32_t height)
 {

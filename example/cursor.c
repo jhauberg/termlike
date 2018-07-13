@@ -41,7 +41,7 @@ main(void)
             term_set_closing(true);
         }
         
-        term_run(TERM_FREQUENCY_ONCE_A_SECOND);
+        term_run(TERM_FREQUENCY_NONE);
     }
     
     term_close();

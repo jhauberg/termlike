@@ -43,7 +43,7 @@ draw(double const interp)
                   colored(255, 255, 225),
                   bounds,
                   message);
-
+    
     // measure size of the printed text
     int32_t tw, th;
     
@@ -72,7 +72,7 @@ main(void)
             term_set_closing(true);
         }
 
-        term_run(TERM_FREQUENCY_ONCE_A_SECOND);
+        term_run(TERM_FREQUENCY_NONE);
     }
 
     term_close();

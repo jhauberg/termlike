@@ -3,6 +3,7 @@
 #include <stdlib.h> // exit, EXIT_FAILURE
 #include <stdint.h> // int32_t
 #include <stdbool.h> // bool :completeness
+#include <string.h> // memset
 
 static uint32_t const CP437[16 * 16] = {
     0x0000, 0x263A, 0x263B, 0x2665, 0x2666, 0x2663, 0x2660, 0x2022,
@@ -79,6 +80,33 @@ utf8_encode(void *buf, uint32_t c)
     }
 }
 
+
+#define PAD 4
+#define SIZE (256 * PAD) // 256 glyphs, 4 bytes per glyph
+
+static char glyphs[SIZE];
+
+static
+void
+prepare_glyphs(void)
+{
+    uint32_t i = 0;
+    
+    for (int32_t row = 0; row < 16; row++) {
+        for (int32_t column = 0; column < 16; column++) {
+            size_t const offset = i * PAD;
+            
+            char * const glyph = &glyphs[offset];
+            
+            uint32_t const c = CP437[i];
+            
+            utf8_encode(glyph, c);
+            
+            i++;
+        }
+    }
+}
+
 static
 void
 draw(double const interp)
@@ -89,21 +117,26 @@ draw(double const interp)
     
     term_measure("█", &w, &h);
     
-    char buf[4];
+    term_fill(positioned(0, 0),
+              sized(16 * w, 16 * h),
+              colored(255, 255, 225));
     
     uint32_t i = 0;
     
     for (int32_t row = 0; row < 16; row++) {
         for (int32_t column = 0; column < 16; column++) {
-            uint32_t c = CP437[i++];
+            size_t const offset = i * PAD;
             
-            utf8_encode(buf, c);
+            char * const glyph = &glyphs[offset];
             
             int32_t const x = column * w;
             int32_t const y = row * h;
 
-            term_print(positioned(x, y), colored(255, 255, 225), "█");
-            term_print(positionedz(x, y, layered(1)), colored(0, 0, 0), buf);
+            term_print(positionedz(x, y, layered(1)),
+                       colored(0, 0, 0),
+                       glyph);
+            
+            i++;
         }
     }
 }
@@ -115,6 +148,10 @@ main(void)
         exit(EXIT_FAILURE);
     }
 
+    memset(glyphs, '\0', SIZE);
+    
+    prepare_glyphs();
+    
     term_set_drawing(draw);
     
     while (!term_is_closing()) {

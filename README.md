@@ -2,7 +2,7 @@
 
 [![code style: compliant](https://img.shields.io/badge/code%20style-compliant-000000.svg)](https://github.com/jhauberg/comply)
 
-A low-profile library for building high-performance and cross-platform games in the aesthetic of traditional text-based applications, but with the benefits of modern graphics.
+A low-profile library for building high-performance and cross-platform games in the aesthetic of traditional text-based applications, but with the benefits of modern graphics technology.
 
 The name *Termlike* is in reference to the [*Roguelike*](https://en.wikipedia.org/wiki/Roguelike) genre of games, which historically has roots in text-based terminals.
 
@@ -36,7 +36,7 @@ Here's the smallest program that just runs a terminal window until user presses 
 int
 main(void)
 {
-    term_open(term_defaults("Termlike"));
+    term_open(defaults("Termlike"));
 
     while (!term_is_closing()) {
         if (term_key_down(TERM_KEY_ESCAPE)) {

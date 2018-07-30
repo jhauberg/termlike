@@ -2,6 +2,7 @@
 
 #include <stdlib.h> // exit, EXIT_FAILURE
 #include <stdint.h> // int32_t
+#include <stddef.h> // size_t
 #include <stdbool.h> // bool :completeness
 #include <string.h> // memset
 

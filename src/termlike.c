@@ -5,8 +5,8 @@
 #include <termlike/config.h> // term_settings
 #include <termlike/input.h> // term_key, term_cursor_state
 
-#include <stdlib.h> // NULL
-#include <stdint.h> // uint16_t, uint32_t, int32_t, size_t
+#include <stdint.h> // uint16_t, uint32_t, int32_t
+#include <stddef.h> // size_t, NULL
 #include <stdbool.h> // bool
 
 #include <math.h> // M_PI, floorf

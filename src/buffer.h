@@ -1,6 +1,7 @@
 #pragma once
 
-#include <stdint.h> // int32_t, uint32_t, size_t
+#include <stdint.h> // int32_t, uint32_t
+#include <stddef.h> // size_t
 
 /**
  * The size of the internal text buffer.

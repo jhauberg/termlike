@@ -9,6 +9,7 @@
 
 #include <stdbool.h> // bool
 #include <stdint.h> // uint16_t, int32_t
+#include <stddef.h> // size_t
 
 /**
  * Represents the frequency for a responsive game.

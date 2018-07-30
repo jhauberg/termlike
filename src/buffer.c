@@ -2,6 +2,7 @@
 
 #include <stdlib.h> // malloc, free
 #include <stdint.h> // uint32_t, int32_t
+#include <stddef.h> // size_t
 
 #include <string.h> // strncpy, strlen, memset
 

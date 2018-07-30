@@ -1,6 +1,7 @@
 #pragma once
 
-#include <stdint.h> // uint8_t, uint16_t, size_t
+#include <stdint.h> // uint8_t, uint16_t
+#include <stddef.h> // size_t
 
 struct profiler_stats {
     double frame_time;

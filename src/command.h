@@ -5,7 +5,8 @@
 #include <termlike/bounds.h> // term_bounds :completeness
 #include <termlike/transform.h> // term_transform :completeness
 
-#include <stdint.h> // uint64_t, size_t
+#include <stdint.h> // uint64_t
+#include <stddef.h> // size_t
 
 struct command_buffer;
 

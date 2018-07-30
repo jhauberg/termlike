@@ -1,6 +1,7 @@
 #include "glyph_renderer.h" // glyph_renderer, glyphs_*
 
 #include <stdlib.h> // malloc, free
+#include <stddef.h> // NULL
 
 #include "../viewport.h" // viewport
 

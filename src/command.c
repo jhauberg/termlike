@@ -4,6 +4,7 @@
 
 #include <stdlib.h> // malloc, free, qsort
 #include <stdint.h> // uint32_t
+#include <stddef.h> // size_t, NULL
 
 struct command_buffer {
     struct command * commands;

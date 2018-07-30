@@ -1,5 +1,6 @@
 #include <termlike/config.h> // defaults, term_settings, term_size, TERM_SIZE_*
 
+#include <stddef.h> // NULL
 #include <stdbool.h> // true, false
 
 #include "platform/window.h" // window_size, window_params

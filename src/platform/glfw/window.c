@@ -1,7 +1,8 @@
 #include <termlike/input.h> // term_cursor_state, TERM_KEY_*
 
 #include <stdio.h> // fprintf
-#include <stdlib.h> // malloc, free, NULL
+#include <stdlib.h> // malloc, free
+#include <stddef.h> // NULL
 #include <stdint.h> // int32_t
 #include <stdbool.h> // bool
 #include <math.h> // floor

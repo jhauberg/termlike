@@ -6,6 +6,10 @@
 #include <stdint.h> // uint32_t
 #include <stddef.h> // size_t, NULL
 
+#ifdef _WIN32
+ #include <string.h> // memcpy
+#endif
+
 struct command_buffer {
     struct command * commands;
     uint32_t count;
@@ -59,7 +63,12 @@ command_push(struct command_buffer * const buffer,
     index->order = buffer->count;
     index->z = layer_z(command.position.layer);
     
+#ifdef _WIN32
+    memcpy(&buffer->commands[buffer->count], &command, sizeof(struct command));
+#else
     buffer->commands[buffer->count] = command;
+#endif
+    
     buffer->count += 1;
 #ifdef DEBUG
     if (buffer->highest_count < buffer->count) {

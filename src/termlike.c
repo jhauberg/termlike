@@ -9,6 +9,10 @@
 #include <stddef.h> // size_t, NULL
 #include <stdbool.h> // bool
 
+#ifdef _WIN32
+ #define _USE_MATH_DEFINES
+#endif
+
 #include <math.h> // M_PI, floorf
 
 #include "internal.h" // term_get_display_*

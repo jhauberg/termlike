@@ -305,7 +305,10 @@ window_read_keys(GLFWwindow * const window,
         glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
     
     keys->down[TERM_KEY_TOGGLE_PROFILING] =
-        glfwGetKey(window, GLFW_KEY_GRAVE_ACCENT) == GLFW_PRESS && !is_modified;
+        (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS &&
+         glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS) ||
+        (glfwGetKey(window, GLFW_KEY_GRAVE_ACCENT) == GLFW_PRESS &&
+         !is_modified);
     
     keys->down[TERM_KEY_MOUSE_LEFT] =
         glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;

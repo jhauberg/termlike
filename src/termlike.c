@@ -182,7 +182,7 @@ static void term_load_font(struct graphics_image);
 /**
  * The one and only terminal object.
  */
-static struct term_context terminal = (struct term_context const) { 0 };
+static struct term_context terminal;
 
 bool
 term_open(struct term_settings const settings)

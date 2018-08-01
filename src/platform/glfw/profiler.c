@@ -115,12 +115,14 @@ profiler_draw(void)
     
     term_measure(background, &cw, &ch);
     
-    int32_t y = h - ch;
+    int32_t const y = h - ch;
 
-    term_fill(positionedz(0, y - 1, layered_below(TERM_LAYER_TOP)),
+    int32_t const p = 1;
+    
+    term_fill(positionedz(0, y - p, layered_below(TERM_LAYER_TOP)),
                (struct term_dimens) {
                    .width = w,
-                   .height = ch + 1
+                   .height = ch + p
                },
                colored(255, 255, 225));
 
@@ -139,7 +141,7 @@ void
 profiler_sum(struct profiler_stats const stats, size_t const memory)
 {
     sprintf(summed,
-            "%dFPS %dGPU %.0fKB",
+            "%dFPS %dGPU MEM %.0fKB",
             stats.frames_per_second_avg,
             stats.draw_count,
             ceil(memory / 1024.0));

@@ -231,8 +231,8 @@ graphics_draw(struct graphics_context const * const context,
                    .origin = origin,
                    .angle = transform.angle,
                    .offset = half,
-                   .horizontal_scale = transform.horizontal_scale,
-                   .vertical_scale = transform.vertical_scale
+                   .horizontal_scale = transform.scale.horizontal,
+                   .vertical_scale = transform.scale.vertical
                },
                context->font_texture_id);
 }

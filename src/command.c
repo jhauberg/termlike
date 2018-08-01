@@ -61,7 +61,7 @@ command_push(struct command_buffer * const buffer,
     struct command_index * const index = (struct command_index *)&command.index;
     
     index->order = buffer->count;
-    index->z = layer_z(command.position.layer);
+    index->z = layer_z(command.layer);
     
 #ifdef _WIN32
     memcpy(&buffer->commands[buffer->count], &command, sizeof(struct command));

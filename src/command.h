@@ -1,6 +1,6 @@
 #pragma once
 
-#include <termlike/position.h> // term_position :completeness
+#include <termlike/layer.h> // term_position :completeness
 #include <termlike/color.h> // term_color :completeness
 #include <termlike/bounds.h> // term_bounds :completeness
 #include <termlike/transform.h> // term_transform :completeness
@@ -20,12 +20,13 @@ struct command_index {
 };
 
 struct command {
-    struct term_position const position;
     struct term_color const color;
     struct term_bounds const bounds;
     struct term_transform const transform;
+    struct term_layer const layer;
     char const * text;
     uint64_t const index;
+    float x, y;
 };
 
 typedef void command_callback(struct command const *);

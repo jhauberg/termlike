@@ -21,15 +21,17 @@ struct graphics_color {
 };
 
 struct graphics_position {
-    float z;
-    int32_t x;
-    int32_t y;
+    float x, y, z;
+};
+
+struct graphics_scale {
+    float horizontal;
+    float vertical;
 };
 
 struct graphics_transform {
     struct graphics_position position;
-    float horizontal_scale;
-    float vertical_scale;
+    struct graphics_scale scale;
     float angle;
 };
 

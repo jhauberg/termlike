@@ -3,17 +3,14 @@
 #include <termlike/config.h> // term_size
 
 struct term_layer;
-struct term_location;
 
 struct window_size;
 struct window_params;
 
 float layer_z(struct term_layer);
 
-void rotate_point(struct term_location point,
-                  struct term_location origin,
-                  float angle,
-                  struct term_location *);
+void rotate_point(float x, float y, float angle,
+                  float * dst_x, float * dst_y);
 
 void term_get_display_size(enum term_size,
                            struct window_size *);

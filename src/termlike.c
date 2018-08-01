@@ -69,11 +69,10 @@ struct term_state_measure {
 struct term_state_print {
     struct graphics_color tint;
     struct cursor cursor;
-    struct term_location origin;
+    struct graphics_position origin;
     struct term_bounds bounds;
     struct term_lines lines;
     struct term_scale scale;
-    float z;
     float radians;
     enum term_rotate rotation;
 };
@@ -337,10 +336,12 @@ term_printstrt(struct term_position const position,
                char const * const text)
 {
     command_push(terminal.queue, (struct command) {
-        .position = position,
+        .x = position.location.x,
+        .y = position.location.y,
         .color = color,
         .bounds = bounds,
         .transform = transform,
+        .layer = position.layer,
         .text = text
     });
 }
@@ -600,12 +601,10 @@ term_print_character(uint32_t const character, void * const data)
     // grab line index before advancing cursor (it might break on next advance)
     int32_t const line_index = state->cursor.breaks;
     
-    struct term_location location;
-    
     // scale up the offset vector so that characters are spaced as expected
     // (note that we grab location before advancing the cursor)
-    location.x = (int32_t)(state->cursor.offset.x * state->scale.horizontal);
-    location.y = (int32_t)(state->cursor.offset.y * state->scale.vertical);
+    float x = (float)state->cursor.offset.x * state->scale.horizontal;
+    float y = (float)state->cursor.offset.y * state->scale.vertical;
     
     // advance cursor for the next character
     cursor_advance(&state->cursor, state->bounds, character);
@@ -622,42 +621,43 @@ term_print_character(uint32_t const character, void * const data)
     }
     
     if (state->bounds.align == TERM_ALIGN_RIGHT) {
-        location.x -= state->lines.widths[line_index];
+        x -= state->lines.widths[line_index];
     } else if (state->bounds.align == TERM_ALIGN_CENTER) {
-        location.x -= floorf(state->lines.widths[line_index] / 2);
+        x -= floorf(state->lines.widths[line_index] / 2);
     }
     
     if (state->rotation == TERM_ROTATE_STRING &&
         (state->radians > 0 || state->radians < 0)) {
         // rotation is required, rotate and translate point
-        rotate_point(location, state->origin, -state->radians,
-                     &location);
-    } else {
-        // no rotation required, just translate point
-        location.x += state->origin.x;
-        location.y += state->origin.y;
+        rotate_point(x, y, -state->radians, &x, &y);
     }
+    
+    // translate to origin
+    x += state->origin.x;
+    y += state->origin.y;
 
     struct viewport const viewport = graphics_get_viewport(terminal.graphics);
+
+    float const w = (float)state->cursor.width * state->scale.horizontal;
+    float const h = (float)state->cursor.height * state->scale.vertical;
     
-    int32_t const w = (int32_t)(state->cursor.width * state->scale.horizontal);
-    int32_t const h = (int32_t)(state->cursor.height * state->scale.vertical);
-    
-    if (location.x + w < 0 || location.x > viewport.resolution.width ||
-        location.y + h < 0 || location.y > viewport.resolution.height) {
+    if (x + w < 0 || x > viewport.resolution.width ||
+        y + h < 0 || y > viewport.resolution.height) {
         // cull unnecessary draws
         return;
     }
     
     struct graphics_transform transform = {
         .position = {
-            .x = location.x,
-            .y = location.y,
-            .z = state->z
+            .x = x,
+            .y = y,
+            .z = state->origin.z
         },
-        .angle = state->radians,
-        .horizontal_scale = state->scale.horizontal,
-        .vertical_scale = state->scale.vertical
+        .scale = {
+            .horizontal = state->scale.horizontal,
+            .vertical = state->scale.vertical
+        },
+        .angle = state->radians
     };
     
     graphics_draw(terminal.graphics,
@@ -734,13 +734,14 @@ term_print_command(struct command const * const command)
     
     cursor_start(&state.cursor, font.size, font.size);
     
-    state.origin = command->position.location;
     state.lines = measure.lines;
     state.bounds = command->bounds;
     
     struct command_index const * const index = command_index(command);
     
-    state.z = index->z;
+    state.origin.x = command->x;
+    state.origin.y = command->y;
+    state.origin.z = index->z;
     
     struct term_rotation const rotate = command->transform.rotate;
     
@@ -787,7 +788,7 @@ term_fill(struct term_position const position,
 }
 
 void
-term_fillt(struct term_position position,
+term_fillt(struct term_position const position,
            struct term_dimens const size,
            struct term_color const color,
            struct term_transform transform)
@@ -798,21 +799,35 @@ term_fillt(struct term_position position,
     
     term_measure(glyph, &cw, &ch);
     
-    float const h = (float)((float)size.width / cw);
-    float const v = (float)((float)size.height / ch);
+    float const h = (float)size.width / (float)cw;
+    float const v = (float)size.height / (float)ch;
     
     transform.scale.horizontal = h * transform.scale.horizontal;
     transform.scale.vertical = v * transform.scale.vertical;
     
     // offset origin by half of the resulting dimensions
     // (because glyphs are anchored at the center when applying transformations)
-    position.location.x += (cw * transform.scale.horizontal) / 2;
-    position.location.y += (ch * transform.scale.vertical) / 2;
+    float const dx = (float)size.width / 2.0f;
+    float const dy = (float)size.height / 2.0f;
     
-    // offset by half the size of a single glyph
-    // (because )
-    position.location.x -= cw / 2;
-    position.location.y -= ch / 2;
+    // determine half the size of a glyph
+    // (we need to offset location by this due to center anchoring)
+    int32_t const cwh = cw / 2;
+    int32_t const chh = ch / 2;
     
-    term_printt(position, color, transform, glyph);
+    // determine location by applying offsets
+    float const x = (float)position.location.x + dx - cwh;
+    float const y = (float)position.location.y + dy - chh;
+    
+    // note that we can't just use term_printt(), because we need to supply
+    // coordinate location in floating points
+    command_push(terminal.queue, (struct command) {
+        .x = x,
+        .y = y,
+        .color = color,
+        .bounds = TERM_BOUNDS_NONE,
+        .transform = transform,
+        .layer = position.layer,
+        .text = glyph
+    });
 }

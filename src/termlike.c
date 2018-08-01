@@ -68,6 +68,7 @@ struct term_state_measure {
  */
 struct term_state_print {
     struct graphics_color tint;
+    struct viewport_size display;
     struct cursor cursor;
     struct graphics_position origin;
     struct term_bounds bounds;
@@ -635,14 +636,12 @@ term_print_character(uint32_t const character, void * const data)
     // translate to origin
     x += state->origin.x;
     y += state->origin.y;
-
-    struct viewport const viewport = graphics_get_viewport(terminal.graphics);
-
+    
     float const w = (float)state->cursor.width * state->scale.horizontal;
     float const h = (float)state->cursor.height * state->scale.vertical;
     
-    if (x + w < 0 || x > viewport.resolution.width ||
-        y + h < 0 || y > viewport.resolution.height) {
+    if (x + w < 0 || x > state->display.width ||
+        y + h < 0 || y > state->display.height) {
         // cull unnecessary draws
         return;
     }
@@ -761,6 +760,10 @@ term_print_command(struct command const * const command)
         .b = command->color.b / 255.0f,
         .a = command->color.a
     };
+    
+    struct viewport const viewport = graphics_get_viewport(terminal.graphics);
+    
+    state.display = viewport.resolution;
     
     buffer_foreach(terminal.buffer, term_print_character, &state);
 }

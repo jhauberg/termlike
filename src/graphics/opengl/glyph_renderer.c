@@ -186,9 +186,9 @@ glyphs_add(struct glyph_renderer * const renderer,
     
     uint32_t const vertex_offset = renderer->batch.count * GLYPH_VERTEX_COUNT;
     
+    mat4x4 transformed;
+    
     if (requires_transformation) {
-        mat4x4 transformed;
-        
         mat4x4 translated;
         mat4x4_translate(translated,
                          transform.origin.x,
@@ -216,10 +216,12 @@ glyphs_add(struct glyph_renderer * const renderer,
         }
         
         mat4x4_mul(transformed, transformed, scaled);
-        
-        for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
-            struct glyph_vertex vertex = vertices[i];
-            
+    }
+    
+    for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
+        struct glyph_vertex vertex = vertices[i];
+
+        if (requires_transformation) {
             vec4 position = {
                 vertex.position.x,
                 vertex.position.y,
@@ -236,22 +238,16 @@ glyphs_add(struct glyph_renderer * const renderer,
                 world_position[1] + transform.offset,
                 world_position[2]
             };
-            
-            renderer->batch.vertices[vertex_offset + i] = vertex;
-        }
-    } else {
-        // refactor this- same loop above
-        for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
-            struct glyph_vertex vertex = vertices[i];
-            
+        } else {
             vertex.position = (struct vector3) {
                 vertex.position.x + transform.origin.x + transform.offset,
                 vertex.position.y + transform.origin.y + transform.offset,
                 vertex.position.z + transform.origin.z
             };
-            
-            renderer->batch.vertices[vertex_offset + i] = vertex;
+
         }
+        
+        renderer->batch.vertices[vertex_offset + i] = vertex;
     }
     
     renderer->batch.count += 1;

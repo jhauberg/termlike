@@ -1,6 +1,6 @@
 #pragma once
 
-#include <termlike/layer.h> // term_position :completeness
+#include <termlike/layer.h> // term_layer :completeness
 #include <termlike/color.h> // term_color :completeness
 #include <termlike/bounds.h> // term_bounds :completeness
 #include <termlike/transform.h> // term_transform :completeness

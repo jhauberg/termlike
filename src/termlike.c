@@ -1,5 +1,5 @@
 #include <termlike/termlike.h> // term_*
-#include <termlike/position.h> // term_location, term_position
+#include <termlike/position.h> // term_position
 #include <termlike/bounds.h> // term_bounds, TERM_ALIGN_*, TERM_WRAP_*
 #include <termlike/transform.h> // term_transform
 #include <termlike/config.h> // term_settings
@@ -47,8 +47,8 @@ struct term_state_count {
  * Provides measured widths for all lines that can fit in the internal buffer.
  */
 struct term_lines {
-    // the maximum number of lines will be equal to the maximum size of the
-    // internal buffer (because each character/byte could be a newline)
+    // the maximum number of lines is equal to the maximum size of the
+    // internal buffer (in the case where each character/byte is a newline)
     int32_t widths[BUFFER_SIZE_MAX];
 };
 

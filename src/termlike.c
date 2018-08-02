@@ -132,8 +132,7 @@ static void term_draw(double interpolate);
  * Copy a string to the internal buffer and apply wrapping if needed.
  */
 static void term_copy_str(char const * text,
-                          struct term_bounds,
-                          struct graphics_font);
+                          struct term_bounds);
 
 /**
  * Toggle between fullscreen and windowed mode for the display.
@@ -336,9 +335,19 @@ term_printstrt(struct term_position const position,
                struct term_transform const transform,
                char const * const text)
 {
+    struct graphics_font const font = graphics_get_font(terminal.graphics);
+    
+    // offset origin by half of the resulting dimensions
+    // (because glyphs are anchored at the center when applying transformations)
+    float const w = font.size * transform.scale.horizontal;
+    float const h = font.size * transform.scale.vertical;
+    
+    float const dx = (w - font.size) / 2.0f;
+    float const dy = (h - font.size) / 2.0f;
+    
     command_push(terminal.queue, (struct command) {
-        .x = position.location.x,
-        .y = position.location.y,
+        .x = (float)position.location.x + dx,
+        .y = (float)position.location.y + dy,
         .color = color,
         .bounds = bounds,
         .transform = transform,
@@ -370,6 +379,16 @@ term_measure(char const * const characters,
 }
 
 void
+term_measurec(int32_t * const width,
+              int32_t * const height)
+{
+    struct graphics_font const font = graphics_get_font(terminal.graphics);
+    
+    *width = font.size;
+    *height = font.size;
+}
+
+void
 term_measurestr(char const * const text,
                 struct term_bounds const bounds,
                 int32_t * const width,
@@ -377,7 +396,7 @@ term_measurestr(char const * const text,
 {
     struct graphics_font const font = graphics_get_font(terminal.graphics);
     
-    term_copy_str(text, bounds, font);
+    term_copy_str(text, bounds);
     
     // initialize a state for measuring the smallest bounding box that
     // contains all lines of the text, and is within specified bounds
@@ -579,13 +598,16 @@ term_toggle_fullscreen(void)
 static
 void
 term_copy_str(char const * const text,
-              struct term_bounds const bounds,
-              struct graphics_font const font)
+              struct term_bounds const bounds)
 {
     buffer_copy(terminal.buffer, text);
     
     if (bounds.size.width != TERM_BOUNDS_UNBOUNDED) {
         if (bounds.wrap == TERM_WRAP_WORDS) {
+            struct graphics_font const font =
+                graphics_get_font(terminal.graphics);
+            
+            // determine max number of characters per line
             size_t const limit = (size_t)(bounds.size.width / font.size);
             
             buffer_wrap(terminal.buffer, limit);
@@ -624,7 +646,7 @@ term_print_character(uint32_t const character, void * const data)
     if (state->bounds.align == TERM_ALIGN_RIGHT) {
         x -= state->lines.widths[line_index];
     } else if (state->bounds.align == TERM_ALIGN_CENTER) {
-        x -= floorf(state->lines.widths[line_index] / 2);
+        x -= floorf((float)state->lines.widths[line_index] / 2.0f);
     }
     
     if (state->rotation == TERM_ROTATE_STRING &&
@@ -713,7 +735,7 @@ term_print_command(struct command const * const command)
 {
     struct graphics_font const font = graphics_get_font(terminal.graphics);
     
-    term_copy_str(command->text, command->bounds, font);
+    term_copy_str(command->text, command->bounds);
     
     // initialize a state for measuring line widths
     // this is needed to be able to align lines horizontally
@@ -796,41 +818,13 @@ term_fillt(struct term_position const position,
            struct term_color const color,
            struct term_transform transform)
 {
-    char const * const glyph = "█";
+    struct graphics_font const font = graphics_get_font(terminal.graphics);
     
-    int32_t cw, ch;
-    
-    term_measure(glyph, &cw, &ch);
-    
-    float const h = (float)size.width / (float)cw;
-    float const v = (float)size.height / (float)ch;
+    float const h = (float)size.width / (float)font.size;
+    float const v = (float)size.height / (float)font.size;
     
     transform.scale.horizontal = h * transform.scale.horizontal;
     transform.scale.vertical = v * transform.scale.vertical;
     
-    // offset origin by half of the resulting dimensions
-    // (because glyphs are anchored at the center when applying transformations)
-    float const dx = (float)size.width / 2.0f;
-    float const dy = (float)size.height / 2.0f;
-    
-    // determine half the size of a glyph
-    // (we need to offset location by this due to center anchoring)
-    int32_t const cwh = cw / 2;
-    int32_t const chh = ch / 2;
-    
-    // determine location by applying offsets
-    float const x = (float)position.location.x + dx - cwh;
-    float const y = (float)position.location.y + dy - chh;
-    
-    // note that we can't just use term_printt(), because we need to supply
-    // coordinate location in floating points
-    command_push(terminal.queue, (struct command) {
-        .x = x,
-        .y = y,
-        .color = color,
-        .bounds = TERM_BOUNDS_NONE,
-        .transform = transform,
-        .layer = position.layer,
-        .text = glyph
-    });
+    term_printt(position, color, transform, "█");
 }

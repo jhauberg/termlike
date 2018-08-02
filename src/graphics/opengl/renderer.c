@@ -158,14 +158,20 @@ graphics_draw(struct graphics_context const * const context,
     vertices[4].position = (struct vector3) { .x = tr.x, .y = tr.y, .z = 0 };
     vertices[5].position = (struct vector3) { .x = br.x, .y = br.y, .z = 0 };
     
+    // bias sampling towards the center of each texel
+    float const half_pixel = 0.5f;
+    
+    float const w = half_pixel / texture_width;
+    float const h = half_pixel / texture_height;
+    
     struct vector2 const uv_min = {
-        .x = source.x / texture_width,
-        .y = source.y / texture_height
+        .x = (source.x + w) / texture_width,
+        .y = (source.y + h) / texture_height
     };
     
     struct vector2 const uv_max = {
-        .x = (source.x + context->font.size) / texture_width,
-        .y = (source.y + context->font.size) / texture_height
+        .x = (source.x - w + context->font.size) / texture_width,
+        .y = (source.y - h + context->font.size) / texture_height
     };
     
     struct vector2 const uv_bl = { .x = uv_min.x, .y = uv_min.y };

@@ -28,6 +28,8 @@ static double const frame_average_interval = 0.666; // in seconds
 static double last_frame_time = 0;
 static double last_average_time = 0;
 
+static uint16_t frames_per_second = 0;
+
 static uint16_t frame_samples = 0; // sample frames to calculate average
 static uint16_t frame_sample_count = 0;
 
@@ -74,14 +76,14 @@ profiler_end(void)
     frame_time = time_since_last_frame;
     last_frame_time = time;
     
-    current.frames_per_second = (uint16_t)(1.0 / frame_time);
+    frames_per_second = (uint16_t)(1.0 / frame_time);
     
-    if (current.frames_per_second < current.frames_per_second_min) {
-        current.frames_per_second_min = current.frames_per_second;
+    if (frames_per_second < current.frames_per_second_min) {
+        current.frames_per_second_min = frames_per_second;
     }
     
-    if (current.frames_per_second > current.frames_per_second_max) {
-        current.frames_per_second_max = current.frames_per_second;
+    if (frames_per_second > current.frames_per_second_max) {
+        current.frames_per_second_max = frames_per_second;
     }
     
     frame_samples += current.frames_per_second;
@@ -141,8 +143,8 @@ void
 profiler_sum(struct profiler_stats const stats, size_t const memory)
 {
     sprintf(summed,
-            "%dFPS %dGPU MEM %.0fKB",
-            stats.frames_per_second_avg,
+            "%dFPS %dDRAW MEM%.0fKB",
+            stats.frames_per_second,
             stats.draw_count,
             ceil(memory / 1024.0));
 }
@@ -158,6 +160,8 @@ void
 profiler_update_averages(void)
 {
     current.frames_per_second_avg = frame_samples / frame_sample_count;
+    current.frames_per_second = frames_per_second;
+    
     frame_sample_count = 0;
     frame_samples = 0;
     

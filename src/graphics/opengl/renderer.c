@@ -44,6 +44,11 @@ static void graphics_setup_screen_vbo(struct graphics_context *);
 
 static void graphics_create_texture(struct graphics_image, GLuint * texture_id);
 
+static void graphics_get_font_cell(struct graphics_context const *,
+                                   uint32_t code,
+                                   uint16_t * row,
+                                   uint16_t * column);
+
 struct graphics_context *
 graphics_init(struct viewport const viewport)
 {
@@ -116,39 +121,17 @@ graphics_draw(struct graphics_context const * const context,
               struct graphics_transform const transform,
               uint32_t const code)
 {
-    int32_t const table_size = context->font.columns * context->font.rows;
+    uint16_t row, column;
     
-    int32_t table_index = -1;
-    
-    if (context->font.codepage != NULL) {
-        for (int32_t i = 0; i < table_size; i++) {
-            if (context->font.codepage[i] == code) {
-                table_index = i;
-                
-                break;
-            }
-        }
-    }
-    
-    if (table_index < 0 ||
-        table_index > table_size) {
-        table_index = -1;
-    }
-    
-    if (table_index == -1) {
-        return;
-    }
-    
-    int32_t const character_row = table_index / context->font.columns;
-    int32_t const character_column = table_index % context->font.columns;
+    graphics_get_font_cell(context, code, &row, &column);
     
     float const texture_width = context->font.columns * context->font.size;
     float const texture_height = context->font.rows * context->font.size;
     
     struct vector2 source;
     
-    source.x = character_column * context->font.size;
-    source.y = character_row * context->font.size;
+    source.x = column * context->font.size;
+    source.y = row * context->font.size;
     // flip it
     source.y = (texture_height - context->font.size) - source.y;
 
@@ -481,6 +464,40 @@ graphics_create_texture(struct graphics_image const image,
                      image.data);
     }
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+static
+void
+graphics_get_font_cell(struct graphics_context const * const context,
+                       uint32_t const code,
+                       uint16_t * const row,
+                       uint16_t * const column)
+{
+    int32_t const table_size = context->font.columns * context->font.rows;
+    
+    int32_t table_index = -1;
+    
+    if (context->font.codepage != NULL) {
+        for (int32_t i = 0; i < table_size; i++) {
+            if (context->font.codepage[i] == code) {
+                table_index = i;
+                
+                break;
+            }
+        }
+    }
+    
+    if (table_index < 0 ||
+        table_index > table_size) {
+        table_index = -1;
+    }
+    
+    if (table_index == -1) {
+        return;
+    }
+    
+    *row = (uint16_t)table_index / context->font.columns;
+    *column = (uint16_t)table_index % context->font.columns;
 }
 
 GLuint

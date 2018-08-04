@@ -16,7 +16,7 @@ draw(double const interp)
     term_measure("█", &cw, &ch);
     
     struct term_position position = positioned(10, 26);
-    
+        
     // case: different ways of achieving same transformation
     // expected: all boxes are aligned, same size and equally spaced
     term_printt(positioned_offset(position, 0,  0), TERM_COLOR_WHITE, scaled(1), "██\n██");
@@ -26,18 +26,19 @@ draw(double const interp)
     term_fillt(positioned_offset(position, cw * 6, 0), sized(2*cw, 2*ch), TERM_COLOR_WHITE, TERM_TRANSFORM_NONE);
     
     // case: boxes scaled and rotated
-    // this one rotates around top-left
-    term_printt(positioned_offset(position, 100,  0), TERM_COLOR_WHITE, transformed(1, a, TERM_ROTATE_STRING), "██\n██");
-    // these two rotate around center- but should they?
+    // note how this one is rotated using default anchoring (center), to rotate in line with the following two
+    // (this is because it is *not* a single glyph, and thus would default to rotate using first glyph as anchor)
+    term_printt(positioned_offset(position, 100,  0), TERM_COLOR_WHITE, transformed(1, a, TERM_ROTATE_STRING_ANCHORED), "██\n██");
+    // these automatically rotate around their center because they're represent only a single glyph
     term_printt(positioned_offset(position, 100 + cw * 3, 0), TERM_COLOR_WHITE, transformed(2, a, TERM_ROTATE_STRING), "█");
     term_fillt(positioned_offset(position, 100 + cw * 6, 0), sized(2*cw, 2*ch), TERM_COLOR_WHITE, rotated(a, TERM_ROTATE_STRING));
     
     // case: individual glyph rotation
-    term_printstrt(positioned(10, 120), TERM_COLOR_WHITE, TERM_BOUNDS_NONE, rotated(a, TERM_ROTATE_CHARACTERS), "•rotate");
-    term_printstrt(positioned(10, 140), TERM_COLOR_WHITE, TERM_BOUNDS_NONE, transformed(2, a, TERM_ROTATE_CHARACTERS), "•rotate");
+    term_printstrt(positioned(10, 80), TERM_COLOR_WHITE, TERM_BOUNDS_NONE, rotated(a, TERM_ROTATE_CHARACTERS), "•rotate");
+    term_printstrt(positioned(10, 100), TERM_COLOR_WHITE, TERM_BOUNDS_NONE, transformed(2, a, TERM_ROTATE_CHARACTERS), "•rotate");
     // case: rotation anchored around center of glyph
-    term_printstrt(positioned(140, 120), TERM_COLOR_WHITE, TERM_BOUNDS_NONE, rotated(a, TERM_ROTATE_STRING), "•rotate me");
-    term_printstrt(positioned(140, 140), TERM_COLOR_WHITE, TERM_BOUNDS_NONE, transformed(2, a, TERM_ROTATE_STRING), "•rotate me");
+    term_printstrt(positioned(140, 80), TERM_COLOR_WHITE, TERM_BOUNDS_NONE, rotated(a, TERM_ROTATE_STRING), "•rotate me");
+    term_printstrt(positioned(140, 100), TERM_COLOR_WHITE, TERM_BOUNDS_NONE, transformed(2, a, TERM_ROTATE_STRING), "•rotate me");
     
     
     term_printstr(positioned_offset(position, 0, -ch * 2), TERM_COLOR_WHITE, TERM_BOUNDS_NONE, "PRINT");

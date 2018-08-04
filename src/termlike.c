@@ -44,7 +44,7 @@ struct term_state_count {
 };
 
 /**
- * Provides measured widths for all lines that can fit in the internal buffer.
+ * Provides widths for all lines in a buffer.
  */
 struct term_lines {
     // the maximum number of lines is equal to the maximum size of the
@@ -63,8 +63,22 @@ struct term_state_measure {
 };
 
 /**
- * Provides initial values for positioning and coloring of printable
- * characters in a buffer.
+ * Provides measured values for the contents of a buffer.
+ */
+struct term_measurement {
+    /**
+     * The horizontal dimensions of each line in the measured buffer contents.
+     */
+    struct term_lines lines;
+    /**
+     * The dimensions of the smallest bounding box that can hold the measured
+     * buffer contents.
+     */
+    struct term_dimens size;
+};
+
+/**
+ * Provides values for rendering printable characters in a buffer.
  */
 struct term_state_print {
     struct graphics_color tint;
@@ -72,8 +86,7 @@ struct term_state_print {
     struct cursor cursor;
     struct graphics_position origin;
     struct term_bounds bounds;
-    struct term_lines lines;
-    struct term_dimens size;
+    struct term_measurement measured;
     struct term_scale scale;
     struct term_anchor anchor;
     float radians;
@@ -135,6 +148,12 @@ static void term_draw(double interpolate);
  */
 static void term_copy_str(char const * text,
                           struct term_bounds);
+
+/**
+ * Measure the contents of the internal buffer.
+ */
+static void term_measure_buffer(struct term_bounds,
+                                struct term_measurement *);
 
 /**
  * Toggle between fullscreen and windowed mode for the display.
@@ -386,32 +405,14 @@ term_measurestr(char const * const text,
                 int32_t * const width,
                 int32_t * const height)
 {
-    struct graphics_font const font = graphics_get_font(terminal.graphics);
-    
     term_copy_str(text, bounds);
     
-    // initialize a state for measuring the smallest bounding box that
-    // contains all lines of the text, and is within specified bounds
-    struct term_state_measure measure;
+    struct term_measurement measurement;
     
-    cursor_start(&measure.cursor, font.size, font.size);
+    term_measure_buffer(bounds, &measurement);
     
-    measure.bounds = bounds;
-    
-    buffer_foreach(terminal.buffer, term_measure_character, &measure);
-    
-    int32_t const line_count = measure.cursor.breaks + 1;
-    
-    *width = 0;
-    *height = line_count * measure.cursor.height;
-    
-    for (int32_t i = 0; i < line_count; i++) {
-        int32_t const line_width = measure.lines.widths[i];
-        
-        if (*width < line_width) {
-            *width = line_width;
-        }
-    }
+    *width = measurement.size.width;
+    *height = measurement.size.height;
 }
 
 bool
@@ -609,6 +610,39 @@ term_copy_str(char const * const text,
 
 static
 void
+term_measure_buffer(struct term_bounds const bounds,
+                    struct term_measurement * const measurement)
+{
+    // initialize a state for measuring the smallest bounding box that
+    // contains all lines of the text, and is within specified bounds
+    struct term_state_measure measure;
+    
+    struct graphics_font const font = graphics_get_font(terminal.graphics);
+    
+    cursor_start(&measure.cursor, font.size, font.size);
+    
+    measure.bounds = bounds;
+    
+    buffer_foreach(terminal.buffer, term_measure_character, &measure);
+    
+    int32_t const line_count = measure.cursor.breaks + 1;
+    
+    measurement->lines = measure.lines;
+    
+    measurement->size.width = 0;
+    measurement->size.height = line_count * measure.cursor.height;
+    
+    for (int32_t i = 0; i < line_count; i++) {
+        int32_t const line_width = measure.lines.widths[i];
+        
+        if (measurement->size.width < line_width) {
+            measurement->size.width = line_width;
+        }
+    }
+}
+
+static
+void
 term_print_character(uint32_t const character, void * const data)
 {
     struct term_state_print * const state = (struct term_state_print *)data;
@@ -636,14 +670,14 @@ term_print_character(uint32_t const character, void * const data)
     }
     
     if (state->bounds.align == TERM_ALIGN_RIGHT) {
-        x -= state->lines.widths[line_index];
+        x -= state->measured.lines.widths[line_index];
     } else if (state->bounds.align == TERM_ALIGN_CENTER) {
-        x -= floorf((float)state->lines.widths[line_index] / 2.0f);
+        x -= floorf((float)state->measured.lines.widths[line_index] / 2.0f);
     }
-    
-    float const w = (float)state->size.width * state->scale.horizontal;
-    float const h = (float)state->size.height * state->scale.vertical;
-    
+
+    float const w = (float)state->measured.size.width * state->scale.horizontal;
+    float const h = (float)state->measured.size.height * state->scale.vertical;
+
     float const cw = (float)state->cursor.width * state->scale.horizontal;
     float const ch = (float)state->cursor.height * state->scale.vertical;
     
@@ -745,38 +779,25 @@ static
 void
 term_print_command(struct command const * const command)
 {
-    struct graphics_font const font = graphics_get_font(terminal.graphics);
-    
     term_copy_str(command->text, command->bounds);
     
-    // initialize a state for measuring line widths
-    // this is needed to be able to align lines horizontally
-    // note that we don't use term_measurestr because we don't want it
-    // doing any term_copy_str
+    // determine the minimum bounding box and line widths for the current
+    // contents of the buffer
+    struct term_measurement measurement;
     
-    struct term_state_measure measure;
-    
-    cursor_start(&measure.cursor, font.size, font.size);
-    
-    measure.bounds = command->bounds;
-    
-    buffer_foreach(terminal.buffer, term_measure_character, &measure);
-    
-    int32_t w, h;
-    
-    term_measurestr(command->text, command->bounds, &w, &h);
+    term_measure_buffer(command->bounds, &measurement);
     
     // initialize a state for printing contents of the buffer;
     // this state will hold positional values for the upper-left origin
     // of the string of characters; each character is drawn at an offset
     // from these initial values
     struct term_state_print state;
+ 
+    struct graphics_font const font = graphics_get_font(terminal.graphics);
     
     cursor_start(&state.cursor, font.size, font.size);
     
-    state.size.width = w;
-    state.size.height = h;
-    state.lines = measure.lines;
+    state.measured = measurement;
     state.bounds = command->bounds;
     
     struct command_index const * const index = command_index(command);

@@ -6,19 +6,11 @@
 /**
  * The size of the internal text buffer.
  *
- * This value must be at least 1 higher than the required amount of padding.
+ * This value must be at least 1 higher than the required amount of padding (4).
  */
 #define BUFFER_SIZE_MAX 256
 
 struct buffer;
-
-/**
- * Represents an offset for a printable character in a buffer.
- */
-struct buffer_offset {
-    int32_t x;
-    int32_t y;
-};
 
 /**
  * Represents a function invoked for each printable character in a buffer.

@@ -10,11 +10,11 @@ static void cursor_break(struct cursor *);
 
 void
 cursor_start(struct cursor * const cursor,
-             int32_t const width,
-             int32_t const height)
+             float const width,
+             float const height)
 {
-    cursor->offset.x = 0;
-    cursor->offset.y = 0;
+    cursor->x = 0;
+    cursor->y = 0;
     
     cursor->width = width;
     cursor->height = height;
@@ -33,7 +33,7 @@ cursor_advance(struct cursor * const cursor,
         return;
     }
     
-    cursor->offset.x += cursor->width;
+    cursor->x += cursor->width;
     
     // this is needed even for word-wrapping, as sometimes
     // a word cannot be wrapped and must be broken up
@@ -45,7 +45,7 @@ cursor_is_out_of_bounds(struct cursor const * const cursor,
                         struct term_bounds const bounds)
 {
     if (bounds.size.height != TERM_BOUNDS_UNBOUNDED) {
-        int32_t const bottom = cursor->offset.y + cursor->height;
+        float const bottom = cursor->y + cursor->height;
         
         if (bottom > bounds.size.height) {
             return true;
@@ -61,7 +61,7 @@ cursor_break_if_needed(struct cursor * const cursor,
                        struct term_bounds const bounds)
 {
     if (bounds.size.width != TERM_BOUNDS_UNBOUNDED) {
-        int32_t const right = cursor->offset.x + cursor->width;
+        float const right = cursor->x + cursor->width;
         
         if (right > bounds.size.width) {
             cursor_break(cursor);
@@ -73,8 +73,8 @@ static
 void
 cursor_break(struct cursor * const cursor)
 {
-    cursor->offset.y += cursor->height;
-    cursor->offset.x = 0;
+    cursor->y += cursor->height;
+    cursor->x = 0;
     
     cursor->breaks += 1;
 }

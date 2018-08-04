@@ -147,12 +147,14 @@ static void term_draw(double interpolate);
  * Copy a string to the internal buffer and apply wrapping if needed.
  */
 static void term_copy_str(char const * text,
-                          struct term_bounds);
+                          struct term_bounds,
+                          struct term_scale);
 
 /**
  * Measure the contents of the internal buffer.
  */
 static void term_measure_buffer(struct term_bounds,
+                                struct term_scale,
                                 struct term_measurement *);
 
 /**
@@ -386,17 +388,34 @@ term_measure(char const * const characters,
              int32_t * const width,
              int32_t * const height)
 {
-    term_measurestr(characters, TERM_BOUNDS_NONE, width, height);
+    term_measuret(characters, TERM_TRANSFORM_NONE, width, height);
+}
+
+void
+term_measuret(char const * const characters,
+              struct term_transform const transform,
+              int32_t * const width,
+              int32_t * const height)
+{
+    term_measurestrt(characters, TERM_BOUNDS_NONE, transform, width, height);
 }
 
 void
 term_measurec(int32_t * const width,
               int32_t * const height)
 {
+    term_measurect(TERM_TRANSFORM_NONE, width, height);
+}
+
+void
+term_measurect(struct term_transform const transform,
+               int32_t * const width,
+               int32_t * const height)
+{
     struct graphics_font const font = graphics_get_font(terminal.graphics);
     
-    *width = font.size;
-    *height = font.size;
+    *width = font.size * transform.scale.horizontal;
+    *height = font.size * transform.scale.vertical;
 }
 
 void
@@ -405,11 +424,21 @@ term_measurestr(char const * const text,
                 int32_t * const width,
                 int32_t * const height)
 {
-    term_copy_str(text, bounds);
+    term_measurestrt(text, bounds, TERM_TRANSFORM_NONE, width, height);
+}
+
+void
+term_measurestrt(char const * const text,
+                 struct term_bounds const bounds,
+                 struct term_transform const transform,
+                 int32_t * const width,
+                 int32_t * const height)
+{
+    term_copy_str(text, bounds, transform.scale);
     
     struct term_measurement measurement;
     
-    term_measure_buffer(bounds, &measurement);
+    term_measure_buffer(bounds, transform.scale, &measurement);
     
     *width = measurement.size.width;
     *height = measurement.size.height;
@@ -591,7 +620,8 @@ term_toggle_fullscreen(void)
 static
 void
 term_copy_str(char const * const text,
-              struct term_bounds const bounds)
+              struct term_bounds const bounds,
+              struct term_scale const scale)
 {
     buffer_copy(terminal.buffer, text);
     
@@ -601,7 +631,9 @@ term_copy_str(char const * const text,
                 graphics_get_font(terminal.graphics);
             
             // determine max number of characters per line
-            size_t const limit = (size_t)(bounds.size.width / font.size);
+            float cw = (float)font.size * scale.horizontal;
+            
+            size_t const limit = (size_t)(bounds.size.width / cw);
             
             buffer_wrap(terminal.buffer, limit);
         }
@@ -611,6 +643,7 @@ term_copy_str(char const * const text,
 static
 void
 term_measure_buffer(struct term_bounds const bounds,
+                    struct term_scale const scale,
                     struct term_measurement * const measurement)
 {
     // initialize a state for measuring the smallest bounding box that
@@ -619,7 +652,9 @@ term_measure_buffer(struct term_bounds const bounds,
     
     struct graphics_font const font = graphics_get_font(terminal.graphics);
     
-    cursor_start(&measure.cursor, font.size, font.size);
+    cursor_start(&measure.cursor,
+                 font.size * scale.horizontal,
+                 font.size * scale.vertical);
     
     measure.bounds = bounds;
     
@@ -652,8 +687,8 @@ term_print_character(uint32_t const character, void * const data)
     
     // scale up the offset vector so that characters are spaced as expected
     // (note that we grab location before advancing the cursor)
-    float x = (float)state->cursor.offset.x * state->scale.horizontal;
-    float y = (float)state->cursor.offset.y * state->scale.vertical;
+    float x = state->cursor.x;
+    float y = state->cursor.y;
     
     // advance cursor for the next character
     cursor_advance(&state->cursor, state->bounds, character);
@@ -675,11 +710,11 @@ term_print_character(uint32_t const character, void * const data)
         x -= floorf((float)state->measured.lines.widths[line_index] / 2.0f);
     }
 
-    float const w = (float)state->measured.size.width * state->scale.horizontal;
-    float const h = (float)state->measured.size.height * state->scale.vertical;
+    float const w = (float)state->measured.size.width;
+    float const h = (float)state->measured.size.height;
 
-    float const cw = (float)state->cursor.width * state->scale.horizontal;
-    float const ch = (float)state->cursor.height * state->scale.vertical;
+    float const cw = (float)state->cursor.width;
+    float const ch = (float)state->cursor.height;
     
     if ((state->rotation == TERM_ROTATE_STRING ||
          state->rotation == TERM_ROTATE_STRING_ANCHORED) &&
@@ -760,7 +795,7 @@ term_measure_character(uint32_t const character, void * const data)
     // apply line width immediately, before advancing the cursor
     // (some lines might break immediately and advancing would increment
     // the line index, causing the previous line width to be undefined)
-    state->lines.widths[line_index] = state->cursor.offset.x;
+    state->lines.widths[line_index] = state->cursor.x;
     
     cursor_advance(&state->cursor, state->bounds, character);
     
@@ -772,20 +807,24 @@ term_measure_character(uint32_t const character, void * const data)
   
     // apply width again for the current line
     // (it might be the same line, but it could also be the next one)
-    state->lines.widths[state->cursor.breaks] = state->cursor.offset.x;
+    state->lines.widths[state->cursor.breaks] = state->cursor.x;
 }
 
 static
 void
 term_print_command(struct command const * const command)
 {
-    term_copy_str(command->text, command->bounds);
+    term_copy_str(command->text,
+                  command->bounds,
+                  command->transform.scale);
     
     // determine the minimum bounding box and line widths for the current
     // contents of the buffer
     struct term_measurement measurement;
     
-    term_measure_buffer(command->bounds, &measurement);
+    term_measure_buffer(command->bounds,
+                        command->transform.scale,
+                        &measurement);
     
     // initialize a state for printing contents of the buffer;
     // this state will hold positional values for the upper-left origin
@@ -795,7 +834,9 @@ term_print_command(struct command const * const command)
  
     struct graphics_font const font = graphics_get_font(terminal.graphics);
     
-    cursor_start(&state.cursor, font.size, font.size);
+    cursor_start(&state.cursor,
+                 font.size * command->transform.scale.horizontal,
+                 font.size * command->transform.scale.vertical);
     
     state.measured = measurement;
     state.bounds = command->bounds;

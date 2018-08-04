@@ -204,12 +204,21 @@ graphics_draw(struct graphics_context const * const context,
     
     struct viewport const viewport = graphics_get_viewport(context);
     
+    float const glyph_width = context->font.size * transform.scale.horizontal;
+    float const glyph_height = context->font.size * transform.scale.vertical;
+    
+    float const dx = (glyph_width - context->font.size) / 2.0f;
+    float const dy = (glyph_height - context->font.size) / 2.0f;
+    
+    float const x = transform.position.x + dx;
+    float const y = transform.position.y + dy;
+    
     float const flipped_y = (viewport.resolution.height -
                              context->font.size -
-                             transform.position.y);
+                             y);
     
     struct vector3 origin = {
-        .x = transform.position.x,
+        .x = x,
         .y = flipped_y,
         .z = transform.position.z
     };

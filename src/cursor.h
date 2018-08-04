@@ -6,17 +6,17 @@
 #include <stdbool.h> // bool
 
 struct cursor {
-    struct term_location offset;
-    int32_t width;
-    int32_t height;
+    float x, y;
+    float width;
+    float height;
     int32_t breaks;
 };
 
 struct term_bounds;
 
 void cursor_start(struct cursor *,
-                  int32_t width,
-                  int32_t height);
+                  float width,
+                  float height);
 
 void cursor_advance(struct cursor *,
                     struct term_bounds,

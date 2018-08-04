@@ -142,12 +142,24 @@ void term_count(char const * characters, size_t * amount);
 void term_measure(char const * characters,
                   int32_t * width,
                   int32_t * height);
+void term_measuret(char const * characters,
+                   struct term_transform,
+                   int32_t * width,
+                   int32_t * height);
 void term_measurec(int32_t * width,
                    int32_t * height);
+void term_measurect(struct term_transform,
+                    int32_t * width,
+                    int32_t * height);
 void term_measurestr(char const * text,
                      struct term_bounds,
                      int32_t * width,
                      int32_t * height);
+void term_measurestrt(char const * text,
+                      struct term_bounds,
+                      struct term_transform,
+                      int32_t * width,
+                      int32_t * height);
 
 /**
  * Determine whether a key is currently held down.

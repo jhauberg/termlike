@@ -36,6 +36,11 @@
 #include "resources/spritefont.8x8.h" // IBM8x8*
 
 /**
+ * Macro used to
+ */
+#define PIXEL(x) ((int32_t)floorf(x))
+
+/**
  * Provides a count that can be accumulated for each printable character
  * in a buffer.
  */
@@ -414,8 +419,8 @@ term_measurect(struct term_transform const transform,
 {
     struct graphics_font const font = graphics_get_font(terminal.graphics);
     
-    *width = font.size * transform.scale.horizontal;
-    *height = font.size * transform.scale.vertical;
+    *width = PIXEL((float)font.size * transform.scale.horizontal);
+    *height = PIXEL((float)font.size * transform.scale.vertical);
 }
 
 void
@@ -630,10 +635,10 @@ term_copy_str(char const * const text,
             struct graphics_font const font =
                 graphics_get_font(terminal.graphics);
             
-            // determine max number of characters per line
             float cw = (float)font.size * scale.horizontal;
             
-            size_t const limit = (size_t)(bounds.size.width / cw);
+            // determine max number of characters per line
+            size_t const limit = (size_t)floorf((float)bounds.size.width / cw);
             
             buffer_wrap(terminal.buffer, limit);
         }
@@ -665,7 +670,7 @@ term_measure_buffer(struct term_bounds const bounds,
     measurement->lines = measure.lines;
     
     measurement->size.width = 0;
-    measurement->size.height = line_count * measure.cursor.height;
+    measurement->size.height = PIXEL((float)line_count * measure.cursor.height);
     
     for (int32_t i = 0; i < line_count; i++) {
         int32_t const line_width = measure.lines.widths[i];
@@ -707,7 +712,7 @@ term_print_character(uint32_t const character, void * const data)
     if (state->bounds.align == TERM_ALIGN_RIGHT) {
         x -= state->measured.lines.widths[line_index];
     } else if (state->bounds.align == TERM_ALIGN_CENTER) {
-        x -= floorf((float)state->measured.lines.widths[line_index] / 2.0f);
+        x -= (float)state->measured.lines.widths[line_index] / 2.0f;
     }
 
     float const w = (float)state->measured.size.width;
@@ -795,7 +800,7 @@ term_measure_character(uint32_t const character, void * const data)
     // apply line width immediately, before advancing the cursor
     // (some lines might break immediately and advancing would increment
     // the line index, causing the previous line width to be undefined)
-    state->lines.widths[line_index] = state->cursor.x;
+    state->lines.widths[line_index] = PIXEL(state->cursor.x);
     
     cursor_advance(&state->cursor, state->bounds, character);
     
@@ -807,7 +812,7 @@ term_measure_character(uint32_t const character, void * const data)
   
     // apply width again for the current line
     // (it might be the same line, but it could also be the next one)
-    state->lines.widths[state->cursor.breaks] = state->cursor.x;
+    state->lines.widths[state->cursor.breaks] = PIXEL(state->cursor.x);
 }
 
 static

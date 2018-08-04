@@ -4,7 +4,7 @@
 
 #include <stdint.h> // int32_t
 
-#include <linmath/linmath.h> // mat4x4
+#include <linmath/linmath.h> // vec2
 
 struct term_transform const TERM_TRANSFORM_NONE = {
     .scale = {
@@ -13,7 +13,11 @@ struct term_transform const TERM_TRANSFORM_NONE = {
     },
     .rotate = {
         .angle = ANGLE(0),
-        .rotation = TERM_ROTATE_STRING
+        .rotation = TERM_ROTATE_STRING,
+        .anchor = {
+            .x = 0,
+            .y = 0
+        }
     }
 };
 
@@ -51,37 +55,32 @@ transformed(float const scale,
         },
         .rotate = {
             .angle = angle,
-            .rotation = rotation
+            .rotation = rotation,
+            .anchor = {
+                .x = 0.5f, // center
+                .y = 0.5f // center
+            }
         }
     };
 }
 
 void
-rotate_point(float const x, float const y,
-             float const angle,
-             float * const dst_x, float * const dst_y)
+rotate_point(vec2 p, float const angle, vec2 dst)
 {
-    float const z = 0;
+    vec2 center = { 0, 0 };
     
-    mat4x4 translated;
-    mat4x4_identity(translated);
+    rotate_point_center(p, center, angle, dst);
+}
+
+void
+rotate_point_center(vec2 p, vec2 c, float const angle, vec2 dst)
+{
+    float const s = sinf(angle);
+    float const t = cosf(angle);
+
+    float const x = p[0] - c[0];
+    float const y = p[1] - c[1];
     
-    mat4x4 rotated;
-    mat4x4_identity(rotated);
-    mat4x4_rotate_Z(rotated, rotated, angle);
-    
-    mat4x4 transform;
-    mat4x4_mul(transform, translated, rotated);
-    
-    vec4 position = {
-        x, y, z,
-        1
-    };
-    
-    vec4 transformed_point;
-    
-    mat4x4_mul_vec4(transformed_point, transform, position);
-    
-    *dst_x = transformed_point[0];
-    *dst_y = transformed_point[1];
+    dst[0] = ((x * t) - (y * s)) + c[0];
+    dst[1] = ((x * s) + (y * t)) + c[1];
 }

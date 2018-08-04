@@ -73,7 +73,9 @@ struct term_state_print {
     struct graphics_position origin;
     struct term_bounds bounds;
     struct term_lines lines;
+    struct term_dimens size;
     struct term_scale scale;
+    struct term_anchor anchor;
     float radians;
     enum term_rotate rotation;
 };
@@ -335,19 +337,9 @@ term_printstrt(struct term_position const position,
                struct term_transform const transform,
                char const * const text)
 {
-    struct graphics_font const font = graphics_get_font(terminal.graphics);
-    
-    // offset origin by half of the resulting dimensions
-    // (because glyphs are anchored at the center when applying transformations)
-    float const w = font.size * transform.scale.horizontal;
-    float const h = font.size * transform.scale.vertical;
-    
-    float const dx = (w - font.size) / 2.0f;
-    float const dy = (h - font.size) / 2.0f;
-    
     command_push(terminal.queue, (struct command) {
-        .x = (float)position.location.x + dx,
-        .y = (float)position.location.y + dy,
+        .x = position.location.x,
+        .y = position.location.y,
         .color = color,
         .bounds = bounds,
         .transform = transform,
@@ -649,21 +641,41 @@ term_print_character(uint32_t const character, void * const data)
         x -= floorf((float)state->lines.widths[line_index] / 2.0f);
     }
     
-    if (state->rotation == TERM_ROTATE_STRING &&
+    float const w = (float)state->size.width * state->scale.horizontal;
+    float const h = (float)state->size.height * state->scale.vertical;
+    
+    float const cw = (float)state->cursor.width * state->scale.horizontal;
+    float const ch = (float)state->cursor.height * state->scale.vertical;
+    
+    if ((state->rotation == TERM_ROTATE_STRING ||
+         state->rotation == TERM_ROTATE_STRING_ANCHORED) &&
         (state->radians > 0 || state->radians < 0)) {
-        // rotation is required, rotate and translate point
-        rotate_point(x, y, -state->radians, &x, &y);
+        vec2 p = { x, y };
+        vec2 rotated;
+        
+        if (state->rotation == TERM_ROTATE_STRING_ANCHORED) {
+            float const dx = w * state->anchor.x;
+            float const dy = h * state->anchor.y;
+            
+            vec2 c = {
+                dx - (cw / 2),
+                dy - (ch / 2)
+            };
+            
+            rotate_point_center(p, c, -state->radians, rotated);
+        } else {
+            rotate_point(p, -state->radians, rotated);
+        }
+        
+        x = rotated[0];
+        y = rotated[1];
     }
     
-    // translate to origin
     x += state->origin.x;
     y += state->origin.y;
     
-    float const w = (float)state->cursor.width * state->scale.horizontal;
-    float const h = (float)state->cursor.height * state->scale.vertical;
-    
-    if (x + w < 0 || x > state->display.width ||
-        y + h < 0 || y > state->display.height) {
+    if (x + cw < 0 || x > state->display.width ||
+        y + ch < 0 || y > state->display.height) {
         // cull unnecessary draws
         return;
     }
@@ -739,6 +751,9 @@ term_print_command(struct command const * const command)
     
     // initialize a state for measuring line widths
     // this is needed to be able to align lines horizontally
+    // note that we don't use term_measurestr because we don't want it
+    // doing any term_copy_str
+    
     struct term_state_measure measure;
     
     cursor_start(&measure.cursor, font.size, font.size);
@@ -746,6 +761,10 @@ term_print_command(struct command const * const command)
     measure.bounds = command->bounds;
     
     buffer_foreach(terminal.buffer, term_measure_character, &measure);
+    
+    int32_t w, h;
+    
+    term_measurestr(command->text, command->bounds, &w, &h);
     
     // initialize a state for printing contents of the buffer;
     // this state will hold positional values for the upper-left origin
@@ -755,6 +774,8 @@ term_print_command(struct command const * const command)
     
     cursor_start(&state.cursor, font.size, font.size);
     
+    state.size.width = w;
+    state.size.height = h;
     state.lines = measure.lines;
     state.bounds = command->bounds;
     
@@ -767,6 +788,7 @@ term_print_command(struct command const * const command)
     struct term_rotation const rotate = command->transform.rotate;
     
     state.rotation = rotate.rotation;
+    state.anchor = rotate.anchor;
     
     if (rotate.angle != 0 && rotate.angle != 360) {
         state.radians = (float)((rotate.angle * M_PI) / 180.0);

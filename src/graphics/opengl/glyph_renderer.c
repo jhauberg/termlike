@@ -190,6 +190,7 @@ glyphs_add(struct glyph_renderer * const renderer,
     
     if (requires_transformation) {
         mat4x4 translated;
+        mat4x4_identity(translated);
         mat4x4_translate(translated,
                          transform.origin.x,
                          transform.origin.y,
@@ -203,8 +204,6 @@ glyphs_add(struct glyph_renderer * const renderer,
                             transform.angle);
         }
         
-        mat4x4_mul(transformed, translated, rotated);
-
         mat4x4 scaled;
         mat4x4_identity(scaled);
         
@@ -214,7 +213,8 @@ glyphs_add(struct glyph_renderer * const renderer,
                                transform.vertical_scale,
                                1);
         }
-        
+
+        mat4x4_mul(transformed, translated, rotated);
         mat4x4_mul(transformed, transformed, scaled);
     }
     

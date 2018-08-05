@@ -18,7 +18,7 @@
 #include "internal.h" // term_get_display_*
 #include "buffer.h" // buffer, buffer_*, BUFFER_SIZE_MAX
 #include "command.h" // command_buffer, command, command_*
-#include "cursor.h" // cursor, cursor_*
+#include "cursor.h" // cursor, cursor_offset, cursor_*
 #include "keys.h" // term_key_state
 
 #include "graphics/renderer.h" // graphics_context, graphics_*
@@ -35,9 +35,6 @@
 #include "resources/cp437.h" // CP437
 #include "resources/spritefont.8x8.h" // IBM8x8*
 
-/**
- * Macro used to
- */
 #define PIXEL(x) ((int32_t)floorf(x))
 
 /**
@@ -658,14 +655,15 @@ term_measure_buffer(struct term_bounds const bounds,
     struct graphics_font const font = graphics_get_font(terminal.graphics);
     
     cursor_start(&measure.cursor,
-                 font.size * scale.horizontal,
-                 font.size * scale.vertical);
+                 bounds,
+                 (float)font.size * scale.horizontal,
+                 (float)font.size * scale.vertical);
     
     measure.bounds = bounds;
     
     buffer_foreach(terminal.buffer, term_measure_character, &measure);
     
-    int32_t const line_count = measure.cursor.breaks + 1;
+    uint16_t const line_count = measure.cursor.offset.line + 1;
     
     measurement->lines = measure.lines;
     
@@ -673,10 +671,10 @@ term_measure_buffer(struct term_bounds const bounds,
     measurement->size.height = PIXEL((float)line_count * measure.cursor.height);
     
     for (int32_t i = 0; i < line_count; i++) {
-        int32_t const line_width = measure.lines.widths[i];
+        int32_t const width = measure.lines.widths[i];
         
-        if (measurement->size.width < line_width) {
-            measurement->size.width = line_width;
+        if (measurement->size.width < width) {
+            measurement->size.width = width;
         }
     }
 }
@@ -687,16 +685,9 @@ term_print_character(uint32_t const character, void * const data)
 {
     struct term_state_print * const state = (struct term_state_print *)data;
     
-    // grab line index before advancing cursor (it might break on next advance)
-    int32_t const line_index = state->cursor.breaks;
+    struct cursor_offset offset;
     
-    // scale up the offset vector so that characters are spaced as expected
-    // (note that we grab location before advancing the cursor)
-    float x = state->cursor.x;
-    float y = state->cursor.y;
-    
-    // advance cursor for the next character
-    cursor_advance(&state->cursor, state->bounds, character);
+    cursor_advance(&state->cursor, &offset, character);
 
     if (character == '\n' ||
         character == ' ') {
@@ -704,15 +695,15 @@ term_print_character(uint32_t const character, void * const data)
         return;
     }
 
-    if (cursor_is_out_of_bounds(&state->cursor, state->bounds)) {
+    if (cursor_is_out_of_bounds(&state->cursor)) {
         // don't draw anything out of bounds
         return;
     }
     
     if (state->bounds.align == TERM_ALIGN_RIGHT) {
-        x -= state->measured.lines.widths[line_index];
+        offset.x -= state->measured.lines.widths[offset.line];
     } else if (state->bounds.align == TERM_ALIGN_CENTER) {
-        x -= (float)state->measured.lines.widths[line_index] / 2.0f;
+        offset.x -= (float)state->measured.lines.widths[offset.line] / 2.0f;
     }
 
     float const w = (float)state->measured.size.width;
@@ -724,7 +715,7 @@ term_print_character(uint32_t const character, void * const data)
     if ((state->rotation == TERM_ROTATE_STRING ||
          state->rotation == TERM_ROTATE_STRING_ANCHORED) &&
         (state->radians > 0 || state->radians < 0)) {
-        vec2 p = { x, y };
+        vec2 p = { offset.x, offset.y };
         vec2 rotated;
         
         if (state->rotation == TERM_ROTATE_STRING_ANCHORED) {
@@ -741,23 +732,23 @@ term_print_character(uint32_t const character, void * const data)
             rotate_point(p, -state->radians, rotated);
         }
         
-        x = rotated[0];
-        y = rotated[1];
+        offset.x = rotated[0];
+        offset.y = rotated[1];
     }
     
-    x += state->origin.x;
-    y += state->origin.y;
+    offset.x += state->origin.x;
+    offset.y += state->origin.y;
     
-    if (x + cw < 0 || x > state->display.width ||
-        y + ch < 0 || y > state->display.height) {
+    if (offset.x + cw < 0 || offset.x > state->display.width ||
+        offset.y + ch < 0 || offset.y > state->display.height) {
         // cull unnecessary draws
         return;
     }
     
     struct graphics_transform transform = {
         .position = {
-            .x = x,
-            .y = y,
+            .x = offset.x,
+            .y = offset.y,
             .z = state->origin.z
         },
         .scale = {
@@ -790,29 +781,17 @@ term_measure_character(uint32_t const character, void * const data)
 {
     struct term_state_measure * const state = (struct term_state_measure *)data;
 
-    if (cursor_is_out_of_bounds(&state->cursor, state->bounds)) {
-        // don't measure further than the specified bounds
-        return;
+    struct cursor_offset offset;
+    
+    cursor_advance(&state->cursor, &offset, character);
+    
+    float edge = offset.x;
+    
+    if (character != '\n') {
+        edge += state->cursor.width;
     }
     
-    int32_t const line_index = state->cursor.breaks;
-    
-    // apply line width immediately, before advancing the cursor
-    // (some lines might break immediately and advancing would increment
-    // the line index, causing the previous line width to be undefined)
-    state->lines.widths[line_index] = PIXEL(state->cursor.x);
-    
-    cursor_advance(&state->cursor, state->bounds, character);
-    
-    if (character != '\n' && state->cursor.breaks != line_index) {
-        // a break was required, but not explicit, so pad previous line width
-        // (note this should only be a thing for character wrapped text)
-        state->lines.widths[line_index] += state->cursor.width;
-    }
-  
-    // apply width again for the current line
-    // (it might be the same line, but it could also be the next one)
-    state->lines.widths[state->cursor.breaks] = PIXEL(state->cursor.x);
+    state->lines.widths[offset.line] = PIXEL(edge);
 }
 
 static
@@ -839,9 +818,9 @@ term_print_command(struct command const * const command)
  
     struct graphics_font const font = graphics_get_font(terminal.graphics);
     
-    cursor_start(&state.cursor,
-                 font.size * command->transform.scale.horizontal,
-                 font.size * command->transform.scale.vertical);
+    cursor_start(&state.cursor, command->bounds,
+                 (float)font.size * command->transform.scale.horizontal,
+                 (float)font.size * command->transform.scale.vertical);
     
     state.measured = measurement;
     state.bounds = command->bounds;

@@ -47,6 +47,12 @@ draw(double const interp)
     term_print(positioned_offset(position, cw * 5, 0), colored(0, 225, 0), "█");
     term_print(position, transparent(colored(255, 0, 0), 0.25f), "██████████████████████");
     term_print(position, colored(225, 0, 0),                     "──────────────────────");
+    
+    // case: word-wrap scaled text
+    struct term_bounds bounds = bounded(cw * 8, ch * 12);
+    
+    term_fill(positioned(10, 136), bounds.size, colored(255, 255, 225));
+    term_printstrt(positioned(10, 136), colored(255, 50, 50), bounds, scaled(2), "wrap me inside filled area");
 }
 
 int32_t

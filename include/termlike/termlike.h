@@ -29,6 +29,13 @@
 #define TERM_FREQUENCY_NONE 0
 
 /**
+ * Represents a single glyph.
+ *
+ * This could be any character, but a whitespace seems appropriate.
+ */
+#define TERM_SINGLE_GLYPH " "
+
+/**
  * Represents the function signature for a drawing implementation.
  *
  * The interpolation value (a scalar, ranging from 0 to 1) can be used to

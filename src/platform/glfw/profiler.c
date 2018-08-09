@@ -3,7 +3,7 @@
 #include <termlike/termlike.h> // term_*, TERM_*
 
 #include <stdint.h> // uint16_t, int32_t, UINT16_MAX
-#include <stddef.h> // size_t
+#include <stddef.h> // size_t, NULL
 #include <stdio.h> // sprintf
 
 #include <math.h> // ceil
@@ -107,36 +107,37 @@ profiler_end(void)
 void
 profiler_draw(void)
 {
-    int32_t w, h;
+    struct term_dimens display;
     
-    term_get_display(&w, &h);
+    term_get_display(&display);
     
-    char const * const background = "█";
+    struct term_transform transform;
     
-    int32_t cw, ch;
+    term_get_transform(&transform);
+    term_set_transform(TERM_TRANSFORM_NONE);
     
-    term_measure(background, &cw, &ch);
-    
-    int32_t const y = h - ch;
+    struct term_dimens c;
 
-    int32_t const p = 1;
+    term_measure(TERM_SINGLE_GLYPH, &c);
     
-    term_fill(positionedz(0, y - p, layered_below(TERM_LAYER_TOP)),
-               (struct term_dimens) {
-                   .width = w,
-                   .height = ch + p
-               },
-               colored(255, 255, 225));
+    int32_t const y = display.height - c.height;
+    int32_t const pad = 1;
 
-    term_printstr(positionedz(0, y, TERM_LAYER_TOP),
+    term_fill(positionedz(0, y - pad, layered_below(TERM_LAYER_TOP)),
+              sized(display.width, c.height + pad),
+              colored(255, 255, 225));
+
+    term_printstr("` to disable",
+                  positionedz(0, y, TERM_LAYER_TOP),
                   colored(55, 55, 55),
-                  aligned(TERM_ALIGN_LEFT),
-                  "` to disable");
-    
-    term_printstr(positionedz(w, y, TERM_LAYER_TOP),
+                  aligned(TERM_ALIGN_LEFT));
+
+    term_printstr(summed,
+                  positionedz(display.width, y, TERM_LAYER_TOP),
                   colored(55, 55, 55),
-                  aligned(TERM_ALIGN_RIGHT),
-                  summed);
+                  aligned(TERM_ALIGN_RIGHT));
+
+    term_set_transform(transform);
 }
 
 void

@@ -1,5 +1,5 @@
 #include <termlike/termlike.h> // term_*
-#include <termlike/position.h> // term_position
+#include <termlike/position.h> // position :completeness
 #include <termlike/bounds.h> // term_bounds, TERM_ALIGN_*, TERM_WRAP_*
 #include <termlike/transform.h> // term_transform
 #include <termlike/config.h> // term_settings
@@ -95,6 +95,10 @@ struct term_state_print {
     enum term_rotate rotation;
 };
 
+struct term_attributes {
+    struct term_transform transform;
+};
+
 /**
  * Represents a Termlike display.
  */
@@ -106,6 +110,7 @@ struct term_context {
     struct timer * timer;
     struct buffer * buffer;
     struct command_buffer * queue;
+    struct term_attributes attributes;
     struct term_key_state keys;
     struct term_key_state previous_keys;
     struct term_cursor_state cursor;
@@ -285,12 +290,12 @@ term_set_ticking(term_tick_callback * const tick_func)
 }
 
 void
-term_get_display(int32_t * const width, int32_t * const height)
+term_get_display(struct term_dimens * const dimensions)
 {
     struct viewport const viewport = graphics_get_viewport(terminal.graphics);
     
-    *width = viewport.resolution.width;
-    *height = viewport.resolution.height;
+    dimensions->width = viewport.resolution.width;
+    dimensions->height = viewport.resolution.height;
 }
 
 void
@@ -320,52 +325,41 @@ term_run(uint16_t const frequency)
 }
 
 void
-term_print(struct term_position const position,
-           struct term_color const color,
-           char const * const characters)
+term_set_transform(struct term_transform const transform)
 {
-    term_printt(position, color,
-                TERM_TRANSFORM_NONE,
-                characters);
+    terminal.attributes.transform = transform;
 }
 
 void
-term_printt(struct term_position const position,
-            struct term_color const color,
-            struct term_transform const transform,
-            char const * const characters)
+term_get_transform(struct term_transform * const transform)
 {
-    term_printstrt(position, color,
-                   TERM_BOUNDS_NONE,
-                   transform,
-                   characters);
+    *transform = terminal.attributes.transform;
 }
 
 void
-term_printstr(struct term_position const position,
+term_print(char const * const characters,
+           struct term_position const position,
+           struct term_color const color)
+{
+    term_printstr(characters, position, color, TERM_BOUNDS_NONE);
+}
+
+void
+term_printstr(char const * const text,
+              struct term_position const position,
               struct term_color const color,
-              struct term_bounds const bounds,
-              char const * const text)
+              struct term_bounds const bounds)
 {
-    term_printstrt(position, color,
-                   bounds,
-                   TERM_TRANSFORM_NONE,
-                   text);
-}
-
-void
-term_printstrt(struct term_position const position,
-               struct term_color const color,
-               struct term_bounds const bounds,
-               struct term_transform const transform,
-               char const * const text)
-{
+    if (text == NULL) {
+        return;
+    }
+    
     command_push(terminal.queue, (struct command) {
         .x = position.location.x,
         .y = position.location.y,
         .color = color,
         .bounds = bounds,
-        .transform = transform,
+        .transform = terminal.attributes.transform,
         .layer = position.layer,
         .text = text
     });
@@ -374,6 +368,12 @@ term_printstrt(struct term_position const position,
 void
 term_count(char const * const text, size_t * const length)
 {
+    *length = 0;
+    
+    if (text == NULL) {
+        return;
+    }
+    
     // initialize a state for counting number of printable characters
     struct term_state_count state;
     
@@ -387,63 +387,31 @@ term_count(char const * const text, size_t * const length)
 
 void
 term_measure(char const * const characters,
-             int32_t * const width,
-             int32_t * const height)
+             struct term_dimens * const dimensions)
 {
-    term_measuret(characters, TERM_TRANSFORM_NONE, width, height);
-}
-
-void
-term_measuret(char const * const characters,
-              struct term_transform const transform,
-              int32_t * const width,
-              int32_t * const height)
-{
-    term_measurestrt(characters, TERM_BOUNDS_NONE, transform, width, height);
-}
-
-void
-term_measurec(int32_t * const width,
-              int32_t * const height)
-{
-    term_measurect(TERM_TRANSFORM_NONE, width, height);
-}
-
-void
-term_measurect(struct term_transform const transform,
-               int32_t * const width,
-               int32_t * const height)
-{
-    struct graphics_font const font = graphics_get_font(terminal.graphics);
-    
-    *width = PIXEL((float)font.size * transform.scale.horizontal);
-    *height = PIXEL((float)font.size * transform.scale.vertical);
+    term_measurestr(characters, dimensions, TERM_BOUNDS_NONE);
 }
 
 void
 term_measurestr(char const * const text,
-                struct term_bounds const bounds,
-                int32_t * const width,
-                int32_t * const height)
+                struct term_dimens * const dimensions,
+                struct term_bounds const bounds)
 {
-    term_measurestrt(text, bounds, TERM_TRANSFORM_NONE, width, height);
-}
-
-void
-term_measurestrt(char const * const text,
-                 struct term_bounds const bounds,
-                 struct term_transform const transform,
-                 int32_t * const width,
-                 int32_t * const height)
-{
-    term_copy_str(text, bounds, transform.scale);
+    dimensions->width = 0;
+    dimensions->height = 0;
+    
+    if (text == NULL) {
+        return;
+    }
+    
+    struct term_scale const scale = terminal.attributes.transform.scale;
+    term_copy_str(text, bounds, scale);
     
     struct term_measurement measurement;
+    term_measure_buffer(bounds, scale, &measurement);
     
-    term_measure_buffer(bounds, transform.scale, &measurement);
-    
-    *width = measurement.size.width;
-    *height = measurement.size.height;
+    dimensions->width = measurement.size.width;
+    dimensions->height = measurement.size.height;
 }
 
 bool
@@ -465,7 +433,7 @@ term_key_released(enum term_key const key)
 }
 
 void
-term_cursor(struct term_cursor_state * const cursor)
+term_get_cursor(struct term_cursor_state * const cursor)
 {
     cursor->location = terminal.cursor.location;
     cursor->scroll = terminal.cursor.scroll;
@@ -508,6 +476,8 @@ term_setup(struct window_size const display)
     terminal.tick_func = NULL;
     
     load_image_data(IBM8x8_FONT, IBM8x8_LENGTH, term_load_font);
+    
+    term_set_transform(TERM_TRANSFORM_NONE);
     
     term_invalidate();
 #ifdef DEBUG
@@ -877,22 +847,23 @@ term_fill(struct term_position const position,
           struct term_dimens const size,
           struct term_color const color)
 {
-    term_fillt(position, size, color, TERM_TRANSFORM_NONE);
-}
-
-void
-term_fillt(struct term_position const position,
-           struct term_dimens const size,
-           struct term_color const color,
-           struct term_transform transform)
-{
     struct graphics_font const font = graphics_get_font(terminal.graphics);
     
     float const h = (float)size.width / (float)font.size;
     float const v = (float)size.height / (float)font.size;
     
+    struct term_transform transform;
+    
+    term_get_transform(&transform);
+    
+    struct term_transform const previous_transform = transform;
+    
     transform.scale.horizontal = h * transform.scale.horizontal;
     transform.scale.vertical = v * transform.scale.vertical;
     
-    term_printt(position, color, transform, "█");
+    term_set_transform(transform);
+    
+    term_print("█", position, color);
+    
+    term_set_transform(previous_transform);
 }

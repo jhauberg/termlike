@@ -8,7 +8,7 @@
 #include <termlike/color.h> // term_color :completeness
 
 #include <stdbool.h> // bool
-#include <stdint.h> // uint16_t, int32_t
+#include <stdint.h> // uint16_t
 #include <stddef.h> // size_t
 
 /**
@@ -90,7 +90,7 @@ void term_set_ticking(term_tick_callback *);
  * The resolution remains the same whether the display is fullscreen or
  * windowed.
  */
-void term_get_display(int32_t * width, int32_t * height);
+void term_get_display(struct term_dimens *);
 
 /**
  * Execute a single frame (read input, process gameplay and rendering).
@@ -116,23 +116,16 @@ void term_get_display(int32_t * width, int32_t * height);
  */
 void term_run(uint16_t frequency);
 
-void term_print(struct term_position,
-                struct term_color,
-                char const * characters);
-void term_printt(struct term_position,
-                 struct term_color,
-                 struct term_transform,
-                 char const * characters);
+void term_set_transform(struct term_transform);
+void term_get_transform(struct term_transform *);
 
-void term_printstr(struct term_position,
+void term_print(char const * characters,
+                struct term_position,
+                struct term_color);
+void term_printstr(char const * text,
+                   struct term_position,
                    struct term_color,
-                   struct term_bounds,
-                   char const * text);
-void term_printstrt(struct term_position,
-                    struct term_color,
-                    struct term_bounds,
-                    struct term_transform,
-                    char const * text);
+                   struct term_bounds);
 
 /**
  * Count the number of printable characters in a string.
@@ -140,26 +133,11 @@ void term_printstrt(struct term_position,
 void term_count(char const * characters, size_t * amount);
 
 void term_measure(char const * characters,
-                  int32_t * width,
-                  int32_t * height);
-void term_measuret(char const * characters,
-                   struct term_transform,
-                   int32_t * width,
-                   int32_t * height);
-void term_measurec(int32_t * width,
-                   int32_t * height);
-void term_measurect(struct term_transform,
-                    int32_t * width,
-                    int32_t * height);
+                  struct term_dimens *);
 void term_measurestr(char const * text,
-                     struct term_bounds,
-                     int32_t * width,
-                     int32_t * height);
-void term_measurestrt(char const * text,
-                      struct term_bounds,
-                      struct term_transform,
-                      int32_t * width,
-                      int32_t * height);
+                      // todo: at end instead?
+                     struct term_dimens *,
+                     struct term_bounds);
 
 /**
  * Determine whether a key is currently held down.
@@ -177,12 +155,8 @@ bool term_key_released(enum term_key);
 /**
  * Get the cursor state.
  */
-void term_cursor(struct term_cursor_state *);
+void term_get_cursor(struct term_cursor_state *);
 
 void term_fill(struct term_position,
                struct term_dimens,
                struct term_color);
-void term_fillt(struct term_position,
-                struct term_dimens,
-                struct term_color,
-                struct term_transform);

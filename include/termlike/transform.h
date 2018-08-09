@@ -69,7 +69,7 @@ struct term_transform {
      * The scaling transformation.
      *
      * Scaling is applied from the top-left corner of each glyph, making it
-     * stretch downward and rightward.
+     * stretch down- and rightward.
      */
     struct term_scale scale;
     /**

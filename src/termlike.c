@@ -354,12 +354,16 @@ term_printstr(char const * const text,
         return;
     }
     
+    struct term_transform transform;
+    
+    term_get_transform(&transform);
+    
     command_push(terminal.queue, (struct command) {
         .x = position.location.x,
         .y = position.location.y,
         .color = color,
         .bounds = bounds,
-        .transform = terminal.attributes.transform,
+        .transform = transform,
         .layer = position.layer,
         .text = text
     });
@@ -404,10 +408,16 @@ term_measurestr(char const * const text,
         return;
     }
     
-    struct term_scale const scale = terminal.attributes.transform.scale;
+    struct term_transform transform;
+    
+    term_get_transform(&transform);
+    
+    struct term_scale const scale = transform.scale;
+    
     term_copy_str(text, bounds, scale);
     
     struct term_measurement measurement;
+    
     term_measure_buffer(bounds, scale, &measurement);
     
     dimensions->width = measurement.size.width;

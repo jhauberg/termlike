@@ -3,7 +3,7 @@
 #include <termlike/termlike.h> // term_*, TERM_*
 
 #include <stdint.h> // uint16_t, int32_t, UINT16_MAX
-#include <stddef.h> // size_t, NULL
+#include <stddef.h> // size_t
 #include <stdio.h> // sprintf
 
 #include <math.h> // ceil

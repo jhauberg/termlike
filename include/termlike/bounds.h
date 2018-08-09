@@ -19,9 +19,9 @@ struct term_dimens {
 };
 
 struct term_bounds {
+    struct term_dimens size;
     enum term_wrap wrap;
     enum term_align align;
-    struct term_dimens size;
 };
 
 #define TERM_BOUNDS_UNBOUNDED (0)

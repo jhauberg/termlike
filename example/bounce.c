@@ -62,59 +62,61 @@ static
 void
 draw(double const interp)
 {
-    int32_t dw, dh;
+    struct term_dimens display;
     
-    term_get_display(&dw, &dh);
- 
-    int32_t const cx = dw / 2;
+    term_get_display(&display);
+    
+    int32_t const cx = display.width / 2;
     
     // texts
-    term_printstr(positioned(12, 12),
+    term_printstr("This example shows the benefits of interpolated animation.",
+                  positioned(12, 12),
                   TERM_COLOR_WHITE,
-                  bounded(dw - 12, dh - 12),
-                  "This example shows the benefits of interpolated animation.");
- 
-    term_printstr(positioned(cx - 30, 160),
-                  TERM_COLOR_WHITE,
-                  aligned(TERM_ALIGN_RIGHT),
-                  "INTERPOLATED");
+                  bounded(display.width - 12, display.height - 12));
     
-    term_printstr(positioned(cx + 30, 160),
+    term_printstr("INTERPOLATED",
+                  positioned(cx - 30, 160),
                   TERM_COLOR_WHITE,
-                  aligned(TERM_ALIGN_LEFT),
-                  "FIXED (BASIC)");
+                  aligned(TERM_ALIGN_RIGHT));
+    
+    term_printstr("FIXED (BASIC)",
+                  positioned(cx + 30, 160),
+                  TERM_COLOR_WHITE,
+                  aligned(TERM_ALIGN_LEFT));
     
     // floor
     char const * const floor = "▀▀▀▀▀▀▀▀▀▀▀";
     
-    int32_t w, h;
+    struct term_dimens floor_size;
     
-    term_measure(floor, &w, &h);
+    term_measure(floor, &floor_size);
     
-    term_print(positioned(cx - (w / 2), 200),
-               colored(255, 255, 255),
-               floor);
+    term_print(floor,
+               positioned(cx - (floor_size.width / 2), 200),
+               colored(255, 255, 255));
     
     // balls
     char const * const ball = "☻";
     
-    term_measure(ball, &w, &h);
+    struct term_dimens ball_size;
+    
+    term_measure(ball, &ball_size);
     
     // draw ball using animation values (interpolated)
     int32_t y;
     
     animate_blend(ball_position_y, interp, &y);
     
-    term_print(positioned(cx - (w / 2) - 6, y),
-               colored(255, 255, 255),
-               ball);
+    term_print(ball,
+               positioned(cx - (ball_size.width / 2) - 6, y),
+               colored(255, 255, 255));
     
     // draw ball using simply animated values
     y = (int32_t)ball_position_y_fixed;
     
-    term_print(positioned(cx - (w / 2) + 6, y),
-               colored(255, 255, 255),
-               ball);
+    term_print(ball,
+               positioned(cx - (ball_size.width / 2) + 6, y),
+               colored(255, 255, 255));
 }
 
 int32_t

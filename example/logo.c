@@ -9,9 +9,9 @@ draw_logo(double const interp)
 {
     (void)interp;
     
-    int32_t w, h;
+    struct term_dimens display;
     
-    term_get_display(&w, &h);
+    term_get_display(&display);
     
     char const * const map =
     "       ░\n"
@@ -22,14 +22,14 @@ draw_logo(double const interp)
     " │∙∙∙∙∙\n"
     " │∙∙";
     
-    int32_t mw, mh;
+    struct term_dimens map_size;
     
-    term_measure(map, &mw, &mh);
-    
-    term_print(positioned((w / 2) - (mw / 2),
-                          (h / 2) - (mh / 2)),
-               colored(255, 255, 255),
-               map);
+    term_measure(map, &map_size);
+
+    term_print(map,
+               positioned((display.width / 2) - (map_size.width / 2),
+                          (display.height / 2) - (map_size.height / 2)),
+               colored(255, 255, 255));
 }
 
 int32_t

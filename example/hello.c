@@ -11,14 +11,14 @@ draw(double const interp)
     (void)interp;
     
     // determine display resolution
-    int32_t w, h;
+    struct term_dimens display;
     
-    term_get_display(&w, &h);
+    term_get_display(&display);
     
     // measure to determine dimensions of any single character
-    int32_t cw, ch;
+    struct term_dimens c;
     
-    term_measure("A", &cw, &ch);
+    term_measure(TERM_SINGLE_GLYPH, &c);
     
     // print a long text, padded to the border of the display
     char const * const message =
@@ -30,32 +30,32 @@ draw(double const interp)
     "Like thiiis right here!";
     
     // define boundaries so the text will wrap inside the display
-    int32_t pad_x = cw / 2;
-    int32_t pad_y = ch / 2;
+    int32_t pad_x = c.width / 2;
+    int32_t pad_y = c.height / 2;
     
-    struct term_bounds bounds = bounded(w - (pad_x * 2),
-                                        (h / 2) - (pad_y * 2));
+    struct term_bounds bounds = bounded(display.width - (pad_x * 2),
+                                        (display.height / 2) - (pad_y * 2));
     
     // words exceeding boundaries will be wrapped to the next line
     bounds.wrap = TERM_WRAP_WORDS;
     
-    term_printstr(positioned(pad_x, pad_y),
+    term_printstr(message,
+                  positioned(pad_x, pad_y),
                   colored(255, 255, 225),
-                  bounds,
-                  message);
+                  bounds);
     
     // measure size of the printed text
-    int32_t tw, th;
+    struct term_dimens measured;
     
-    term_measurestr(message, bounds, &tw, &th);
+    term_measurestr(message, &measured, bounds);
     
     // characters exceeding boundaries will be wrapped to the next line
     bounds.wrap = TERM_WRAP_CHARACTERS;
     
-    term_printstr(positioned(pad_x, pad_y + th + ch * 2),
+    term_printstr(message,
+                  positioned(pad_x, pad_y + measured.height + c.height * 2),
                   colored(255, 255, 245),
-                  bounds,
-                  message);
+                  bounds);
 }
 
 int32_t

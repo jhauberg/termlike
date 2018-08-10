@@ -15,16 +15,15 @@ draw(double const interp)
     
     struct term_cursor_state cursor;
     
-    term_cursor(&cursor);
+    term_get_cursor(&cursor);
     
-    int32_t w, h;
+    struct term_dimens c;
 
-    term_measure(pointer, &w, &h);
-    term_print(positionedz(cursor.location.x - (w / 2),
-                           cursor.location.y - (h / 2),
+    term_measure(pointer, &c);
+    term_print(pointer, positionedz(cursor.location.x - (c.width / 2),
+                           cursor.location.y - (c.height / 2),
                            layered(1)),
-               TERM_COLOR_WHITE,
-               pointer);
+               TERM_COLOR_WHITE);
 }
 
 int32_t

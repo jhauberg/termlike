@@ -114,12 +114,12 @@ draw(double const interp)
 {
     (void)interp;
     
-    int32_t w, h;
+    struct term_dimens c;
     
-    term_measure("█", &w, &h);
+    term_measure("█", &c);
     
     term_fill(positioned(0, 0),
-              sized(16 * w, 16 * h),
+              sized(16 * c.width, 16 * c.height),
               colored(255, 255, 225));
     
     uint32_t i = 0;
@@ -130,12 +130,12 @@ draw(double const interp)
             
             char * const glyph = &glyphs[offset];
             
-            int32_t const x = column * w;
-            int32_t const y = row * h;
+            int32_t const x = column * c.width;
+            int32_t const y = row * c.height;
 
-            term_print(positionedz(x, y, layered(1)),
-                       colored(0, 0, 0),
-                       glyph);
+            term_print(glyph,
+                       positionedz(x, y, layered(1)),
+                       colored(0, 0, 0));
             
             i++;
         }

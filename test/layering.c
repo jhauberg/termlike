@@ -16,9 +16,9 @@ draw(double const interp)
     struct term_color const bottom_color = colored(255, 0, 0);
     struct term_color const top_color = colored(255, 255, 255);
     
-    int32_t w, h;
+    struct term_dimens c;
     
-    term_measure("█", &w, &h);
+    term_measure("█", &c);
     
     int32_t x = 0;
     int32_t y = 0;
@@ -26,27 +26,27 @@ draw(double const interp)
     int32_t const p = 2;
     
     // case: correct layering and order
-    term_print(positionedz(x, y, layered(0)), bottom_color, bottom);
-    term_print(positionedz(x + p, y + p, layered(1)), top_color, top);
+    term_print(bottom, positionedz(x, y, layered(0)), bottom_color);
+    term_print(top, positionedz(x + p, y + p, layered(1)), top_color);
     
-    x += w * 2;
+    x += c.width * 2;
     
     // case: correct layering but reverse order
-    term_print(positionedz(x + p, y + p, layered(1)), top_color, top);
-    term_print(positionedz(x, y, layered(0)), bottom_color, bottom);
+    term_print(top, positionedz(x + p, y + p, layered(1)), top_color);
+    term_print(bottom, positionedz(x, y, layered(0)), bottom_color);
     
-    x += w * 2;
+    x += c.width * 2;
     
     // case: same layer but correct order
-    term_print(positioned(x, y), bottom_color, bottom);
-    term_print(positioned(x + p, y + p), top_color, top);
+    term_print(bottom, positioned(x, y), bottom_color);
+    term_print(top, positioned(x + p, y + p), top_color);
     
-    x += w * 2;
+    x += c.width * 2;
     
     // case: same layer but reverse order
     // expected: bottom on top
-    term_print(positioned(x + p, y + p), top_color, top);
-    term_print(positioned(x, y), bottom_color, bottom);
+    term_print(top, positioned(x + p, y + p), top_color);
+    term_print(bottom, positioned(x, y), bottom_color);
 }
 
 int32_t

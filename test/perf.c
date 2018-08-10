@@ -12,47 +12,51 @@ draw(double const interp)
     
     char const * const background = "█";
 
-    int32_t w, h;
+    struct term_dimens window;
     
-    term_get_display(&w, &h);
+    term_get_display(&window);
     
-    int32_t cw, ch;
+    struct term_dimens c;
+
+    term_measure(background, &c);
     
-    term_measure(background, &cw, &ch);
+    int32_t const columns = window.width / c.width;
+    int32_t const rows = window.height / c.height;
     
-    int32_t const columns = w / cw;
-    int32_t const rows = h / ch;
-    
-    struct term_layer background_layer = layered(0);
-    struct term_layer foreground_layer = layered_above(background_layer);
+    struct term_layer const background_layer = layered(0);
+    struct term_layer const foreground_layer = layered_above(background_layer);
     
     for (uint16_t column = 0; column < columns; column++) {
         for (uint16_t row = 0; row < rows; row++) {
-            int32_t x = column * cw;
-            int32_t y = row * ch;
+            int32_t x = column * c.width;
+            int32_t y = row * c.height;
             
-            struct term_color background_color = colored(rand() % 255,
-                                                         rand() % 255,
-                                                         rand() % 255);
-            
-            term_print(positionedz(x, y, background_layer),
-                       background_color,
-                       background);
+            struct term_color const background_color = colored(rand() % 255,
+                                                               rand() % 255,
+                                                               rand() % 255);
+
+            term_print(background,
+                       positionedz(x, y, background_layer),
+                       background_color);
             
             struct term_color foreground_color = colored(rand() % 255,
                                                          rand() % 255,
                                                          rand() % 255);
-            
-            term_print(positionedz(x, y, foreground_layer),
-                       foreground_color,
-                       "A");
+
+            term_print("○",
+                       positionedz(x, y, foreground_layer),
+                       foreground_color);
             
             foreground_color.r = rand() % 255;
             
-            term_printt(positionedz(x, y, layered_above(foreground_layer)),
-                        transparent(foreground_color, (rand() % 100) / 100.0f),
-                        rotated(rand() % 360, TERM_ROTATE_CHARACTERS),
-                        "B");
+            term_set_transform(rotated(rand() % 360,
+                                       TERM_ROTATE_CHARACTERS));
+            
+            term_print("•",
+                       positionedz(x, y, layered_above(foreground_layer)),
+                       transparent(foreground_color, (float)(rand() % 100) / 100.0f));
+            
+            term_set_transform(TERM_TRANSFORM_NONE);
         }
     }
 }

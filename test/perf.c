@@ -34,10 +34,17 @@ draw(double const interp)
             struct term_color const background_color = colored(rand() % 255,
                                                                rand() % 255,
                                                                rand() % 255);
-
+            
             term_print(background,
                        positionedz(x, y, background_layer),
                        background_color);
+        }
+    }
+    
+    for (uint16_t column = 0; column < columns; column++) {
+        for (uint16_t row = 0; row < rows; row++) {
+            int32_t x = column * c.width;
+            int32_t y = row * c.height;
             
             struct term_color foreground_color = colored(rand() % 255,
                                                          rand() % 255,
@@ -46,19 +53,32 @@ draw(double const interp)
             term_print("○",
                        positionedz(x, y, foreground_layer),
                        foreground_color);
-            
-            foreground_color.r = rand() % 255;
-            
+        }
+    }
+    
+    // note the 3 identical loops: we could achieve same output with only 1 loop
+    // however, since each print occur on a different layer, this way prevents
+    // interleaved print commands, resulting in better FPS, because there is
+    // less sorting to do per frame
+    for (uint16_t column = 0; column < columns; column++) {
+        for (uint16_t row = 0; row < rows; row++) {
+            int32_t x = column * c.width;
+            int32_t y = row * c.height;
+
+            struct term_color foreground_color = colored(rand() % 255,
+                                                         rand() % 255,
+                                                         rand() % 255);
+
             term_set_transform(rotated(rand() % 360,
                                        TERM_ROTATE_CHARACTERS));
-            
+
             term_print("•",
                        positionedz(x, y, layered_above(foreground_layer)),
                        transparent(foreground_color, (float)(rand() % 100) / 100.0f));
-            
-            term_set_transform(TERM_TRANSFORM_NONE);
         }
     }
+    
+    term_set_transform(TERM_TRANSFORM_NONE);
 }
 
 int32_t

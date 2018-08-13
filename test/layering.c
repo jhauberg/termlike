@@ -47,6 +47,22 @@ draw(double const interp)
     // expected: bottom on top
     term_print(top, positioned(x + p, y + p), top_color);
     term_print(bottom, positioned(x, y), bottom_color);
+    
+    x += c.width * 2;
+    
+    // case: same layer, correct ordering, but one is transformed
+    term_set_transform(rotated(45, TERM_ROTATE_STRING));
+    term_print(bottom, positionedz(x, y, layered(0)), bottom_color);
+    term_set_transform(TERM_TRANSFORM_NONE);
+    term_print(top, positionedz(x + p, y + p, layered(0)), top_color);
+    
+    x += c.width * 2;
+    
+    // case: same layer, correct ordering, but one is transformed
+    term_print(bottom, positionedz(x, y, layered(0)), bottom_color);
+    term_set_transform(rotated(45, TERM_ROTATE_STRING));
+    term_print(top, positionedz(x + p, y + p, layered(0)), top_color);
+    term_set_transform(TERM_TRANSFORM_NONE);
 }
 
 int32_t

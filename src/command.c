@@ -6,6 +6,10 @@
 #include <stdint.h> // uint32_t
 #include <stddef.h> // size_t, NULL
 
+#ifdef DEBUG
+ #include <assert.h> // assert
+#endif
+
 #ifdef _WIN32
  #include <string.h> // memcpy
 #endif
@@ -14,9 +18,6 @@ struct command_buffer {
     struct command * commands;
     uint32_t count;
     uint32_t capacity;
-#ifdef DEBUG
-    uint32_t highest_count;
-#endif
 };
 
 static int32_t command_compare(void const *, void const *);
@@ -24,13 +25,15 @@ static int32_t command_compare(void const *, void const *);
 struct command_buffer *
 command_init(void)
 {
+#ifdef DEBUG
+    assert(sizeof(struct command_index) == sizeof(uint64_t));
+#endif
+    
     struct command_buffer * const buf = malloc(sizeof(struct command_buffer));
     
     buf->count = 0;
     buf->capacity = 256;
-#ifdef DEBUG
-    buf->highest_count = 0;
-#endif
+
     buf->commands = malloc(sizeof(struct command) * buf->capacity);
     
     return buf;
@@ -47,6 +50,10 @@ void
 command_push(struct command_buffer * const buffer,
              struct command const command)
 {
+#ifdef DEBUG
+    assert(buffer->count <= buffer->capacity);
+#endif
+    
     if (buffer->capacity == buffer->count) {
         buffer->capacity = buffer->capacity * 2;
 
@@ -70,11 +77,6 @@ command_push(struct command_buffer * const buffer,
 #endif
     
     buffer->count += 1;
-#ifdef DEBUG
-    if (buffer->highest_count < buffer->count) {
-        buffer->highest_count = buffer->count;
-    }
-#endif
 }
 
 void
@@ -88,7 +90,9 @@ command_flush(struct command_buffer * const buffer,
     
     if (callback != NULL) {
         for (uint32_t i = 0; i < buffer->count; i++) {
-            callback(&buffer->commands[i]);
+            struct command * const command = &buffer->commands[i];
+            
+            callback(command);
         }
     }
     

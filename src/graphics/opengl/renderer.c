@@ -1,6 +1,8 @@
 #include "../renderer.h" // graphics_*
 #include "../viewport.h" // viewport, viewport_clip
 
+#include "../../resources/cp437.h" // CP437, CP437_LENGTH
+
 #include "renderable.h" // renderable, vector2, vector3
 #include "glyph_renderer.h" // glyph_renderer, glyphs_*
 
@@ -22,10 +24,17 @@ struct frame_vertex {
     struct vector2 texture_coord;
 };
 
+struct graphics_shared {
+    struct graphics_scale texture;
+    struct graphics_scale glyph;
+    struct graphics_scale glyph_half;
+};
+
 struct graphics_context {
     struct glyph_renderer * glyphs;
     struct frame_renderable screen;
     struct graphics_font font;
+    struct graphics_shared shared;
     struct color clear;
     struct color bars;
     struct viewport viewport;
@@ -44,10 +53,23 @@ static void graphics_setup_screen_vbo(struct graphics_context *);
 
 static void graphics_create_texture(struct graphics_image, GLuint * texture_id);
 
-static void graphics_get_font_cell(struct graphics_context const *,
-                                   uint32_t code,
-                                   uint16_t * row,
-                                   uint16_t * column);
+static uint32_t graphics_get_table_index(uint32_t code);
+
+static void graphics_set_position(struct glyph_vertex (*)[GLYPH_VERTEX_COUNT],
+                                  struct graphics_scale halved_glyph);
+
+static void graphics_set_uv(struct glyph_vertex (*)[GLYPH_VERTEX_COUNT],
+                            uint32_t column, uint32_t row,
+                            struct graphics_scale glyph_size,
+                            struct graphics_scale texture_size);
+
+static void graphics_set_tint(struct glyph_vertex (*)[GLYPH_VERTEX_COUNT],
+                              struct graphics_color);
+
+static void graphics_get_transform(struct graphics_transform,
+                                   struct viewport,
+                                   struct graphics_scale glyph_size,
+                                   struct glyph_transform *);
 
 struct graphics_context *
 graphics_init(struct viewport const viewport)
@@ -121,117 +143,30 @@ graphics_draw(struct graphics_context const * const context,
               struct graphics_transform const transform,
               uint32_t const code)
 {
-    uint16_t row, column;
+    uint32_t const table_index = graphics_get_table_index(code);
     
-    graphics_get_font_cell(context, code, &row, &column);
-    
-    float const texture_width = context->font.columns * context->font.size;
-    float const texture_height = context->font.rows * context->font.size;
-    
-    struct vector2 source;
-    
-    source.x = column * context->font.size;
-    source.y = row * context->font.size;
-    // flip it
-    source.y = (texture_height - context->font.size) - source.y;
+    uint32_t const row = table_index / context->font.columns;
+    uint32_t const column = table_index % context->font.columns;
 
-    // anchor vertices around the center
-    float const half = context->font.size / 2.0f;
+    struct glyph_vertex vertices[GLYPH_VERTEX_COUNT];
+
+    graphics_set_position(&vertices, context->shared.glyph_half);
+    graphics_set_tint(&vertices, color);
+    graphics_set_uv(&vertices, column, row,
+                    context->shared.glyph,
+                    context->shared.texture);
     
-    float const l = -half;
-    float const r = half;
-    float const b = -half;
-    float const t = half;
+    struct glyph_transform glyph_transform;
     
-    struct glyph_vertex vertices[6];
+    graphics_get_transform(transform, context->viewport, context->shared.glyph,
+                           &glyph_transform);
     
-    struct vector2 const bl = { .x = l, .y = b };
-    struct vector2 const tl = { .x = l, .y = t };
-    struct vector2 const tr = { .x = r, .y = t };
-    struct vector2 const br = { .x = r, .y = b };
-    
-    vertices[0].position = (struct vector3) { .x = tl.x, .y = tl.y, .z = 0 };
-    vertices[1].position = (struct vector3) { .x = br.x, .y = br.y, .z = 0 };
-    vertices[2].position = (struct vector3) { .x = bl.x, .y = bl.y, .z = 0 };
-    
-    vertices[3].position = (struct vector3) { .x = tl.x, .y = tl.y, .z = 0 };
-    vertices[4].position = (struct vector3) { .x = tr.x, .y = tr.y, .z = 0 };
-    vertices[5].position = (struct vector3) { .x = br.x, .y = br.y, .z = 0 };
-    
-    // bias sampling towards the center of each texel
-    float const half_pixel = 0.5f;
-    
-    float const w = half_pixel / texture_width;
-    float const h = half_pixel / texture_height;
-    
-    struct vector2 const uv_min = {
-        .x = (source.x + w) / texture_width,
-        .y = (source.y + h) / texture_height
+    glyph_transform.offset = (struct vector2) {
+        .x = context->shared.glyph_half.horizontal,
+        .y = context->shared.glyph_half.vertical
     };
     
-    struct vector2 const uv_max = {
-        .x = (source.x - w + context->font.size) / texture_width,
-        .y = (source.y - h + context->font.size) / texture_height
-    };
-    
-    struct vector2 const uv_bl = { .x = uv_min.x, .y = uv_min.y };
-    struct vector2 const uv_tl = { .x = uv_min.x, .y = uv_max.y };
-    struct vector2 const uv_tr = { .x = uv_max.x, .y = uv_max.y };
-    struct vector2 const uv_br = { .x = uv_max.x, .y = uv_min.y };
-    
-    vertices[0].texture_coord = uv_tl;
-    vertices[1].texture_coord = uv_br;
-    vertices[2].texture_coord = uv_bl;
-    
-    vertices[3].texture_coord = uv_tl;
-    vertices[4].texture_coord = uv_tr;
-    vertices[5].texture_coord = uv_br;
-    
-    struct color tint = {
-        .r = color.r,
-        .g = color.g,
-        .b = color.b,
-        .a = color.a
-    };
-    
-    vertices[0].color = tint;
-    vertices[1].color = tint;
-    vertices[2].color = tint;
-    
-    vertices[3].color = tint;
-    vertices[4].color = tint;
-    vertices[5].color = tint;
-    
-    struct viewport const viewport = graphics_get_viewport(context);
-    
-    float const glyph_width = context->font.size * transform.scale.horizontal;
-    float const glyph_height = context->font.size * transform.scale.vertical;
-    
-    float const dx = (glyph_width - context->font.size) / 2.0f;
-    float const dy = (glyph_height - context->font.size) / 2.0f;
-    
-    float const x = transform.position.x + dx;
-    float const y = transform.position.y + dy;
-    
-    float const flipped_y = (viewport.resolution.height -
-                             context->font.size -
-                             y);
-    
-    struct vector3 origin = {
-        .x = x,
-        .y = flipped_y,
-        .z = transform.position.z
-    };
-    
-    glyphs_add(context->glyphs,
-               vertices,
-               (struct glyph_transform) {
-                   .origin = origin,
-                   .angle = transform.angle,
-                   .offset = half,
-                   .horizontal_scale = transform.scale.horizontal,
-                   .vertical_scale = transform.scale.vertical
-               },
+    glyphs_add(context->glyphs, &vertices, glyph_transform,
                context->font_texture_id);
 }
 
@@ -253,6 +188,22 @@ graphics_set_font(struct graphics_context * const context,
     graphics_create_texture(image, &context->font_texture_id);
     
     context->font = font;
+    
+    // store commonly used values to avoid calculating over and over
+    context->shared.glyph = (struct graphics_scale) {
+        .horizontal = font.size,
+        .vertical = font.size
+    };
+    
+    context->shared.texture = (struct graphics_scale) {
+        .horizontal = font.columns * context->shared.glyph.horizontal,
+        .vertical = font.rows * context->shared.glyph.vertical
+    };
+    
+    context->shared.glyph_half = (struct graphics_scale) {
+        .horizontal = context->shared.glyph.horizontal / 2.0f,
+        .vertical = context->shared.glyph.vertical / 2.0f,
+    };
 }
 
 void
@@ -295,7 +246,6 @@ graphics_setup(struct graphics_context * const context)
         .a = 1
     };
     
-    context->font.codepage = NULL;
     context->font.columns = 0;
     context->font.rows = 0;
     context->font_texture_id = 0;
@@ -483,36 +433,137 @@ graphics_create_texture(struct graphics_image const image,
 
 static
 void
-graphics_get_font_cell(struct graphics_context const * const context,
-                       uint32_t const code,
-                       uint16_t * const row,
-                       uint16_t * const column)
+graphics_set_position(struct glyph_vertex (* const verts)[GLYPH_VERTEX_COUNT],
+                      struct graphics_scale const halved_glyph)
 {
-    int32_t const table_size = context->font.columns * context->font.rows;
+    float const l = -halved_glyph.horizontal;
+    float const r = halved_glyph.horizontal;
+    float const b = -halved_glyph.vertical;
+    float const t = halved_glyph.vertical;
     
-    int32_t table_index = -1;
+    struct vector2 const bl = { .x = l, .y = b };
+    struct vector2 const tl = { .x = l, .y = t };
+    struct vector2 const tr = { .x = r, .y = t };
+    struct vector2 const br = { .x = r, .y = b };
     
-    if (context->font.codepage != NULL) {
-        for (int32_t i = 0; i < table_size; i++) {
-            if (context->font.codepage[i] == code) {
-                table_index = i;
-                
-                break;
-            }
+    (*verts)[0].position = (struct vector3) { .x = tl.x, .y = tl.y, .z = 0 };
+    (*verts)[1].position = (struct vector3) { .x = br.x, .y = br.y, .z = 0 };
+    (*verts)[2].position = (struct vector3) { .x = bl.x, .y = bl.y, .z = 0 };
+    
+    (*verts)[3].position = (struct vector3) { .x = tl.x, .y = tl.y, .z = 0 };
+    (*verts)[4].position = (struct vector3) { .x = tr.x, .y = tr.y, .z = 0 };
+    (*verts)[5].position = (struct vector3) { .x = br.x, .y = br.y, .z = 0 };
+}
+
+static
+void
+graphics_set_uv(struct glyph_vertex (* const verts)[GLYPH_VERTEX_COUNT],
+                uint32_t const column, uint32_t const row,
+                struct graphics_scale const glyph_size,
+                struct graphics_scale const texture_size)
+{
+    // bias sampling towards the center of each texel
+    float const half_pixel = 0.5f;
+    
+    float const w = half_pixel / texture_size.horizontal;
+    float const h = half_pixel / texture_size.vertical;
+    
+    struct vector2 source;
+    
+    source.x = column * glyph_size.horizontal;
+    source.y = row * glyph_size.vertical;
+    // flip it
+    source.y = (texture_size.vertical - glyph_size.vertical) - source.y;
+    
+    struct vector2 const uv_min = {
+        .x = (source.x + w) / texture_size.horizontal,
+        .y = (source.y + h) / texture_size.vertical
+    };
+    
+    struct vector2 const uv_max = {
+        .x = (source.x - w + glyph_size.horizontal) / texture_size.horizontal,
+        .y = (source.y - h + glyph_size.vertical) / texture_size.vertical
+    };
+    
+    struct vector2 const uv_bl = { .x = uv_min.x, .y = uv_min.y };
+    struct vector2 const uv_tl = { .x = uv_min.x, .y = uv_max.y };
+    struct vector2 const uv_tr = { .x = uv_max.x, .y = uv_max.y };
+    struct vector2 const uv_br = { .x = uv_max.x, .y = uv_min.y };
+    
+    (*verts)[0].texture_coord = uv_tl;
+    (*verts)[1].texture_coord = uv_br;
+    (*verts)[2].texture_coord = uv_bl;
+    
+    (*verts)[3].texture_coord = uv_tl;
+    (*verts)[4].texture_coord = uv_tr;
+    (*verts)[5].texture_coord = uv_br;
+}
+
+static
+void
+graphics_set_tint(struct glyph_vertex (* const verts)[GLYPH_VERTEX_COUNT],
+                  struct graphics_color const color)
+{
+    struct color const tint = {
+        .r = color.r,
+        .g = color.g,
+        .b = color.b,
+        .a = color.a
+    };
+    
+    for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
+        (*verts)[i].color = tint;
+    }
+}
+
+static
+void
+graphics_get_transform(struct graphics_transform const transform,
+                       struct viewport const viewport,
+                       struct graphics_scale const glyph_size,
+                       struct glyph_transform * const glyph)
+{
+    float const w = glyph_size.horizontal * transform.scale.horizontal;
+    float const h = glyph_size.vertical * transform.scale.vertical;
+    
+    float const dx = (w - glyph_size.horizontal) / 2.0f;
+    float const dy = (h - glyph_size.vertical) / 2.0f;
+    
+    float const x = transform.position.x + dx;
+    float const y = transform.position.y + dy;
+    
+    float const flipped_y = (viewport.resolution.height -
+                             glyph_size.vertical -
+                             y);
+    
+    glyph->origin = (struct vector3) {
+        .x = x,
+        .y = flipped_y,
+        .z = transform.position.z
+    };
+    glyph->angle = transform.angle;
+    glyph->horizontal_scale = transform.scale.horizontal;
+    glyph->vertical_scale = transform.scale.vertical;
+}
+
+static
+uint32_t
+graphics_get_table_index(uint32_t const code)
+{
+    if (code >= 33 &&
+        code <= 126) {
+        return code;
+    }
+    
+    for (uint16_t i = 0; i < CP437_LENGTH; i++) {
+        if (CP437[i] == code) {
+            return i;
+            
+            break;
         }
     }
     
-    if (table_index < 0 ||
-        table_index > table_size) {
-        table_index = -1;
-    }
-    
-    if (table_index == -1) {
-        return;
-    }
-    
-    *row = (uint16_t)table_index / context->font.columns;
-    *column = (uint16_t)table_index % context->font.columns;
+    return 63; // '?'
 }
 
 GLuint

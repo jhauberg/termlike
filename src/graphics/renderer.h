@@ -10,7 +10,6 @@ struct graphics_image {
 };
 
 struct graphics_font {
-    uint32_t const * codepage;
     uint16_t columns;
     uint16_t rows;
     uint16_t size;

@@ -16,7 +16,6 @@
 
 #define MAX_GLYPHS 2048 // flush when reaching this limit
 
-#define GLYPH_VERTEX_COUNT (2 * 3) // 2 triangles per quad = 6 vertices
 #define GLYPH_BATCH_VERTEX_COUNT (MAX_GLYPHS * GLYPH_VERTEX_COUNT)
 
 struct glyph_batch {
@@ -154,7 +153,7 @@ glyphs_invalidate(struct glyph_renderer * const renderer,
 
 void
 glyphs_add(struct glyph_renderer * const renderer,
-           struct glyph_vertex const * const vertices,
+           struct glyph_vertex (* const vertices)[GLYPH_VERTEX_COUNT],
            struct glyph_transform const transform,
            GLuint const texture_id)
 {
@@ -219,7 +218,7 @@ glyphs_add(struct glyph_renderer * const renderer,
     }
     
     for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
-        struct glyph_vertex vertex = vertices[i];
+        struct glyph_vertex vertex = (*vertices)[i];
 
         if (requires_transformation) {
             vec4 position = {
@@ -234,19 +233,19 @@ glyphs_add(struct glyph_renderer * const renderer,
             mat4x4_mul_vec4(world_position, transformed, position);
             
             vertex.position = (struct vector3) {
-                world_position[0] + transform.offset,
-                world_position[1] + transform.offset,
+                world_position[0] + transform.offset.x,
+                world_position[1] + transform.offset.y,
                 world_position[2]
             };
         } else {
             vertex.position = (struct vector3) {
-                vertex.position.x + transform.origin.x + transform.offset,
-                vertex.position.y + transform.origin.y + transform.offset,
+                vertex.position.x + transform.origin.x + transform.offset.x,
+                vertex.position.y + transform.origin.y + transform.offset.y,
                 vertex.position.z + transform.origin.z
             };
 
         }
-        
+
         renderer->batch.vertices[vertex_offset + i] = vertex;
     }
     

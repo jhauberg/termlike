@@ -32,7 +32,6 @@
  #include "platform/profiler.h" // profiler_*
 #endif
 
-#include "resources/cp437.h" // CP437
 #include "resources/spritefont.8x8.h" // IBM8x8*
 
 #define PIXEL(x) ((int32_t)floorf(x))
@@ -844,7 +843,6 @@ term_load_font(struct graphics_image const image)
 {
     struct graphics_font font;
     
-    font.codepage = CP437;
     font.columns = IBM8x8_COLUMNS;
     font.rows = IBM8x8_ROWS;
     font.size = IBM8x8_CELL_SIZE;

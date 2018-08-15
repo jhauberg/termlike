@@ -22,8 +22,8 @@ struct term_layer const TERM_LAYER_BOTTOM = {
 
 #define LAYER_MAX_INDEX_PLUS_ONE (LAYER_MAX_INDEX + 1)
 
-static float layer_z_between(float value, float min, float max);
-static float layer_lerp(float a, float b, float t);
+static inline float layer_z_between(float value, float min, float max);
+static inline float layer_lerp(float a, float b, float t);
 
 struct term_layer
 layered(uint8_t const index)
@@ -89,6 +89,7 @@ layer_z(struct term_layer const layer)
 }
 
 static
+inline
 float
 layer_lerp(float const a, float const b, float const t)
 {
@@ -96,6 +97,7 @@ layer_lerp(float const a, float const b, float const t)
 }
 
 static
+inline
 float
 layer_z_between(float const value, float const min, float const max)
 {

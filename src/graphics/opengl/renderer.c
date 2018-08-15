@@ -552,18 +552,23 @@ graphics_get_table_index(uint32_t const code)
 {
     if (code >= 33 &&
         code <= 126) {
+        // within basic ASCII range; skip mapping
         return code;
     }
     
-    for (uint16_t i = 0; i < CP437_LENGTH; i++) {
+    for (uint16_t i = 0; i < 33; i++) {
         if (CP437[i] == code) {
             return i;
-            
-            break;
         }
     }
     
-    return 63; // '?'
+    for (uint16_t i = 127; i < CP437_LENGTH; i++) {
+        if (CP437[i] == code) {
+            return i;
+        }
+    }
+    
+    return 63; // mapping not found, default to '?'
 }
 
 GLuint

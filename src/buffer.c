@@ -4,9 +4,13 @@
 #include <stdint.h> // uint32_t, int32_t
 #include <stddef.h> // size_t
 
-#include <string.h> // strncpy, strlen, memset
+#include <string.h> // strlen, memset, memcpy
 
 #include <utf8.h> // utf8_decode
+
+#ifdef DEBUG
+ #include <assert.h> // assert
+#endif
 
 /**
  * The number of bytes that the internal text buffer must be zero-padded with.
@@ -42,18 +46,14 @@ buffer_release(struct buffer * const buffer)
 void
 buffer_copy(struct buffer * const buffer, char const * const text)
 {
-    size_t length = strlen(text);
+    size_t const length = strlen(text);
     
-    if (length >= MAX_TEXT_LENGTH) {
-        length = MAX_TEXT_LENGTH;
-    }
+#ifdef DEBUG
+    assert(length <= MAX_TEXT_LENGTH);
+#endif
     
-    strncpy(buffer->text, text, length);
-    
-    for (uint16_t i = 0; i < BUFFER_PADDING; i++) {
-        // null-terminate the buffer and add padding (utf8 decoding)
-        buffer->text[length + i] = '\0';
-    }
+    memcpy(buffer->text, text, length);
+    memset(&buffer->text[length], '\0', BUFFER_PADDING);
 }
 
 void

@@ -12,7 +12,7 @@ Termlike is written in **C99** and requires **OpenGL 3.3** or later.
 
 ### Limitations
 
-Termlike specializes in *one* thing; getting character glyphs on the screen, fast.
+Termlike specializes in *one* thing; getting character glyphs on the screen- fast.
 
 **256 Glyphs**
 
@@ -101,7 +101,9 @@ For example, there is no sleeping or idling between frames to throttle CPU usage
 
 **Not tile-based**
 
-Similarly, Termlike will draw every frame from a blank slate, over and over; there is no concept of only drawing dirty or changed parts of the screen; nor can you control *when* a draw should be committed.
+Because Termlike does not operate on a grid of cells, it cannot take advantage of static elements that do not change from frame to frame (for example, the floor of a dungeon).
+
+Instead, Termlike will draw every frame from a blank slate, from the ground up, over and over. It has no concept of only drawing dirty or changed parts of the screen. This obviously comes at the cost of reduced performance when compared to traditional engines, but in return you get a lot of freedom.
 
 *This is important to note, as both of these points may be dealbreakers for many roguelike developers.*
 
@@ -109,7 +111,7 @@ Because of this, Termlike is well-suited for games with a lot of action, movemen
 
 **OpenGL**
 
-Termlike uses OpenGL to perform all rendering. This has both upsides and downsides. It is great because it really is the only truly cross-platform graphics API available, but also not so great because the quality of driver implementation varies significantly from system to system.
+Termlike uses OpenGL to perform all rendering. This has both upsides and downsides. It is great because it really is the only truly cross-platform graphics API available, but also not so great because the quality of driver implementation varies significantly from system to system (and is actually [deprecated on macOS](https://developer.apple.com/macos/whats-new/#deprecationofopenglandopencl)).
 
 **Sprite batching**
 

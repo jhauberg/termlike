@@ -8,7 +8,7 @@
  *
  * This value must be at least 1 higher than the required amount of padding (4).
  */
-#define BUFFER_SIZE_MAX 256
+#define BUFFER_SIZE_MAX 4096
 
 struct buffer;
 

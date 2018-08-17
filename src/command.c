@@ -85,12 +85,12 @@ void
 command_flush(struct command_buffer * const buffer,
               command_callback * const callback)
 {
-    qsort(buffer->commands,
-          buffer->count,
-          sizeof(struct command),
-          command_compare);
-    
     if (callback != NULL) {
+        qsort(buffer->commands,
+              buffer->count,
+              sizeof(struct command),
+              command_compare);
+
         for (uint32_t i = 0; i < buffer->count; i++) {
             struct command * const command = &buffer->commands[i];
             

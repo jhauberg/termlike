@@ -39,4 +39,10 @@ void command_flush(struct command_buffer *, command_callback *);
 
 void command_memuse(struct command_buffer const *, size_t * memory);
 
-struct command_index * command_index(struct command const *);
+inline
+struct command_index *
+command_index(struct command const * const command)
+{
+    return (struct command_index *)&command->index;
+}
+

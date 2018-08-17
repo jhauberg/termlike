@@ -20,6 +20,8 @@ struct command_buffer {
     uint32_t capacity;
 };
 
+extern inline struct command_index * command_index(struct command const *);
+
 static int32_t command_compare(void const *, void const *);
 
 struct command_buffer *
@@ -97,12 +99,6 @@ command_flush(struct command_buffer * const buffer,
     }
     
     buffer->count = 0;
-}
-
-struct command_index *
-command_index(struct command const * const command)
-{
-    return (struct command_index *)&command->index;
 }
 
 void

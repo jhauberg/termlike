@@ -41,6 +41,9 @@ struct graphics_context {
     GLuint font_texture_id;
 };
 
+static uint32_t cache_previous_code = 0;
+static uint32_t cache_previous_index = 0;
+
 static void graphics_process_errors(void);
 
 static void graphics_setup(struct graphics_context *);
@@ -143,7 +146,13 @@ graphics_draw(struct graphics_context const * const context,
               struct graphics_transform const transform,
               uint32_t const code)
 {
-    uint32_t const table_index = graphics_get_table_index(code);
+    bool const use_cache = code == cache_previous_code;
+    
+    uint32_t const table_index = use_cache ?
+        cache_previous_index : graphics_get_table_index(code);
+    
+    cache_previous_code = code;
+    cache_previous_index = table_index;
     
     uint32_t const row = table_index / context->font.columns;
     uint32_t const column = table_index % context->font.columns;

@@ -13,10 +13,10 @@ struct term_transform const TERM_TRANSFORM_NONE = {
     },
     .rotate = {
         .angle = ANGLE(0),
-        .rotation = TERM_ROTATE_STRING,
+        .rotation = TERM_ROTATE_STRING_ANCHORED,
         .anchor = {
-            .x = 0,
-            .y = 0
+            .x = 0.5f,
+            .y = 0.5f
         }
     }
 };

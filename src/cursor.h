@@ -2,12 +2,12 @@
 
 #include <termlike/bounds.h> // term_bounds :completeness
 
-#include <stdint.h> // uint16_t, uint32_t
+#include <stdint.h> // uint32_t
 #include <stdbool.h> // bool
 
 struct cursor_offset {
     float x, y;
-    uint16_t line;
+    uint32_t line;
 };
 
 struct cursor {

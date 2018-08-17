@@ -109,7 +109,8 @@ command_memuse(struct command_buffer const * const buffer, size_t * const size)
 
 static
 int32_t
-command_compare(void const * const cmd, void const * const other_cmd)
+command_compare(void const * const cmd,
+                void const * const other_cmd)
 {
     struct command const * lhs = (struct command *)cmd;
     struct command const * rhs = (struct command *)other_cmd;

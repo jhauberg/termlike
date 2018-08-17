@@ -20,13 +20,14 @@ struct command_index {
 };
 
 struct command {
-    struct term_color const color;
-    struct term_bounds const bounds;
-    struct term_transform const transform;
-    struct term_layer const layer;
+    struct term_color color;
+    struct term_bounds bounds;
+    struct term_transform transform;
+    struct term_anchor origin;
     char const * text;
-    uint64_t const index;
-    float x, y;
+    uint64_t index;
+    struct term_layer layer;
+    uint8_t _pad[6];
 };
 
 typedef void command_callback(struct command const *);

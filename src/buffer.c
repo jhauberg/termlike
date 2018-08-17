@@ -17,7 +17,7 @@
  
  * This is required for UTF8 decoding.
  */
-#define BUFFER_PADDING 4
+#define BUFFER_PADDING 4 // or sizeof(uint32_t)
 /**
  * The maximum length of a printed string.
  */

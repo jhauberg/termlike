@@ -463,6 +463,10 @@ term_setup(struct window_size const display)
     viewport.offset.width = 0;
     viewport.offset.height = 0;
     
+    // initialize framebuffer, actual values set in term_invalidate
+    viewport.framebuffer.height = 0;
+    viewport.framebuffer.width = 0;
+    
     viewport.resolution.width = display.width;
     viewport.resolution.height = display.height;
     
@@ -471,6 +475,8 @@ term_setup(struct window_size const display)
     if (terminal.graphics == NULL) {
         return false;
     }
+    
+    term_invalidate();
     
     terminal.timer = timer_init();
     
@@ -488,7 +494,6 @@ term_setup(struct window_size const display)
     
     term_set_transform(TERM_TRANSFORM_NONE);
     
-    term_invalidate();
 #ifdef DEBUG
     terminal.is_profiling = false;
     
@@ -642,14 +647,14 @@ term_measure_buffer(struct term_bounds const bounds,
     
     buffer_foreach(terminal.buffer, term_measure_character, &measure);
     
-    uint16_t const line_count = measure.cursor.offset.line + 1;
+    uint32_t const line_count = measure.cursor.offset.line + 1;
     
     measurement->lines = measure.lines;
     
     measurement->size.width = 0;
     measurement->size.height = PIXEL((float)line_count * measure.cursor.height);
     
-    for (int32_t i = 0; i < line_count; i++) {
+    for (uint32_t i = 0; i < line_count; i++) {
         int32_t const width = measure.lines.widths[i];
         
         if (measurement->size.width < width) {
@@ -667,13 +672,13 @@ term_print_character(uint32_t const character, void * const data)
     struct cursor_offset offset;
     
     cursor_advance(&state->cursor, &offset, character);
-
+    
     if (character == '\n' ||
         character == ' ') {
         // don't print stuff we don't need to
         return;
     }
-
+    
     if (cursor_is_out_of_bounds(&state->cursor)) {
         // don't draw anything out of bounds
         return;
@@ -684,10 +689,10 @@ term_print_character(uint32_t const character, void * const data)
     } else if (state->bounds.align == TERM_ALIGN_CENTER) {
         offset.x -= (float)state->measured.lines.widths[offset.line] / 2.0f;
     }
-
+    
     float const w = (float)state->measured.size.width;
     float const h = (float)state->measured.size.height;
-
+    
     float const cw = (float)state->cursor.width;
     float const ch = (float)state->cursor.height;
     
@@ -833,7 +838,7 @@ term_print_command(struct command const * const command)
     struct viewport const viewport = graphics_get_viewport(terminal.graphics);
     
     state.display = viewport.resolution;
-    
+
     buffer_foreach(terminal.buffer, term_print_character, &state);
 }
 

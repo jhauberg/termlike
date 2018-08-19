@@ -14,9 +14,8 @@ struct viewport;
 struct glyph_transform {
     struct vector3 origin;
     struct vector2 offset;
+    struct vector2 scale;
     float angle;
-    float horizontal_scale;
-    float vertical_scale;
 };
 
 struct glyph_renderer * glyphs_init(struct viewport);
@@ -31,3 +30,6 @@ void glyphs_invalidate(struct glyph_renderer *, struct viewport);
 
 bool glyphs_flush(struct glyph_renderer *);
 void glyphs_reset(struct glyph_renderer *);
+
+void glyphs_begin(struct glyph_renderer const *);
+void glyphs_end(struct glyph_renderer *);

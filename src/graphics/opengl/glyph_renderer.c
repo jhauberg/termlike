@@ -14,13 +14,13 @@
 #include <gl3w/GL/gl3w.h> // gl*, GL*
 #include <linmath/linmath.h> // mat4x4, mat4x4_*
 
-#define MAX_GLYPHS 2048 // flush when reaching this limit
+#define MAX_GLYPHS 4096 // flush when reaching this limit
 
 #define GLYPH_BATCH_VERTEX_COUNT (MAX_GLYPHS * GLYPH_VERTEX_COUNT)
 
 struct glyph_batch {
     struct glyph_vertex vertices[GLYPH_BATCH_VERTEX_COUNT];
-    uint16_t count;
+    uint32_t count;
 };
 
 struct glyph_renderer {
@@ -75,39 +75,39 @@ glyphs_init(struct viewport const viewport)
     glGenBuffers(1, &renderer->renderable.vbo);
     glGenVertexArrays(1, &renderer->renderable.vao);
     
-    glBindVertexArray(renderer->renderable.vao); {
-        glBindBuffer(GL_ARRAY_BUFFER, renderer->renderable.vbo); {
-            GLsizei const stride = sizeof(struct glyph_vertex);
-            
-            glBufferData(GL_ARRAY_BUFFER,
-                         GLYPH_BATCH_VERTEX_COUNT * stride,
-                         NULL,
-                         GL_DYNAMIC_DRAW);
-            
-            glVertexAttribPointer(0,
-                                  3,
-                                  GL_FLOAT, GL_FALSE,
-                                  stride,
-                                  0);
-            glEnableVertexAttribArray(0);
-            
-            glVertexAttribPointer(1,
-                                  4,
-                                  GL_FLOAT, GL_FALSE,
-                                  stride,
-                                  (GLvoid *)(sizeof(struct vector3)));
-            glEnableVertexAttribArray(1);
-            
-            glVertexAttribPointer(2,
-                                  2,
-                                  GL_FLOAT, GL_FALSE,
-                                  stride,
-                                  (GLvoid *)(sizeof(struct vector3) +
-                                             sizeof(struct color)));
-            glEnableVertexAttribArray(2);
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
+    glBindVertexArray(renderer->renderable.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->renderable.vbo);
+    
+    GLsizei const stride = sizeof(struct glyph_vertex);
+    
+    glBufferData(GL_ARRAY_BUFFER,
+                 GLYPH_BATCH_VERTEX_COUNT * stride,
+                 NULL,
+                 GL_DYNAMIC_DRAW);
+    
+    glVertexAttribPointer(0,
+                          3,
+                          GL_FLOAT, GL_FALSE,
+                          stride,
+                          0);
+    glEnableVertexAttribArray(0);
+    
+    glVertexAttribPointer(1,
+                          4,
+                          GL_UNSIGNED_BYTE, GL_TRUE,
+                          stride,
+                          (GLvoid *)(sizeof(struct vector3)));
+    glEnableVertexAttribArray(1);
+    
+    glVertexAttribPointer(2,
+                          2,
+                          GL_UNSIGNED_SHORT, GL_TRUE,
+                          stride,
+                          (GLvoid *)(sizeof(struct vector3) +
+                                     sizeof(struct color)));
+    glEnableVertexAttribArray(2);
+        
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     
     glyphs_invalidate(renderer, viewport);
@@ -172,10 +172,10 @@ glyphs_add(struct glyph_renderer * const renderer,
         }
     }
     
-    bool const requires_scaling = (transform.horizontal_scale > 1 ||
-                                   transform.horizontal_scale < 1 ||
-                                   transform.vertical_scale > 1 ||
-                                   transform.vertical_scale < 1);
+    bool const requires_scaling = (transform.scale.x > 1 ||
+                                   transform.scale.x < 1 ||
+                                   transform.scale.y > 1 ||
+                                   transform.scale.y < 1);
     
     bool const requires_rotation = (transform.angle > 0 ||
                                     transform.angle < 0);
@@ -208,8 +208,8 @@ glyphs_add(struct glyph_renderer * const renderer,
         
         if (requires_scaling) {
             mat4x4_scale_aniso(scaled, scaled,
-                               transform.horizontal_scale,
-                               transform.vertical_scale,
+                               transform.scale.x,
+                               transform.scale.y,
                                1);
         }
 
@@ -273,6 +273,36 @@ glyphs_reset(struct glyph_renderer * const renderer)
     renderer->current_texture_id = 0;
 }
 
+void
+glyphs_begin(struct glyph_renderer const * const renderer)
+{
+    glyphs_state(true);
+    
+    glUseProgram(renderer->renderable.program);
+    
+    GLint const uniform_transform =
+    glGetUniformLocation(renderer->renderable.program, "transform");
+    glUniformMatrix4fv(uniform_transform, 1, GL_FALSE, *renderer->transform);
+    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, renderer->current_texture_id);
+    glBindVertexArray(renderer->renderable.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->renderable.vbo);
+}
+
+void
+glyphs_end(struct glyph_renderer * const renderer)
+{
+    glyphs_flush(renderer);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glUseProgram(0);
+    
+    glyphs_state(false);
+}
+
 static
 void
 glyphs_state(bool const enable)
@@ -298,38 +328,17 @@ static
 void
 glyphs_draw(struct glyph_renderer const * const renderer)
 {
-    glyphs_state(true);
+    uint32_t const count = renderer->batch.count * GLYPH_VERTEX_COUNT;
     
-    glUseProgram(renderer->renderable.program);
-
-    GLint const uniform_transform =
-    glGetUniformLocation(renderer->renderable.program, "transform");
-    glUniformMatrix4fv(uniform_transform, 1, GL_FALSE, *renderer->transform);
+    GLsizeiptr const size = sizeof(struct glyph_vertex) * count;
     
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, renderer->current_texture_id); {
-        glBindVertexArray(renderer->renderable.vao); {
-            glBindBuffer(GL_ARRAY_BUFFER, renderer->renderable.vbo); {
-                GLsizei const n = renderer->batch.count * GLYPH_VERTEX_COUNT;
-                
-                GLsizeiptr const size =
-                sizeof(struct glyph_vertex) * (uint32_t)n;
-                
-                glBufferSubData(GL_ARRAY_BUFFER,
-                                0,
-                                size,
-                                renderer->batch.vertices);
-                glDrawArrays(GL_TRIANGLES, 0, n);
+    glBufferSubData(GL_ARRAY_BUFFER,
+                    0,
+                    size,
+                    renderer->batch.vertices);
+    
+    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)count);
 #ifdef DEBUG
-                profiler_increment_draw_count(1);
+    profiler_increment_draw_count(1);
 #endif
-            }
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-        }
-        glBindVertexArray(0);
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glUseProgram(0);
-    
-    glyphs_state(false);
 }

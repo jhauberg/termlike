@@ -358,8 +358,10 @@ term_printstr(char const * const text,
     term_get_transform(&transform);
     
     command_push(terminal.queue, (struct command) {
-        .x = position.location.x,
-        .y = position.location.y,
+        .origin = {
+            .x = position.location.x,
+            .y = position.location.y
+        },
         .color = color,
         .bounds = bounds,
         .transform = transform,
@@ -811,8 +813,8 @@ term_print_command(struct command const * const command)
     
     struct command_index const * const index = command_index(command);
     
-    state.origin.x = command->x;
-    state.origin.y = command->y;
+    state.origin.x = command->origin.x;
+    state.origin.y = command->origin.y;
     state.origin.z = index->z;
     
     struct term_rotation const rotate = command->transform.rotate;
@@ -820,18 +822,18 @@ term_print_command(struct command const * const command)
     state.rotation = rotate.rotation;
     state.anchor = rotate.anchor;
     
+    state.radians = 0;
+    
     if (rotate.angle != 0 && rotate.angle != 360) {
-        state.radians = (float)((rotate.angle * M_PI) / 180.0);
-    } else {
-        state.radians = 0;
+        state.radians = (float)((rotate.angle * M_PI) / 180.0f);
     }
     
     state.scale = command->transform.scale;
     
     state.tint = (struct graphics_color) {
-        .r = command->color.r / 255.0f,
-        .g = command->color.g / 255.0f,
-        .b = command->color.b / 255.0f,
+        .r = command->color.r,
+        .g = command->color.g,
+        .b = command->color.b,
         .a = command->color.a
     };
     

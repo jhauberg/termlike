@@ -2,6 +2,8 @@
 
 #include <gl3w/GL/gl3w.h> // GLuint
 
+#include <stdint.h> // uint8_t, uint16_t
+
 struct vector2 {
     float x, y;
 };
@@ -11,7 +13,11 @@ struct vector3 {
 };
 
 struct color {
-    float r, g, b, a;
+    uint8_t r, g, b, a;
+};
+
+struct texture {
+    uint16_t u, v;
 };
 
 struct renderable {
@@ -21,9 +27,9 @@ struct renderable {
 };
 
 struct glyph_vertex {
-    struct vector3 position;
-    struct color color;
-    struct vector2 texture_coord;
+    struct vector3 position; // 12
+    struct color color; // 4
+    struct texture texture; // 4 = 20
 };
 
 GLuint graphics_compile_shader(GLenum type, GLchar const * source);

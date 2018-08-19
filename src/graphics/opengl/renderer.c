@@ -9,8 +9,14 @@
 #include <stdio.h> // fprintf
 #include <stdlib.h> // malloc, free
 #include <stddef.h> // NULL
+#include <string.h> // memcpy
+#include <stdint.h> // int16_t, int32_t, uint16_t uint32_t
 
 #include <gl3w/GL/gl3w.h> // gl*, GL*
+
+#ifdef DEBUG
+ #include <assert.h> // assert
+#endif
 
 struct frame_renderable {
     struct renderable renderable;
@@ -20,24 +26,29 @@ struct frame_renderable {
 };
 
 struct frame_vertex {
-    struct vector3 position;
-    struct vector2 texture_coord;
+    int16_t x, y;
+    struct texture texture;
 };
 
+struct glyph_uv {
+    struct texture min;
+    struct texture max;
+};
 struct graphics_shared {
-    struct graphics_scale texture;
+    struct glyph_uv glyph_uvs[256];
     struct graphics_scale glyph;
     struct graphics_scale glyph_half;
 };
 
 struct graphics_context {
+    struct graphics_shared shared;
     struct glyph_renderer * glyphs;
     struct frame_renderable screen;
     struct graphics_font font;
-    struct graphics_shared shared;
+    struct viewport viewport;
+    struct viewport_clip clip;
     struct color clear;
     struct color bars;
-    struct viewport viewport;
     GLuint font_texture_id;
 };
 
@@ -62,9 +73,7 @@ static void graphics_set_position(struct glyph_vertex (*)[GLYPH_VERTEX_COUNT],
                                   struct graphics_scale halved_glyph);
 
 static void graphics_set_uv(struct glyph_vertex (*)[GLYPH_VERTEX_COUNT],
-                            uint32_t column, uint32_t row,
-                            struct graphics_scale glyph_size,
-                            struct graphics_scale texture_size);
+                            struct glyph_uv);
 
 static void graphics_set_tint(struct glyph_vertex (*)[GLYPH_VERTEX_COUNT],
                               struct graphics_color);
@@ -103,24 +112,31 @@ graphics_begin(struct graphics_context * const context)
     glBindFramebuffer(GL_FRAMEBUFFER, context->screen.framebuffer); {
         glViewport(0, 0, width, height);
         
-        glClearColor(context->clear.r, context->clear.g, context->clear.b,
-                     context->clear.a);
+        glClearColor(context->clear.r / 255.0f,
+                     context->clear.g / 255.0f,
+                     context->clear.b / 255.0f,
+                     context->clear.a / 255.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
+    
+    glyphs_begin(context->glyphs);
 }
 
 void
 graphics_end(struct graphics_context * const context)
 {
-    glyphs_flush(context->glyphs);
-    
-    struct viewport_clip clip = viewport_get_clip(context->viewport);
+    glyphs_end(context->glyphs);
     
     glBindFramebuffer(GL_FRAMEBUFFER, 0); {
-        glViewport(clip.x, clip.y, clip.area.width, clip.area.height);
+        glViewport(context->clip.x,
+                   context->clip.y,
+                   context->clip.area.width,
+                   context->clip.area.height);
 
-        glClearColor(context->bars.r, context->bars.g, context->bars.b,
-                     context->bars.a);
+        glClearColor(context->bars.r / 255.0f,
+                     context->bars.g / 255.0f,
+                     context->bars.b / 255.0f,
+                     context->bars.a / 255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         
         glUseProgram(context->screen.renderable.program);
@@ -154,16 +170,11 @@ graphics_draw(struct graphics_context const * const context,
     cache_previous_code = code;
     cache_previous_index = table_index;
     
-    uint32_t const row = table_index / context->font.columns;
-    uint32_t const column = table_index % context->font.columns;
-
     struct glyph_vertex vertices[GLYPH_VERTEX_COUNT];
 
     graphics_set_position(&vertices, context->shared.glyph_half);
+    graphics_set_uv(&vertices, context->shared.glyph_uvs[table_index]);
     graphics_set_tint(&vertices, color);
-    graphics_set_uv(&vertices, column, row,
-                    context->shared.glyph,
-                    context->shared.texture);
     
     struct glyph_transform glyph_transform;
     
@@ -199,20 +210,62 @@ graphics_set_font(struct graphics_context * const context,
     context->font = font;
     
     // store commonly used values to avoid calculating over and over
-    context->shared.glyph = (struct graphics_scale) {
+    struct graphics_scale const glyph = (struct graphics_scale) {
         .horizontal = font.size,
         .vertical = font.size
     };
     
-    context->shared.texture = (struct graphics_scale) {
-        .horizontal = font.columns * context->shared.glyph.horizontal,
-        .vertical = font.rows * context->shared.glyph.vertical
+    struct graphics_scale const texture = (struct graphics_scale) {
+        .horizontal = font.columns * glyph.horizontal,
+        .vertical = font.rows * glyph.vertical
     };
     
+    context->shared.glyph = glyph;
     context->shared.glyph_half = (struct graphics_scale) {
-        .horizontal = context->shared.glyph.horizontal / 2.0f,
-        .vertical = context->shared.glyph.vertical / 2.0f,
+        .horizontal = glyph.horizontal / 2.0f,
+        .vertical = glyph.vertical / 2.0f,
     };
+    
+    float const half_pixel = 0.5f;
+    
+    float const w = half_pixel / texture.horizontal;
+    float const h = half_pixel / texture.vertical;
+    
+    for (uint16_t column = 0; column < 16; column++) {
+        for (uint16_t row = 0; row < 16; row++) {
+            struct vector2 source;
+            
+            source.x = column * glyph.horizontal;
+            source.y = row * glyph.vertical;
+            
+            // flip it
+            source.y = (texture.vertical - glyph.vertical) - source.y;
+            
+            struct vector2 const min = {
+                .x = (source.x + w) / texture.horizontal,
+                .y = (source.y + h) / texture.vertical
+            };
+            
+            struct vector2 const max = {
+                .x = (source.x - w + glyph.horizontal) / texture.horizontal,
+                .y = (source.y - h + glyph.vertical) / texture.vertical
+            };
+            
+            uint16_t const index = (row * 16) + column;
+            
+            // normalize to fixed-point values
+            context->shared.glyph_uvs[index] = (struct glyph_uv) {
+                .min = (struct texture) {
+                    .u = (uint16_t)(UINT16_MAX * min.x),
+                    .v = (uint16_t)(UINT16_MAX * min.y)
+                },
+                .max = (struct texture) {
+                    .u = (uint16_t)(UINT16_MAX * max.x),
+                    .v = (uint16_t)(UINT16_MAX * max.y)
+                }
+            };
+        }
+    }
 }
 
 void
@@ -220,6 +273,7 @@ graphics_invalidate(struct graphics_context * const context,
                     struct viewport const viewport)
 {
     context->viewport = viewport_box(viewport);
+    context->clip = viewport_get_clip(context->viewport);
     
     glyphs_invalidate(context->glyphs, context->viewport);
 }
@@ -245,14 +299,14 @@ graphics_setup(struct graphics_context * const context)
         .r = 0,
         .g = 0,
         .b = 0,
-        .a = 1
+        .a = 255
     };
     
     context->bars = (struct color) {
-        .r = 0.1f,
-        .g = 0.1f,
-        .b = 0.1f,
-        .a = 1
+        .r = 30,
+        .g = 30,
+        .b = 30,
+        .a = 255
     };
     
     context->font.columns = 0;
@@ -369,11 +423,17 @@ static
 void
 graphics_setup_screen_vbo(struct graphics_context * const context)
 {
+    uint16_t const uv_min = 0;
+    uint16_t const uv_max = UINT16_MAX;
+    
+    int16_t const pos_min = -INT16_MAX;
+    int16_t const pos_max = INT16_MAX;
+    
     static struct frame_vertex const vertices[4] = {
-        { .position = { -1, -1, 0 }, .texture_coord = { 0, 0 } },
-        { .position = { -1,  1, 0 }, .texture_coord = { 0, 1 } },
-        { .position = {  1, -1, 0 }, .texture_coord = { 1, 0 } },
-        { .position = {  1,  1, 0 }, .texture_coord = { 1, 1 } },
+        { .x = pos_min, .y = pos_min, .texture = { uv_min, uv_min } },
+        { .x = pos_min, .y = pos_max, .texture = { uv_min, uv_max } },
+        { .x = pos_max, .y = pos_min, .texture = { uv_max, uv_min } },
+        { .x = pos_max, .y = pos_max, .texture = { uv_max, uv_max } },
     };
     
     glGenBuffers(1, &context->screen.renderable.vbo);
@@ -384,18 +444,20 @@ graphics_setup_screen_vbo(struct graphics_context * const context)
             glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
                          GL_STATIC_DRAW);
             
-            glVertexAttribPointer(0 /* position location */,
-                                  3 /* components per vertex */,
-                                  GL_FLOAT, GL_FALSE /* not normalized */,
-                                  sizeof(struct frame_vertex),
+            GLsizei const stride = sizeof(struct frame_vertex);
+            
+            glVertexAttribPointer(0,
+                                  2,
+                                  GL_SHORT, GL_TRUE,
+                                  stride,
                                   0);
             glEnableVertexAttribArray(0);
             
-            glVertexAttribPointer(1 /* texture coord location */,
-                                  2 /* components per vertex */,
-                                  GL_FLOAT, GL_FALSE,
-                                  sizeof(struct frame_vertex),
-                                  (GLvoid *)(sizeof(struct vector3)));
+            glVertexAttribPointer(1,
+                                  2,
+                                  GL_UNSIGNED_SHORT, GL_TRUE,
+                                  stride,
+                                  (GLvoid *)(sizeof(int16_t) * 2));
             glEnableVertexAttribArray(1);
         }
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -467,45 +529,27 @@ graphics_set_position(struct glyph_vertex (* const verts)[GLYPH_VERTEX_COUNT],
 static
 void
 graphics_set_uv(struct glyph_vertex (* const verts)[GLYPH_VERTEX_COUNT],
-                uint32_t const column, uint32_t const row,
-                struct graphics_scale const glyph_size,
-                struct graphics_scale const texture_size)
+                struct glyph_uv const uv)
 {
-    // bias sampling towards the center of each texel
-    float const half_pixel = 0.5f;
+    struct texture const uv_bl = uv.min;
+    struct texture const uv_tr = uv.max;
     
-    float const w = half_pixel / texture_size.horizontal;
-    float const h = half_pixel / texture_size.vertical;
-    
-    struct vector2 source;
-    
-    source.x = column * glyph_size.horizontal;
-    source.y = row * glyph_size.vertical;
-    // flip it
-    source.y = (texture_size.vertical - glyph_size.vertical) - source.y;
-    
-    struct vector2 const uv_min = {
-        .x = (source.x + w) / texture_size.horizontal,
-        .y = (source.y + h) / texture_size.vertical
+    struct texture const uv_tl = {
+        .u = uv.min.u,
+        .v = uv.max.v
     };
     
-    struct vector2 const uv_max = {
-        .x = (source.x - w + glyph_size.horizontal) / texture_size.horizontal,
-        .y = (source.y - h + glyph_size.vertical) / texture_size.vertical
+    struct texture const uv_br = {
+        .u = uv.max.u,
+        .v = uv.min.v
     };
     
-    struct vector2 const uv_bl = { .x = uv_min.x, .y = uv_min.y };
-    struct vector2 const uv_tl = { .x = uv_min.x, .y = uv_max.y };
-    struct vector2 const uv_tr = { .x = uv_max.x, .y = uv_max.y };
-    struct vector2 const uv_br = { .x = uv_max.x, .y = uv_min.y };
-    
-    (*verts)[0].texture_coord = uv_tl;
-    (*verts)[1].texture_coord = uv_br;
-    (*verts)[2].texture_coord = uv_bl;
-    
-    (*verts)[3].texture_coord = uv_tl;
-    (*verts)[4].texture_coord = uv_tr;
-    (*verts)[5].texture_coord = uv_br;
+    (*verts)[0].texture = uv_tl;
+    (*verts)[1].texture = uv_br;
+    (*verts)[2].texture = uv_bl;
+    (*verts)[3].texture = uv_tl;
+    (*verts)[4].texture = uv_tr;
+    (*verts)[5].texture = uv_br;
 }
 
 static
@@ -513,15 +557,12 @@ void
 graphics_set_tint(struct glyph_vertex (* const verts)[GLYPH_VERTEX_COUNT],
                   struct graphics_color const color)
 {
-    struct color const tint = {
-        .r = color.r,
-        .g = color.g,
-        .b = color.b,
-        .a = color.a
-    };
+#ifdef DEBUG
+    assert(sizeof(struct color) == sizeof(struct graphics_color));
+#endif
     
     for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
-        (*verts)[i].color = tint;
+        memcpy(&(*verts)[i].color, &color, sizeof(struct color));
     }
 }
 
@@ -550,9 +591,10 @@ graphics_get_transform(struct graphics_transform const transform,
         .y = flipped_y,
         .z = transform.position.z
     };
+    
     glyph->angle = transform.angle;
-    glyph->horizontal_scale = transform.scale.horizontal;
-    glyph->vertical_scale = transform.scale.vertical;
+    glyph->scale.x = transform.scale.horizontal;
+    glyph->scale.y = transform.scale.vertical;
 }
 
 static

@@ -3,14 +3,14 @@
 #include <stdint.h> // uint8_t, int32_t
 
 struct term_color const TERM_COLOR_WHITE = {
-    .a = 1,
+    .a = 255,
     .r = 255,
     .g = 255,
     .b = 255
 };
 
 struct term_color const TERM_COLOR_BLACK = {
-    .a = 1,
+    .a = 255,
     .r = 0,
     .g = 0,
     .b = 0
@@ -31,12 +31,12 @@ colored(uint8_t const red, uint8_t const green, uint8_t const blue)
         .r = red,
         .g = green,
         .b = blue,
-        .a = 1
+        .a = 255
     };
 }
 
 struct term_color
-transparent(struct term_color color, float const alpha)
+transparent(struct term_color color, uint8_t const alpha)
 {
     color.a = alpha;
     

@@ -3,8 +3,7 @@
 #include <stdint.h> // uint8_t, int32_t
 
 struct term_color {
-    float a;
-    uint8_t r, g, b;
+    uint8_t r, g, b, a;
 };
 
 extern struct term_color const TERM_COLOR_WHITE;
@@ -21,5 +20,4 @@ struct term_color colored(uint8_t red,
 /**
  * Return a transparent color.
  */
-struct term_color transparent(struct term_color,
-                              float alpha);
+struct term_color transparent(struct term_color, uint8_t alpha);

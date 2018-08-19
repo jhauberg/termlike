@@ -17,22 +17,32 @@
  
  * This is required for UTF8 decoding.
  */
-#define BUFFER_PADDING 4 // or sizeof(uint32_t)
+#define BUFFER_PADDING (sizeof(uint32_t))
+/**
+ * The size of the internal text buffer.
+ *
+ * This value must be at least 1 higher than the required amount of padding (4).
+ */
+#define BUFFER_SIZE (4096 * BUFFER_PADDING)
+
 /**
  * The maximum length of a printed string.
  */
-#define MAX_TEXT_LENGTH (BUFFER_SIZE_MAX - BUFFER_PADDING)
+#define MAX_TEXT_LENGTH (BUFFER_SIZE / BUFFER_PADDING)
 
 struct buffer {
-    char text[BUFFER_SIZE_MAX];
+    uint32_t decoded[BUFFER_SIZE];
+    char const * text;
 };
+
+static void buffer_decode(struct buffer *, char * text);
 
 struct buffer *
 buffer_init(void)
 {
     struct buffer * const buffer = malloc(sizeof(struct buffer));
     
-    memset(buffer->text, '\0', sizeof(buffer->text));
+    memset(buffer->decoded, 0, sizeof(buffer->decoded));
     
     return buffer;
 }
@@ -46,34 +56,53 @@ buffer_release(struct buffer * const buffer)
 void
 buffer_copy(struct buffer * const buffer, char const * const text)
 {
+    if (buffer->text == text) {
+        // skip copy/decode; buffer should already contain this text
+        return;
+    }
+    
     size_t const length = strlen(text);
     
 #ifdef DEBUG
     assert(length <= MAX_TEXT_LENGTH);
 #endif
     
-    memcpy(buffer->text, text, length);
-    memset(&buffer->text[length], '\0', BUFFER_PADDING);
+    buffer->text = text;
+    
+    char content[length + BUFFER_PADDING];
+
+    // copy over entire string as-is
+    memcpy(&content, text, length);
+    // pad the buffer so that there's enough room to decode each character
+    memset(&content[length], '\0', BUFFER_PADDING);
+    
+    // clear any previously decoded content
+    // (but only clearing as much as we need to, e.g. not the entire buffer,
+    //  so "garbage" content may remain from previous copies- this shouldn't
+    //  matter as long as we pad the real content appropriately)
+    // note that we approximate the length to clear by treating
+    // each byte as 1 character; that isn't necesarilly correct,
+    // but in any case it will be better than clearing too little
+    size_t const n = (length * BUFFER_PADDING) + BUFFER_PADDING;
+    
+    memset(buffer->decoded, 0, n);
+    
+    buffer_decode(buffer, content);
 }
 
 void
 buffer_wrap(struct buffer * const buffer, size_t const limit)
 {
+    
     size_t num_characters = 0;
     
-    int32_t decoding_error;
-    uint32_t character;
-    
-    char * next = buffer->text;
+    uint32_t character = 0;
+    uint32_t * next = buffer->decoded;
     
     while (*next) {
-        char * previous = next;
+        uint32_t * previous = next;
         
-        next = utf8_decode(next, &character, &decoding_error);
-        
-        if (decoding_error != 0) {
-            break;
-        }
+        character = *next++;
         
         // we successfully read one character from the buffer
         num_characters += 1;
@@ -95,8 +124,9 @@ buffer_wrap(struct buffer * const buffer, size_t const limit)
         // note that in a case where no available whitespace can be found,
         // no breaks will be inserted
         while (*previous) {
+            // todo: current logic will actually keep moving back until finding any whitespace
+            //       which can also be incorrect!
             if (*previous == ' ') {
-                // and replace it with a line break
                 *previous = '\n';
                 
                 // make sure to begin the next line from this point
@@ -122,22 +152,35 @@ buffer_foreach(struct buffer const * const buffer,
                buffer_callback * const callback,
                void * const state)
 {
-    int32_t decoding_error;
-    uint32_t character;
+    uint16_t i = 0;
+    uint32_t glyph = buffer->decoded[i];
     
-    // remove constness to iterate through the buffer
-    char * next = ((struct buffer *)buffer)->text;
+    while (glyph != 0) {
+        callback(glyph, state);
+        
+        i++;
+        
+        glyph = buffer->decoded[i];
+    }
+}
+
+static
+void
+buffer_decode(struct buffer * const buffer, char * const text)
+{
+    int32_t error = 0;
+    uint16_t i = 0;
+    
+    char * next = text;
     
     while (*next) {
         // decode and advance the text pointer
-        next = utf8_decode(next, &character, &decoding_error);
+        next = utf8_decode(next, &buffer->decoded[i], &error);
         
-        if (decoding_error != 0) {
-            // error
-            
-            break;
-        }
+#ifdef DEBUG
+        assert(error == 0);
+#endif
         
-        callback(character, state);
+        i++;
     }
 }

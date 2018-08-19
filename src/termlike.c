@@ -16,7 +16,7 @@
 #include <math.h> // M_PI, floorf
 
 #include "internal.h" // term_get_display_*
-#include "buffer.h" // buffer, buffer_*, BUFFER_SIZE_MAX
+#include "buffer.h" // buffer, buffer_*
 #include "command.h" // command_buffer, command, command_*
 #include "cursor.h" // cursor, cursor_offset, cursor_*
 #include "keys.h" // term_key_state
@@ -50,7 +50,7 @@ struct term_state_count {
 struct term_lines {
     // the maximum number of lines is equal to the maximum size of the
     // internal buffer (in the case where each character/byte is a newline)
-    int32_t widths[BUFFER_SIZE_MAX];
+    int32_t widths[128];
 };
 
 /**

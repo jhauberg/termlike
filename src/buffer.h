@@ -3,13 +3,6 @@
 #include <stdint.h> // uint32_t
 #include <stddef.h> // size_t
 
-/**
- * The size of the internal text buffer.
- *
- * This value must be at least 1 higher than the required amount of padding (4).
- */
-#define BUFFER_SIZE_MAX 4096
-
 struct buffer;
 
 /**

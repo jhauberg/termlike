@@ -365,7 +365,10 @@ term_printstr(char const * const text,
     
     term_get_transform(&transform);
     
-    command_push(terminal.queue, (struct command) {
+    uint64_t const index = command_next_index_at(terminal.queue,
+                                                 position.layer);
+    
+    struct command cmd = (struct command) {
         .origin = {
             .x = position.location.x,
             .y = position.location.y
@@ -373,9 +376,11 @@ term_printstr(char const * const text,
         .color = color,
         .bounds = bounds,
         .transform = transform,
-        .layer = position.layer,
+        .index = index,
         .text = text
-    });
+    };
+    
+    command_push(terminal.queue, cmd);
 }
 
 void
@@ -810,6 +815,7 @@ term_print_command(struct command const * const command)
                             command->transform.scale,
                             &measurement);
     }
+    
     // initialize a state for printing contents of the buffer;
     // this state will hold positional values for the upper-left origin
     // of the string of characters; each character is drawn at an offset
@@ -825,11 +831,10 @@ term_print_command(struct command const * const command)
     state.measured = measurement;
     state.bounds = command->bounds;
     
-    struct command_index const * const index = command_index(command);
-    
     state.origin.x = command->origin.x;
     state.origin.y = command->origin.y;
-    state.origin.z = index->z;
+    
+    command_index_z(command->index, &state.origin.z);
     
     struct term_rotation const rotate = command->transform.rotate;
     

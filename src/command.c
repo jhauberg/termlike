@@ -2,6 +2,8 @@
 
 #include "internal.h" // layer_z
 
+#include <termlike/layer.h> // term_layer
+
 #include <stdlib.h> // malloc, free, qsort
 #include <stdint.h> // uint32_t
 #include <stddef.h> // size_t, NULL
@@ -14,13 +16,20 @@
  #include <string.h> // memcpy
 #endif
 
+struct command_index {
+    // note that the order of fields is important
+    // going from top to bottom, top is least significant and bottom is most
+    // this effectively means Z-value is more important than call order
+    // but two indices with identical Z-value will fall back to call order
+    uint32_t order;
+    float z;
+};
+
 struct command_buffer {
     struct command * commands;
     uint32_t count;
     uint32_t capacity;
 };
-
-extern inline struct command_index * command_index(struct command const *);
 
 static int32_t command_compare(void const *, void const *);
 
@@ -67,11 +76,6 @@ command_push(struct command_buffer * const buffer,
                                    sizeof(struct command) * buffer->capacity);
     }
     
-    struct command_index * const index = (struct command_index *)&command.index;
-    
-    index->order = buffer->count;
-    index->z = layer_z(command.layer);
-    
 #ifdef _WIN32
     memcpy(&buffer->commands[buffer->count], &command, sizeof(struct command));
 #else
@@ -79,6 +83,14 @@ command_push(struct command_buffer * const buffer,
 #endif
     
     buffer->count += 1;
+}
+
+void
+command_index_z(uint64_t const index, float * const z)
+{
+    struct command_index * const idx = (struct command_index *)&index;
+    
+    *z = idx->z;
 }
 
 void
@@ -101,11 +113,25 @@ command_flush(struct command_buffer * const buffer,
     buffer->count = 0;
 }
 
+uint64_t
+command_next_index_at(struct command_buffer const * const buffer,
+                      struct term_layer const layer)
+{
+    struct command_index const index = (struct command_index) {
+        .order = buffer->count,
+        .z = layer_z(layer)
+    };
+    
+    return *((uint64_t *)&index);
+}
+
+#ifdef TERM_INCLUDE_PROFILER
 void
 command_memuse(struct command_buffer const * const buffer, size_t * const size)
 {
     *size = sizeof(struct command) * buffer->capacity;
 }
+#endif
 
 static
 int32_t

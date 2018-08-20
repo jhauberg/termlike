@@ -1,6 +1,6 @@
 #pragma once
 
-#include <termlike/layer.h> // term_layer :completeness
+#include <termlike/layer.h> // term_layer
 #include <termlike/color.h> // term_color :completeness
 #include <termlike/bounds.h> // term_bounds :completeness
 #include <termlike/transform.h> // term_transform :completeness
@@ -10,24 +10,13 @@
 
 struct command_buffer;
 
-struct command_index {
-    // note that the order of fields is important
-    // going from top to bottom, top is least significant and bottom is most
-    // this effectively means Z-value is more important than call order
-    // but two indices with identical Z-value will fall back to call order
-    uint32_t order;
-    float z;
-};
-
 struct command {
-    struct term_color color;
-    struct term_bounds bounds;
+    uint64_t index;
+    char const * text;
     struct term_transform transform;
     struct term_anchor origin;
-    char const * text;
-    uint64_t index;
-    struct term_layer layer;
-    uint8_t _pad[6];
+    struct term_color color;
+    struct term_bounds bounds;
 };
 
 typedef void command_callback(struct command const *);
@@ -38,12 +27,11 @@ void command_release(struct command_buffer *);
 void command_push(struct command_buffer *, struct command);
 void command_flush(struct command_buffer *, command_callback *);
 
+void command_index_z(uint64_t index, float * z);
+
+uint64_t command_next_index_at(struct command_buffer const *,
+                               struct term_layer);
+
+#ifdef TERM_INCLUDE_PROFILER
 void command_memuse(struct command_buffer const *, size_t * memory);
-
-inline
-struct command_index *
-command_index(struct command const * const command)
-{
-    return (struct command_index *)&command->index;
-}
-
+#endif

@@ -4,7 +4,14 @@ project(Termlike
 	LANGUAGES C
 )
 
+option(TERM_BUILD_PROFILER "Include the profiling overlay" OFF)
+
 option(TERM_BUILD_EXAMPLES "Build the Termlike sample programs" ON)
+
+# default builds to Release mode
+if (NOT CMAKE_BUILD_TYPE) 
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
 
 # find all library source files
 file(GLOB_RECURSE LIB_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.c")
@@ -24,8 +31,17 @@ add_library(Termlike STATIC
 target_compile_options(Termlike PRIVATE "-Wall")
 target_compile_features(Termlike PRIVATE c_std_99)
 
-# define 'DEBUG' only on debug builds (e.g. DCMAKE_BUILD_TYPE=Debug)
-target_compile_definitions(Termlike PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
+if (CMAKE_BUILD_TYPE MATCHES "Debug")
+	# always include profiling code on debug builds
+    set(TERM_BUILD_PROFILER ON CACHE BOOL "" FORCE)
+endif()
+
+target_compile_definitions(Termlike PRIVATE 
+	# define 'DEBUG' only on debug builds (e.g. DCMAKE_BUILD_TYPE=Debug)
+	"$<$<CONFIG:DEBUG>:DEBUG>" 
+	# only include profiling code if option is set
+	"$<$<BOOL:${TERM_BUILD_PROFILER}>:TERM_INCLUDE_PROFILER>"
+)
 
 set_target_properties(Termlike PROPERTIES
     # override output filename (should result in 'libterm')

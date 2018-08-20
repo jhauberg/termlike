@@ -29,11 +29,12 @@
 #include "platform/timer.h" // timer, timer_*
 
 #ifdef DEBUG
- #include "platform/profiler.h" // profiler_*
  #include <assert.h> // assert
 #endif
 
-#include "resources/spritefont.8x8.h" // IBM8x8*
+#ifdef TERM_INCLUDE_PROFILER
+ #include "platform/profiler.h" // profiler_*
+#endif
 
 #define PIXEL(x) ((int32_t)floorf(x))
 
@@ -123,7 +124,7 @@ struct term_context {
     struct term_cursor_state cursor;
     struct term_cache cache;
     bool is_open;
-#ifdef DEBUG
+#ifdef TERM_INCLUDE_PROFILER
     bool is_profiling;
 #endif
 };
@@ -310,11 +311,11 @@ term_run(uint16_t const frequency)
     double interpolate = 0;
     
     term_update(frequency, &interpolate);
-#ifdef DEBUG
+#ifdef TERM_INCLUDE_PROFILER
     profiler_begin();
 #endif
     term_draw(interpolate);
-#ifdef DEBUG
+#ifdef TERM_INCLUDE_PROFILER
     profiler_end();
     
     size_t bytes;
@@ -502,7 +503,7 @@ term_setup(struct window_size const display)
     
     term_set_transform(TERM_TRANSFORM_NONE);
     
-#ifdef DEBUG
+#ifdef TERM_INCLUDE_PROFILER
     terminal.is_profiling = false;
     
     profiler_reset();
@@ -546,7 +547,7 @@ term_update(uint16_t const frequency, double * const interpolate)
         term_toggle_fullscreen();
     }
     
-#ifdef DEBUG
+#ifdef TERM_INCLUDE_PROFILER
     if (term_key_pressed((enum term_key)TERM_KEY_TOGGLE_PROFILING)) {
         terminal.is_profiling = !terminal.is_profiling;
     }
@@ -590,7 +591,7 @@ term_draw(double const interpolate)
         if (terminal.draw_func) {
             terminal.draw_func(interpolate);
         }
-#ifdef DEBUG
+#ifdef TERM_INCLUDE_PROFILER
         if (terminal.is_profiling) {
             profiler_draw();
         }

@@ -6,7 +6,7 @@
 
 #include "../viewport.h" // viewport
 
-#ifdef DEBUG
+#ifdef TERM_INCLUDE_PROFILER
  #include "../../platform/profiler.h" // profiler_*
 #endif
 
@@ -343,7 +343,7 @@ glyphs_draw(struct glyph_renderer const * const renderer)
                     renderer->batch.vertices);
     
     glDrawArrays(GL_TRIANGLES, 0, (GLsizei)count);
-#ifdef DEBUG
+#ifdef TERM_INCLUDE_PROFILER
     profiler_increment_draw_count(1);
 #endif
 }

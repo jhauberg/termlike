@@ -13,6 +13,11 @@
 #endif
 
 /**
+ * The maximum length of a printed string.
+ */
+#define MAX_TEXT_LENGTH (4096)
+
+/**
  * The number of bytes that the internal text buffer must be zero-padded with.
  
  * This is required for UTF8 decoding.
@@ -23,12 +28,7 @@
  *
  * This value must be at least 1 higher than the required amount of padding (4).
  */
-#define BUFFER_SIZE (4096 * BUFFER_PADDING)
-
-/**
- * The maximum length of a printed string.
- */
-#define MAX_TEXT_LENGTH (BUFFER_SIZE / BUFFER_PADDING)
+#define BUFFER_SIZE (MAX_TEXT_LENGTH * BUFFER_PADDING)
 
 struct buffer {
     uint32_t decoded[BUFFER_SIZE];

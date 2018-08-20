@@ -146,14 +146,14 @@ static void term_invalidate(void);
 /**
  * Update a frame.
  *
- * This reads input and calculate deltas since the last frame, then ticks as
+ * Reads input and calculates deltas since the last frame, then ticks as
  * many times as needed to keep game state in sync.
  */
 static void term_update(uint16_t frequency, double * interpolate);
 /**
  * Render a frame.
  *
- * This accumulates all print commands then proceeds to flush them by sorting
+ * Accumulates all print commands, then proceeds to flush them by sorting
  * and drawing each command back-to-front.
  */
 static void term_draw(double interpolate);
@@ -498,7 +498,7 @@ term_setup(struct window_size const display)
     terminal.draw_func = NULL;
     terminal.tick_func = NULL;
     
-    load_image_data(IBM8x8_FONT, IBM8x8_LENGTH, term_load_font);
+    load_image_data(IBM8x8_FONT, IBM8x8_SIZE, term_load_font);
     
     term_set_transform(TERM_TRANSFORM_NONE);
     

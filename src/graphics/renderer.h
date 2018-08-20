@@ -49,11 +49,13 @@ void graphics_draw(struct graphics_context const *,
                    struct graphics_transform,
                    uint32_t code);
 
-struct graphics_font graphics_get_font(struct graphics_context const *);
+void graphics_get_font(struct graphics_context const *,
+                       struct graphics_font *);
 void graphics_set_font(struct graphics_context *,
                        struct graphics_image,
                        struct graphics_font);
 
 void graphics_invalidate(struct graphics_context *, struct viewport);
 
-struct viewport graphics_get_viewport(struct graphics_context const *);
+void graphics_get_viewport(struct graphics_context const *,
+                           struct viewport *);

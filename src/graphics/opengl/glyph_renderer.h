@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdbool.h> // bool
-
 #include <gl3w/GL/gl3w.h> // GLuint
 
 #include "renderable.h" // glyph_vertex :completeness
@@ -27,9 +25,6 @@ void glyphs_add(struct glyph_renderer *,
                 GLuint texture_id);
 
 void glyphs_invalidate(struct glyph_renderer *, struct viewport);
-
-bool glyphs_flush(struct glyph_renderer *);
-void glyphs_reset(struct glyph_renderer *);
 
 void glyphs_begin(struct glyph_renderer const *);
 void glyphs_end(struct glyph_renderer *);

@@ -1,5 +1,6 @@
 #include "glyph_renderer.h" // glyph_renderer, glyphs_*
 
+#include <stdbool.h> // bool
 #include <stdlib.h> // malloc, free
 #include <stddef.h> // NULL
 
@@ -31,6 +32,8 @@ struct glyph_renderer {
 };
 
 static void glyphs_state(bool enable);
+static bool glyphs_flush(struct glyph_renderer *);
+static void glyphs_reset(struct glyph_renderer *);
 static void glyphs_draw(struct glyph_renderer const *);
 
 struct glyph_renderer *
@@ -252,6 +255,7 @@ glyphs_add(struct glyph_renderer * const renderer,
     renderer->batch.count += 1;
 }
 
+static
 bool
 glyphs_flush(struct glyph_renderer * const renderer)
 {
@@ -266,6 +270,7 @@ glyphs_flush(struct glyph_renderer * const renderer)
     return true;
 }
 
+static
 void
 glyphs_reset(struct glyph_renderer * const renderer)
 {

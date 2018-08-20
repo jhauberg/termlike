@@ -8,6 +8,7 @@
 
 #include <stdio.h> // fprintf
 #include <stdlib.h> // malloc, free
+#include <stdbool.h> // bool
 #include <stddef.h> // NULL
 #include <string.h> // memcpy
 #include <stdint.h> // int16_t, int32_t, uint16_t uint32_t
@@ -190,10 +191,11 @@ graphics_draw(struct graphics_context const * const context,
                context->font_texture_id);
 }
 
-struct graphics_font
-graphics_get_font(struct graphics_context const * const context)
+void
+graphics_get_font(struct graphics_context const * const context,
+                  struct graphics_font * const font)
 {
-    return context->font;
+    *font = context->font;
 }
 
 void
@@ -278,10 +280,11 @@ graphics_invalidate(struct graphics_context * const context,
     glyphs_invalidate(context->glyphs, context->viewport);
 }
 
-struct viewport
-graphics_get_viewport(struct graphics_context const * const context)
+void
+graphics_get_viewport(struct graphics_context const * const context,
+                      struct viewport * const viewport)
 {
-    return context->viewport;
+    *viewport = context->viewport;
 }
 
 static

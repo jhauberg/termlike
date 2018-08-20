@@ -30,11 +30,14 @@
 
 #ifdef DEBUG
  #include "platform/profiler.h" // profiler_*
+ #include <assert.h> // assert
 #endif
 
 #include "resources/spritefont.8x8.h" // IBM8x8*
 
 #define PIXEL(x) ((int32_t)floorf(x))
+
+#define MAX_LINES (128)
 
 /**
  * Provides a count that can be accumulated for each printable character
@@ -48,9 +51,11 @@ struct term_state_count {
  * Provides widths for all lines in a buffer.
  */
 struct term_lines {
-    // the maximum number of lines is equal to the maximum size of the
-    // internal buffer (in the case where each character/byte is a newline)
-    int32_t widths[128];
+    // the maximum number of lines is *actually* equal to the maximum size of
+    // the internal buffer (in the case where each character/byte is a newline)
+    // but that is really a huge amount of lines, so we artificially limit it
+    // to much less than that
+    int32_t widths[MAX_LINES];
 };
 
 /**
@@ -775,6 +780,10 @@ term_measure_character(uint32_t const character, void * const data)
     if (character != '\n') {
         edge += state->cursor.width;
     }
+    
+#ifdef DEBUG
+    assert(offset.line < MAX_LINES);
+#endif
     
     state->lines.widths[offset.line] = PIXEL(edge);
 }

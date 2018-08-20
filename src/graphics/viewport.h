@@ -25,8 +25,15 @@ enum viewport_mode {
     VIEWPORT_MODE_PILLARBOX
 };
 
-struct viewport_clip viewport_get_clip(struct viewport);
+void viewport_clip(struct viewport, struct viewport_clip *);
+void viewport_box(struct viewport, struct viewport *);
 
-struct viewport viewport_box(struct viewport);
-
-void viewport_pixel_size(struct viewport, float * horizontal, float * vertical);
+inline
+void
+viewport_pixel_size(struct viewport const viewport,
+                    float * const horizontal,
+                    float * const vertical)
+{
+    *horizontal = (float)viewport.framebuffer.width / viewport.resolution.width;
+    *vertical = (float)viewport.framebuffer.height / viewport.resolution.height;
+}

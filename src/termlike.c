@@ -514,7 +514,9 @@ static
 void
 term_invalidate(void)
 {
-    struct viewport viewport = graphics_get_viewport(terminal.graphics);
+    struct viewport viewport;
+    
+    graphics_get_viewport(terminal.graphics, &viewport);
     
     window_get_framebuffer_size(terminal.window,
                                 &viewport.framebuffer.width,

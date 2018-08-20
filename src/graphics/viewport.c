@@ -3,14 +3,19 @@
 #include <stdint.h> // int32_t
 #include <math.h> // roundf
 
-static enum viewport_mode viewport_get_mode(struct viewport,
-                                            int32_t * width,
-                                            int32_t * height);
+static void viewport_get_mode(struct viewport,
+                              struct viewport_size *,
+                              enum viewport_mode *);
 
-struct viewport_clip
-viewport_get_clip(struct viewport const viewport)
+extern inline void viewport_pixel_size(struct viewport,
+                                       float * horizontal,
+                                       float * vertical);
+
+void
+viewport_clip(struct viewport const viewport,
+              struct viewport_clip * const clip)
 {
-    return (struct viewport_clip) {
+    *clip = (struct viewport_clip) {
         .area = {
             .width = viewport.framebuffer.width - viewport.offset.width,
             .height = viewport.framebuffer.height - viewport.offset.height
@@ -20,42 +25,33 @@ viewport_get_clip(struct viewport const viewport)
     };
 }
 
-struct viewport
-viewport_box(struct viewport viewport)
+void
+viewport_box(struct viewport viewport,
+             struct viewport * const box)
 {
-    viewport.offset.width = 0;
-    viewport.offset.height = 0;
+    *box = viewport;
+    
+    box->offset.width = 0;
+    box->offset.height = 0;
     
     struct viewport_size target;
+    enum viewport_mode mode;
     
-    enum viewport_mode const mode = viewport_get_mode(viewport,
-                                                      &target.width,
-                                                      &target.height);
+    viewport_get_mode(viewport, &target, &mode);
     
     struct viewport_size framebuffer = viewport.framebuffer;
     
     if (mode != VIEWPORT_MODE_NORMAL) {
-        viewport.offset.width = framebuffer.width - target.width;
-        viewport.offset.height = framebuffer.height - target.height;
+        box->offset.width = framebuffer.width - target.width;
+        box->offset.height = framebuffer.height - target.height;
     }
-    
-    return viewport;
-}
-
-void
-viewport_pixel_size(struct viewport const viewport,
-                    float * const horizontal,
-                    float * const vertical)
-{
-    *horizontal = (float)viewport.framebuffer.width / viewport.resolution.width;
-    *vertical = (float)viewport.framebuffer.height / viewport.resolution.height;
 }
 
 static
-enum viewport_mode
+void
 viewport_get_mode(struct viewport const viewport,
-                  int32_t * const width,
-                  int32_t * const height)
+                  struct viewport_size * const target,
+                  enum viewport_mode * const mode)
 {
     float const screen_aspect_ratio =
         (float)viewport.resolution.width / (float)viewport.resolution.height;
@@ -65,7 +61,7 @@ viewport_get_mode(struct viewport const viewport,
     float adjusted_width = viewport.framebuffer.width;
     float adjusted_height = viewport.framebuffer.height;
     
-    enum viewport_mode mode = VIEWPORT_MODE_NORMAL;
+    *mode = VIEWPORT_MODE_NORMAL;
     
     if (screen_aspect_ratio > framebuffer_aspect_ratio ||
         framebuffer_aspect_ratio > screen_aspect_ratio) {
@@ -74,20 +70,18 @@ viewport_get_mode(struct viewport const viewport,
         // letterbox (horizontal bars)
         adjusted_height = roundf(adjusted_width / targetAspectRatio);
         
-        mode = VIEWPORT_MODE_LETTERBOX;
+        *mode = VIEWPORT_MODE_LETTERBOX;
         
         if (adjusted_height > viewport.framebuffer.height) {
             // pillarbox (vertical bars)
             adjusted_height = viewport.framebuffer.height;
             adjusted_width = roundf(adjusted_height * targetAspectRatio);
             
-            mode = VIEWPORT_MODE_PILLARBOX;
+            *mode = VIEWPORT_MODE_PILLARBOX;
         }
     }
     
-    *width = (int32_t)adjusted_width;
-    *height = (int32_t)adjusted_height;
-    
-    return mode;
+    target->width = (int32_t)adjusted_width;
+    target->height = (int32_t)adjusted_height;
 }
 

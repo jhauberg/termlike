@@ -272,8 +272,8 @@ void
 graphics_invalidate(struct graphics_context * const context,
                     struct viewport const viewport)
 {
-    context->viewport = viewport_box(viewport);
-    context->clip = viewport_get_clip(context->viewport);
+    viewport_box(viewport, &context->viewport);
+    viewport_clip(context->viewport, &context->clip);
     
     glyphs_invalidate(context->glyphs, context->viewport);
 }

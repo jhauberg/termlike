@@ -28,6 +28,8 @@
 #include "platform/window.h" // window_size, window_params, window_*
 #include "platform/timer.h" // timer, timer_*
 
+#include "resources/spritefont.8x8.h" // IBM8x8*
+
 #ifdef DEBUG
  #include <assert.h> // assert
 #endif

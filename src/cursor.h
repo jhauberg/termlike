@@ -6,6 +6,9 @@
 #include <stdbool.h> // bool
 
 struct cursor_offset {
+    // note that the cursor must operate on transformed glyph sizes;
+    // i.e. not just logical fixed-point advancements, because the provided
+    // bounds are always in absolute dimensions
     float x, y;
     uint32_t line;
 };

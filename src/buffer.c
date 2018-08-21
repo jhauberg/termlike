@@ -93,7 +93,6 @@ buffer_copy(struct buffer * const buffer, char const * const text)
 void
 buffer_wrap(struct buffer * const buffer, size_t const limit)
 {
-    
     size_t num_characters = 0;
     
     uint32_t character = 0;
@@ -124,8 +123,6 @@ buffer_wrap(struct buffer * const buffer, size_t const limit)
         // note that in a case where no available whitespace can be found,
         // no breaks will be inserted
         while (*previous) {
-            // todo: current logic will actually keep moving back until finding any whitespace
-            //       which can also be incorrect!
             if (*previous == ' ') {
                 *previous = '\n';
                 

@@ -1,5 +1,7 @@
 #include <termlike/position.h> // term_position, positioned*
 
+#include <stdint.h> // int32_t
+
 extern inline struct term_position positioned(int32_t x, int32_t y);
 extern inline struct term_position positionedz(int32_t x, int32_t y,
                                                struct term_layer);
@@ -11,14 +13,6 @@ positioned_offset(struct term_position position,
 {
     position.location.x += dx;
     position.location.y += dy;
-    
-    return position;
-}
-
-struct term_position
-positioned_layer(struct term_position position, struct term_layer const layer)
-{
-    position.layer = layer;
     
     return position;
 }

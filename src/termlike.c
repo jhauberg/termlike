@@ -369,10 +369,7 @@ term_printstr(char const * const text,
                                                  position.layer);
     
     struct command cmd = (struct command) {
-        .origin = {
-            .x = position.location.x,
-            .y = position.location.y
-        },
+        .origin = position.location,
         .color = color,
         .bounds = bounds,
         .transform = transform,

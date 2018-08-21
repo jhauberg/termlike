@@ -183,7 +183,9 @@ graphics_draw(struct graphics_context const * const context,
     
     struct glyph_transform glyph_transform;
     
-    graphics_get_transform(transform, context->viewport, context->shared.glyph,
+    graphics_get_transform(transform,
+                           context->viewport,
+                           context->shared.glyph,
                            &glyph_transform);
     
     glyph_transform.offset = (struct vector2) {
@@ -541,25 +543,25 @@ void
 graphics_set_uv(struct glyph_vertex (* const verts)[GLYPH_VERTEX_COUNT],
                 struct glyph_uv const uv)
 {
-    struct texture const uv_bl = uv.min;
-    struct texture const uv_tr = uv.max;
+    struct texture const bl = uv.min;
+    struct texture const tr = uv.max;
     
-    struct texture const uv_tl = {
+    struct texture const tl = {
         .u = uv.min.u,
         .v = uv.max.v
     };
     
-    struct texture const uv_br = {
+    struct texture const br = {
         .u = uv.max.u,
         .v = uv.min.v
     };
     
-    (*verts)[0].texture = uv_tl;
-    (*verts)[1].texture = uv_br;
-    (*verts)[2].texture = uv_bl;
-    (*verts)[3].texture = uv_tl;
-    (*verts)[4].texture = uv_tr;
-    (*verts)[5].texture = uv_br;
+    (*verts)[0].texture = tl;
+    (*verts)[1].texture = br;
+    (*verts)[2].texture = bl;
+    (*verts)[3].texture = tl;
+    (*verts)[4].texture = tr;
+    (*verts)[5].texture = br;
 }
 
 static

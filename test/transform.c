@@ -65,7 +65,7 @@ draw(double const interp)
     term_printstr("FILL", positioned_offset(position, c.width * 6, -c.height * 2), TERM_COLOR_WHITE, TERM_BOUNDS_NONE);
     term_print("█", positioned_offset(position, c.width * 2, 0), colored(0, 225, 0));
     term_print("█", positioned_offset(position, c.width * 5, 0), colored(0, 225, 0));
-    term_print("██████████████████████", position, transparent(colored(255, 0, 0), 0.25f));
+    term_print("██████████████████████", position, transparent(colored(255, 0, 0), 255/4));
     term_print("──────────────────────", position, colored(225, 0, 0));
     
     // case: word-wrap scaled text

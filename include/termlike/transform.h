@@ -55,13 +55,13 @@ struct term_rotation {
      */
     struct term_anchor anchor;
     /**
-     * The angle, in degrees, to apply rotation by (0 is no rotation).
-     */
-    int32_t angle;
-    /**
      * The method of rotation to apply.
      */
     enum term_rotate rotation;
+    /**
+     * The angle, in degrees, to apply rotation by (0 is no rotation).
+     */
+    int32_t angle;
 };
 
 struct term_transform {

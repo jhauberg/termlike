@@ -407,13 +407,13 @@ void
 term_measure(char const * const characters,
              struct term_dimens * const dimensions)
 {
-    term_measurestr(characters, dimensions, TERM_BOUNDS_NONE);
+    term_measurestr(characters, TERM_BOUNDS_NONE, dimensions);
 }
 
 void
 term_measurestr(char const * const text,
-                struct term_dimens * const dimensions,
-                struct term_bounds const bounds)
+                struct term_bounds const bounds,
+                struct term_dimens * const dimensions)
 {
     dimensions->width = 0;
     dimensions->height = 0;

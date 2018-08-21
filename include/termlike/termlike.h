@@ -142,9 +142,8 @@ void term_count(char const * characters, size_t * amount);
 void term_measure(char const * characters,
                   struct term_dimens *);
 void term_measurestr(char const * text,
-                      // todo: at end instead?
-                     struct term_dimens *,
-                     struct term_bounds);
+                     struct term_bounds,
+                     struct term_dimens *);
 
 /**
  * Determine whether a key is currently held down.

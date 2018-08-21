@@ -30,14 +30,7 @@ static double last_average_time = 0;
 
 static uint16_t frames_per_second = 0;
 
-static uint16_t frame_samples = 0; // sample frames to calculate average
-static uint16_t frame_sample_count = 0;
-
 static double frame_time = 0;
-static double frame_time_avg = 0;
-
-static double frame_time_samples = 0; // sample frames to calculate average
-static uint16_t frame_time_sample_count = 0;
 
 static char summed[64];
 
@@ -48,11 +41,9 @@ profiler_reset(void)
 {
     current.draw_count = 0;
     current.frame_time = 0;
-    current.frame_time_avg = 0;
     current.frames_per_second = 0;
     current.frames_per_second_min = UINT16_MAX;
     current.frames_per_second_max = 0;
-    current.frames_per_second_avg = 0;
 }
 
 void
@@ -86,12 +77,6 @@ profiler_end(void)
         current.frames_per_second_max = frames_per_second;
     }
     
-    frame_samples += current.frames_per_second;
-    frame_sample_count++;
-    
-    frame_time_samples += frame_time;
-    frame_time_sample_count++;
-    
     double const time_since_last_average = time - last_average_time;
     
     if (time_since_last_average >= frame_average_interval) {
@@ -101,7 +86,6 @@ profiler_end(void)
     }
     
     current.frame_time = frame_time * 1000;
-    current.frame_time_avg = frame_time_avg * 1000;
 }
 
 void
@@ -160,16 +144,8 @@ static
 void
 profiler_update_averages(void)
 {
-    current.frames_per_second_avg = frame_samples / frame_sample_count;
     current.frames_per_second = frames_per_second;
-    
-    frame_sample_count = 0;
-    frame_samples = 0;
-    
-    frame_time_avg = frame_time_samples / frame_time_sample_count;
-    frame_time_sample_count = 0;
-    frame_time_samples = 0;
-    
+
     // reset min/max to show rolling stats rather than historically accurate
     // stats (it's more interesting knowing min/max for the current scene
     // than knowing the 9999+ max fps during the first blank frame)

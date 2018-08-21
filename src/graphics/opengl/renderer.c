@@ -37,6 +37,7 @@ struct glyph_uv {
 };
 struct graphics_shared {
     struct glyph_uv glyph_uvs[256];
+    struct glyph_vertex glyph_vertices[GLYPH_VERTEX_COUNT];
     struct graphics_scale glyph;
     struct graphics_scale glyph_half;
 };
@@ -172,9 +173,12 @@ graphics_draw(struct graphics_context const * const context,
     cache_previous_index = table_index;
     
     struct glyph_vertex vertices[GLYPH_VERTEX_COUNT];
-
-    graphics_set_position(&vertices, context->shared.glyph_half);
-    graphics_set_uv(&vertices, context->shared.glyph_uvs[table_index]);
+    struct glyph_uv const uv = context->shared.glyph_uvs[table_index];
+    
+    memcpy(&vertices, context->shared.glyph_vertices,
+           sizeof(context->shared.glyph_vertices));
+    
+    graphics_set_uv(&vertices, uv);
     graphics_set_tint(&vertices, color);
     
     struct glyph_transform glyph_transform;
@@ -268,6 +272,9 @@ graphics_set_font(struct graphics_context * const context,
             };
         }
     }
+    
+    graphics_set_position(&context->shared.glyph_vertices,
+                          context->shared.glyph_half);
 }
 
 void

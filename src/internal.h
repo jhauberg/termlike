@@ -2,17 +2,19 @@
 
 #include <termlike/config.h> // term_size
 
-#include <linmath/linmath.h> // vec2
-
 struct term_layer;
+struct term_anchor;
 
 struct window_size;
 struct window_params;
 
 float layer_z(struct term_layer);
 
-void rotate_point(vec2 p, float angle, vec2);
-void rotate_point_center(vec2 p, vec2 c, float angle, vec2);
+void rotate_point(struct term_anchor point, float angle,
+                  struct term_anchor *);
+void rotate_point_center(struct term_anchor point,
+                         struct term_anchor center, float angle,
+                         struct term_anchor *);
 
 void term_get_display_size(enum term_size,
                            struct window_size *);

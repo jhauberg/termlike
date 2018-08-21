@@ -713,25 +713,29 @@ term_print_character(uint32_t const character, void * const data)
     if ((state->rotation == TERM_ROTATE_STRING ||
          state->rotation == TERM_ROTATE_STRING_ANCHORED) &&
         (state->radians > 0 || state->radians < 0)) {
-        vec2 p = { offset.x, offset.y };
-        vec2 rotated;
+        struct term_anchor const point = {
+            .x = offset.x,
+            .y = offset.y
+        };
+        
+        struct term_anchor rotated;
         
         if (state->rotation == TERM_ROTATE_STRING_ANCHORED) {
             float const dx = w * state->anchor.x;
             float const dy = h * state->anchor.y;
             
-            vec2 c = {
-                dx - (cw / 2),
-                dy - (ch / 2)
+            struct term_anchor const center = {
+                .x = dx - (cw / 2),
+                .y = dy - (ch / 2)
             };
             
-            rotate_point_center(p, c, -state->radians, rotated);
+            rotate_point_center(point, center, -state->radians, &rotated);
         } else {
-            rotate_point(p, -state->radians, rotated);
+            rotate_point(point, -state->radians, &rotated);
         }
         
-        offset.x = rotated[0];
-        offset.y = rotated[1];
+        offset.x = rotated.x;
+        offset.y = rotated.y;
     }
     
     offset.x += state->origin.x;

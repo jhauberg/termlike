@@ -1,10 +1,9 @@
-#include <termlike/transform.h> // term_transform
+#include <termlike/transform.h> // term_transform, term_anchor
 
 #include "internal.h" // rotate_point
 
 #include <stdint.h> // int32_t
-
-#include <linmath/linmath.h> // vec2
+#include <math.h> // sinf, cosf
 
 struct term_transform const TERM_TRANSFORM_NONE = {
     .scale = {
@@ -65,22 +64,28 @@ transformed(float const scale,
 }
 
 void
-rotate_point(vec2 p, float const angle, vec2 dst)
+rotate_point(struct term_anchor const point, float const angle,
+             struct term_anchor * const result)
 {
-    vec2 center = { 0, 0 };
+    struct term_anchor const center = {
+        .x = 0,
+        .y = 0
+    };
     
-    rotate_point_center(p, center, angle, dst);
+    rotate_point_center(point, center, angle, result);
 }
 
 void
-rotate_point_center(vec2 p, vec2 c, float const angle, vec2 dst)
+rotate_point_center(struct term_anchor const point,
+                    struct term_anchor const center, float const angle,
+                    struct term_anchor * const result)
 {
     float const s = sinf(angle);
     float const t = cosf(angle);
-
-    float const x = p[0] - c[0];
-    float const y = p[1] - c[1];
     
-    dst[0] = ((x * t) - (y * s)) + c[0];
-    dst[1] = ((x * s) + (y * t)) + c[1];
+    float const x = point.x - center.x;
+    float const y = point.y - center.y;
+    
+    result->x = ((x * t) - (y * s)) + center.x;
+    result->y = ((x * s) + (y * t)) + center.y;
 }

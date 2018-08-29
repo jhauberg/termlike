@@ -69,7 +69,7 @@ buffer_copy(struct buffer * const buffer, char const * const text)
     
     buffer->text = text;
     
-    char content[length + BUFFER_PADDING];
+    char content[BUFFER_SIZE];
 
     // copy over entire string as-is
     memcpy(&content, text, length);

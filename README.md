@@ -54,6 +54,7 @@ main(void)
         }
         
         term_print("Hello", positioned(0, 0), colored(255, 255, 255));
+        
         term_run(TERM_FREQUENCY_DEFAULT);
     }
     
@@ -162,7 +163,7 @@ You can explicitly specify whether CMake build files should define the `DEBUG` s
 $ cmake -DCMAKE_BUILD_TYPE=Debug .
 ```
 
-*Note that this is not necessary for Visual Studio build files.*
+*Note that the build type will default to `Release` unless you specify otherwise. In release builds, some options may be omitted to produce smaller binaries.*
 
 ### Building the library
 

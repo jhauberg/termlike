@@ -1,6 +1,6 @@
 #pragma once
 
-#include <termlike/config.h> // term_size
+#include <termlike/config.h> // term_size :completeness
 
 struct term_layer;
 struct term_anchor;

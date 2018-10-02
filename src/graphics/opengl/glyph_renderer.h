@@ -1,7 +1,5 @@
 #pragma once
 
-#include <gl3w/GL/gl3w.h> // GLuint
-
 #include "renderable.h" // glyph_vertex :completeness
 
 #define GLYPH_VERTEX_COUNT (2 * 3) // 2 triangles per quad = 6 vertices

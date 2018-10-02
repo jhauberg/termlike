@@ -1,6 +1,5 @@
 #pragma once
 
-#include <termlike/layer.h> // term_layer
 #include <termlike/position.h> // term_location :completeness
 #include <termlike/color.h> // term_color :completeness
 #include <termlike/bounds.h> // term_bounds :completeness
@@ -8,6 +7,8 @@
 
 #include <stdint.h> // uint64_t
 #include <stddef.h> // size_t
+
+struct term_layer;
 
 struct command_buffer;
 

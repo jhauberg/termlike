@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gl3w/GL/gl3w.h> // GLuint
+#include <gl3w/GL/gl3w.h> // GLuint, GLenum, GLchar
 
 #include <stdint.h> // uint8_t, uint16_t
 

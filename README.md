@@ -26,10 +26,6 @@ Termlike is not a terminal, nor is it a [terminal emulator](https://en.wikipedia
 
 There is no concept of a grid of cells for glyphs to be put into, or a cursor from which you print. There's just a surface full of pixels. As such, there are no restrictions on where glyphs can be put on the display surface, as long as the position can be represented as a pixel coordinate.
 
-**Display sizes**
-
-There are only a few available display sizes (i.e. window dimensions). These select few were chosen as the best fits for the embedded font and are not customizable. Similarly, there is no support for resizable windows (though it does support fullscreen mode).
-
 ## Usage
 
 Termlike is intended to be used as a static library that you link into your program.

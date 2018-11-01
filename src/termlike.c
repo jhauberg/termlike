@@ -104,6 +104,9 @@ struct term_state_print {
 
 struct term_attributes {
     struct term_transform transform;
+    // todo: linespacing
+};
+
 struct term_cache {
     struct viewport viewport;
     struct graphics_font font;
@@ -231,10 +234,13 @@ term_open(struct term_settings const settings)
         term_close();
     }
     
-    struct window_size display;
+    struct window_size display = (struct window_size) {
+        .width = settings.size.width,
+        .height = settings.size.height
+    };
+    
     struct window_params params;
     
-    term_get_display_size(settings.size, &display);
     term_get_display_params(settings, display, &params);
     
     if (params.display.width == 0 ||

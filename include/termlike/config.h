@@ -1,11 +1,9 @@
 #pragma once
 
+#include <termlike/bounds.h> // term_dimens :completeness
+
 #include <stdint.h> // uint8_t
 #include <stdbool.h> // bool
-
-enum term_size {
-    TERM_SIZE_320
-};
 
 struct term_settings {
     /** Text shown in the title bar of the window. */
@@ -14,7 +12,7 @@ struct term_settings {
      *
      * Actual window size is determined by pixel-size and may be larger
      * than the intended resolution. */
-    enum term_size size;
+    struct term_dimens size;
     /** Size of a pixel.
      *
      * Default is 1. A higher pixel size results in a larger window. */

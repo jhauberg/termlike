@@ -40,7 +40,7 @@ draw(double const interp)
                        background_color);
         }
     }
-    
+  
     for (uint16_t column = 0; column < columns; column++) {
         for (uint16_t row = 0; row < rows; row++) {
             int32_t x = column * c.width;
@@ -56,10 +56,6 @@ draw(double const interp)
         }
     }
     
-    // note the 3 identical loops: we could achieve same output with only 1 loop
-    // however, since each print occur on a different layer, this way prevents
-    // interleaved print commands, resulting in better FPS, because there is
-    // less sorting to do per frame
     for (uint16_t column = 0; column < columns; column++) {
         for (uint16_t row = 0; row < rows; row++) {
             int32_t x = column * c.width;
@@ -69,14 +65,19 @@ draw(double const interp)
                                                          rand() % 255,
                                                          rand() % 255);
 
-            term_set_transform(rotated(rand() % 360,
-                                       TERM_ROTATE_CHARACTERS));
+            term_set_transform(rotated(rand() % 360, TERM_ROTATE_CHARACTERS));
 
             term_print("•",
                        positionedz(x, y, layered_above(foreground_layer)),
-                       transparent(foreground_color, (float)(rand() % 100) / 100.0f));
+                       transparent(foreground_color, rand() % 255));
         }
     }
+    
+    // note the 3 identical loops:
+    // we could actually achieve same output with only 1 loop, however,
+    // since each print occur on a different layer, this way prevents
+    // interleaved print commands, resulting in better FPS, because there is
+    // less sorting to do per frame
     
     term_set_transform(TERM_TRANSFORM_NONE);
 }

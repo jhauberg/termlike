@@ -534,6 +534,7 @@ term_invalidate(void)
                                 &viewport.framebuffer.height);
     
     graphics_invalidate(terminal.graphics, viewport);
+    graphics_get_viewport(terminal.graphics, &viewport);
     
     terminal.cache.viewport = viewport;
 }

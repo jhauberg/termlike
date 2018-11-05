@@ -84,4 +84,3 @@ viewport_get_mode(struct viewport const viewport,
     target->width = (int32_t)adjusted_width;
     target->height = (int32_t)adjusted_height;
 }
-

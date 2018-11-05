@@ -21,8 +21,8 @@ draw(double const interp)
 
     term_measure(pointer, &c);
     term_print(pointer, positionedz(cursor.location.x - (c.width / 2),
-                           cursor.location.y - (c.height / 2),
-                           layered(1)),
+                                    cursor.location.y - (c.height / 2),
+                                    layered(1)),
                TERM_COLOR_WHITE);
 }
 

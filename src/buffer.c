@@ -13,22 +13,19 @@
 #endif
 
 /**
- * The maximum length of a printed string.
+ * The maximum number of characters in a printed string.
  */
 #define MAX_TEXT_LENGTH (4096)
-
 /**
- * The number of bytes that the internal text buffer must be zero-padded with.
- 
- * This is required for UTF8 decoding.
+ * The size (in bytes) of a single UTF8 encoded character.
  */
-#define BUFFER_PADDING (sizeof(uint32_t))
+#define BUFFER_CHAR_SIZE (sizeof(uint32_t))
 /**
  * The size of the internal text buffer.
  *
  * This value must be at least 1 higher than the required amount of padding (4).
  */
-#define BUFFER_SIZE (MAX_TEXT_LENGTH * BUFFER_PADDING)
+#define BUFFER_SIZE (MAX_TEXT_LENGTH * BUFFER_CHAR_SIZE)
 
 struct buffer {
     uint32_t decoded[BUFFER_SIZE];
@@ -74,7 +71,7 @@ buffer_copy(struct buffer * const buffer, char const * const text)
     // copy over entire string as-is
     memcpy(&content, text, length);
     // pad the buffer so that there's enough room to decode each character
-    memset(&content[length], '\0', BUFFER_PADDING);
+    memset(&content[length], '\0', BUFFER_CHAR_SIZE);
     
     // clear any previously decoded content
     // (but only clearing as much as we need to, e.g. not the entire buffer,
@@ -83,7 +80,7 @@ buffer_copy(struct buffer * const buffer, char const * const text)
     // note that we approximate the length to clear by treating
     // each byte as 1 character; that isn't necesarilly correct,
     // but in any case it will be better than clearing too little
-    size_t const n = (length * BUFFER_PADDING) + BUFFER_PADDING;
+    size_t const n = (length * BUFFER_CHAR_SIZE) + BUFFER_CHAR_SIZE;
     
     memset(buffer->decoded, 0, n);
     

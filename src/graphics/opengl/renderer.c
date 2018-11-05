@@ -435,17 +435,11 @@ static
 void
 graphics_setup_screen_vbo(struct graphics_context * const context)
 {
-    uint16_t const uv_min = 0;
-    uint16_t const uv_max = UINT16_MAX;
-    
-    int16_t const pos_min = -INT16_MAX;
-    int16_t const pos_max = INT16_MAX;
-    
     static struct frame_vertex const vertices[4] = {
-        { .x = pos_min, .y = pos_min, .texture = { uv_min, uv_min } },
-        { .x = pos_min, .y = pos_max, .texture = { uv_min, uv_max } },
-        { .x = pos_max, .y = pos_min, .texture = { uv_max, uv_min } },
-        { .x = pos_max, .y = pos_max, .texture = { uv_max, uv_max } },
+        { .x = -INT16_MAX, .y = -INT16_MAX, .texture = { 0, 0 } },
+        { .x = -INT16_MAX, .y = INT16_MAX, .texture = { 0, UINT16_MAX } },
+        { .x = INT16_MAX, .y = -INT16_MAX, .texture = { UINT16_MAX, 0 } },
+        { .x = INT16_MAX, .y = INT16_MAX, .texture = { UINT16_MAX, UINT16_MAX } },
     };
     
     glGenBuffers(1, &context->screen.renderable.vbo);

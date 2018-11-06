@@ -1,4 +1,4 @@
-#include <termlike/bounds.h> // term_bounds
+#include <termlike/bounds.h> // term_bounds, term_align
 
 struct term_bounds const TERM_BOUNDS_NONE = {
     .align = TERM_ALIGN_LEFT,
@@ -9,36 +9,8 @@ struct term_bounds const TERM_BOUNDS_NONE = {
     }
 };
 
-struct term_dimens
-sized(int32_t const width, int32_t const height)
-{
-    return (struct term_dimens) {
-        .width = width,
-        .height = height
-    };
-}
-
-struct term_bounds
-bounded(int32_t width, int32_t height)
-{
-    return boxed(width, height, TERM_ALIGN_LEFT);
-}
-
-struct term_bounds
-aligned(enum term_align const alignment)
-{
-    return boxed(TERM_BOUNDS_UNBOUNDED, TERM_BOUNDS_UNBOUNDED, alignment);
-}
-
-struct term_bounds
-boxed(int32_t const width, int32_t const height, enum term_align const align)
-{
-    return (struct term_bounds) {
-        .align = align,
-        .wrap = TERM_WRAP_WORDS,
-        .size = {
-            .width = width,
-            .height = height
-        }
-    };
-}
+extern inline struct term_dimens sized(int32_t width, int32_t height);
+extern inline struct term_bounds boxed(int32_t width, int32_t height,
+                                       enum term_align);
+extern inline struct term_bounds bounded(int32_t width, int32_t height);
+extern inline struct term_bounds aligned(enum term_align);

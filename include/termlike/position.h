@@ -36,6 +36,3 @@ positioned(int32_t const x,
 {
     return positionedz(x, y, TERM_LAYER_DEFAULT);
 }
-
-struct term_position positioned_offset(struct term_position,
-                                       int32_t dx, int32_t dy);

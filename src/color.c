@@ -16,29 +16,10 @@ struct term_color const TERM_COLOR_BLACK = {
     .b = 0
 };
 
-struct term_color
-coloredh(int32_t const hex)
-{
-    return colored((hex & 0xFF0000) >> 16,
-                   (hex & 0xFF00) >> 8,
-                   (hex & 0xFF) >> 0);
-}
+extern inline struct term_color colored(uint8_t red,
+                                        uint8_t green,
+                                        uint8_t blue);
+extern inline struct term_color coloredh(int32_t hex);
 
-struct term_color
-colored(uint8_t const red, uint8_t const green, uint8_t const blue)
-{
-    return (struct term_color) {
-        .r = red,
-        .g = green,
-        .b = blue,
-        .a = 255
-    };
-}
-
-struct term_color
-transparent(struct term_color color, uint8_t const alpha)
-{
-    color.a = alpha;
-    
-    return color;
-}
+extern inline struct term_color transparent(struct term_color color,
+                                            uint8_t alpha);

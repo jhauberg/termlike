@@ -20,24 +20,24 @@ draw(double const interp)
     // case: different ways of achieving same transformation
     // expected: all boxes are aligned, same size and equally spaced
     term_set_transform(scaled(1));
-    term_print("██\n██", positioned_offset(position, 0,  0), TERM_COLOR_WHITE);
+    term_print("██\n██", position, TERM_COLOR_WHITE);
     term_set_transform(scaled(2));
-    term_print("█", positioned_offset(position, c.width * 3, 0), TERM_COLOR_WHITE);
+    term_print("█", positioned(position.location.x + c.width * 3, position.location.y), TERM_COLOR_WHITE);
     // note that the fill should be identical to scaled(2), as above
     //  e.g. that a single glyph is scaled to fit area
     term_set_transform(TERM_TRANSFORM_NONE);
-    term_fill(positioned_offset(position, c.width * 6, 0), sized(2 * c.width, 2 * c.height), TERM_COLOR_WHITE);
+    term_fill(positioned(position.location.x + c.width * 6, position.location.y), sized(2 * c.width, 2 * c.height), TERM_COLOR_WHITE);
     
     // case: boxes scaled and rotated
     // note how this one is rotated using default anchoring (center), to rotate in line with the following two
     // (this is because it is *not* a single glyph, and thus would default to rotate using first glyph as anchor)
     term_set_transform(transformed(1, a, TERM_ROTATE_STRING_ANCHORED));
-    term_print("██\n██", positioned_offset(position, 100,  0), TERM_COLOR_WHITE);
+    term_print("██\n██", positioned(position.location.x + 100,  position.location.y), TERM_COLOR_WHITE);
     // these automatically rotate around their center because they're represent only a single glyph
     term_set_transform(transformed(2, a, TERM_ROTATE_STRING));
-    term_print("█", positioned_offset(position, 100 + c.width * 3, 0), TERM_COLOR_WHITE);
+    term_print("█", positioned(position.location.x + 100 + c.width * 3, position.location.y), TERM_COLOR_WHITE);
     term_set_transform(rotated(a, TERM_ROTATE_STRING));
-    term_fill(positioned_offset(position, 100 + c.width * 6, 0), sized(2 * c.width, 2 * c.height), TERM_COLOR_WHITE);
+    term_fill(positioned(position.location.x + 100 + c.width * 6, position.location.y), sized(2 * c.width, 2 * c.height), TERM_COLOR_WHITE);
     
     // case: anchored fill
     struct term_transform t = rotated(a, TERM_ROTATE_STRING_ANCHORED);
@@ -46,7 +46,7 @@ draw(double const interp)
     t.rotate.anchor.y = 0;
     
     term_set_transform(t);
-    term_fill(positioned_offset(position, 100 + c.width * 9, 0), sized(2 * c.width, 2 * c.height), TERM_COLOR_WHITE);
+    term_fill(positioned(position.location.x + 100 + c.width * 9, position.location.y), sized(2 * c.width, 2 * c.height), TERM_COLOR_WHITE);
     
     term_set_transform(rotated(a, TERM_ROTATE_CHARACTERS));
     // case: individual glyph rotation
@@ -61,10 +61,10 @@ draw(double const interp)
     
     
     term_set_transform(TERM_TRANSFORM_NONE);
-    term_printstr("PRINT", positioned_offset(position, 0, -c.height * 2), TERM_COLOR_WHITE, TERM_BOUNDS_NONE);
-    term_printstr("FILL", positioned_offset(position, c.width * 6, -c.height * 2), TERM_COLOR_WHITE, TERM_BOUNDS_NONE);
-    term_print("█", positioned_offset(position, c.width * 2, 0), colored(0, 225, 0));
-    term_print("█", positioned_offset(position, c.width * 5, 0), colored(0, 225, 0));
+    term_printstr("PRINT", positioned(position.location.x, position.location.y - c.height * 2), TERM_COLOR_WHITE, TERM_BOUNDS_NONE);
+    term_printstr("FILL", positioned(position.location.x + c.width * 6, position.location.y - c.height * 2), TERM_COLOR_WHITE, TERM_BOUNDS_NONE);
+    term_print("█", positioned(position.location.x + c.width * 2, position.location.y), colored(0, 225, 0));
+    term_print("█", positioned(position.location.x + c.width * 5, position.location.y), colored(0, 225, 0));
     term_print("██████████████████████", position, transparent(colored(255, 0, 0), 255/4));
     term_print("──────────────────────", position, colored(225, 0, 0));
     

@@ -14,54 +14,18 @@ struct term_transform const TERM_TRANSFORM_NONE = {
         .angle = ANGLE(0),
         .rotation = TERM_ROTATE_STRING_ANCHORED,
         .anchor = {
-            .x = 0.5f,
-            .y = 0.5f
+            .x = 0.5f, // center
+            .y = 0.5f // center
         }
     }
 };
 
-struct term_transform
-rotated(int32_t const angle, enum term_rotate const rotation)
-{
-    struct term_transform transform = TERM_TRANSFORM_NONE;
-    
-    transform.rotate.angle = angle;
-    transform.rotate.rotation = rotation;
-    
-    return transform;
-}
-
-struct term_transform
-scaled(float const scale)
-{
-    struct term_transform transform = TERM_TRANSFORM_NONE;
-    
-    transform.scale.horizontal = scale;
-    transform.scale.vertical = scale;
-    
-    return transform;
-}
-
-struct term_transform
-transformed(float const scale,
-            int32_t const angle,
-            enum term_rotate const rotation)
-{
-    return (struct term_transform) {
-        .scale = {
-            .horizontal = scale,
-            .vertical = scale,
-        },
-        .rotate = {
-            .angle = angle,
-            .rotation = rotation,
-            .anchor = {
-                .x = 0.5f, // center
-                .y = 0.5f // center
-            }
-        }
-    };
-}
+extern inline struct term_transform rotated(int32_t angle,
+                                            enum term_rotate);
+extern inline struct term_transform scaled(float scale);
+extern inline struct term_transform transformed(float scale,
+                                                int32_t angle,
+                                                enum term_rotate);
 
 void
 rotate_point(struct term_anchor const point, float const angle,

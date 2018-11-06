@@ -96,6 +96,43 @@ struct term_transform {
 
 extern struct term_transform const TERM_TRANSFORM_NONE;
 
-struct term_transform rotated(int32_t angle, enum term_rotate);
-struct term_transform scaled(float scale);
-struct term_transform transformed(float scale, int32_t angle, enum term_rotate);
+inline
+struct term_transform
+rotated(int32_t const angle,
+        enum term_rotate const rotation)
+{
+    struct term_transform transform = TERM_TRANSFORM_NONE;
+    
+    transform.rotate.angle = angle;
+    transform.rotate.rotation = rotation;
+    
+    return transform;
+}
+
+inline
+struct term_transform
+scaled(float const scale)
+{
+    struct term_transform transform = TERM_TRANSFORM_NONE;
+    
+    transform.scale.horizontal = scale;
+    transform.scale.vertical = scale;
+    
+    return transform;
+}
+
+inline
+struct term_transform
+transformed(float const scale,
+            int32_t const angle,
+            enum term_rotate const rotation)
+{
+    struct term_transform transform = TERM_TRANSFORM_NONE;
+    
+    transform.scale.horizontal = scale;
+    transform.scale.vertical = scale;
+    transform.rotate.angle = angle;
+    transform.rotate.rotation = rotation;
+    
+    return transform;
+}

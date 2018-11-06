@@ -29,7 +29,7 @@ void command_release(struct command_buffer *);
 void command_push(struct command_buffer *, struct command);
 void command_flush(struct command_buffer *, command_callback *);
 
-void command_index_z(uint64_t index, float * z);
+void command_get_zindex(uint64_t index, float * z);
 
 uint64_t command_next_index_at(struct command_buffer const *,
                                struct term_layer);

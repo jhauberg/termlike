@@ -844,7 +844,7 @@ term_print_command(struct command const * const command)
     state.origin.x = command->origin.x;
     state.origin.y = command->origin.y;
     
-    command_index_z(command->index, &state.origin.z);
+    command_get_zindex(command->index, &state.origin.z);
     
     struct term_rotation const rotate = command->transform.rotate;
     

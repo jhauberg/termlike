@@ -86,7 +86,7 @@ command_push(struct command_buffer * const buffer,
 }
 
 void
-command_index_z(uint64_t const index, float * const z)
+command_get_zindex(uint64_t const index, float * const z)
 {
     struct command_index * const idx = (struct command_index *)&index;
     

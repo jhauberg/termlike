@@ -47,7 +47,7 @@ draw(double const interp)
     // measure size of the printed text
     struct term_dimens measured;
     
-    term_measurestr(message, &measured, bounds);
+    term_measurestr(message, bounds, &measured);
     
     // characters exceeding boundaries will be wrapped to the next line
     bounds.wrap = TERM_WRAP_CHARACTERS;

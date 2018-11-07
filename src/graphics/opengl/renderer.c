@@ -437,9 +437,9 @@ graphics_setup_screen_vbo(struct graphics_context * const context)
 {
     static struct frame_vertex const vertices[4] = {
         { .x = -INT16_MAX, .y = -INT16_MAX, .texture = { 0, 0 } },
-        { .x = -INT16_MAX, .y = INT16_MAX, .texture = { 0, UINT16_MAX } },
-        { .x = INT16_MAX, .y = -INT16_MAX, .texture = { UINT16_MAX, 0 } },
-        { .x = INT16_MAX, .y = INT16_MAX, .texture = { UINT16_MAX, UINT16_MAX } },
+        { .x = -INT16_MAX, .y =  INT16_MAX, .texture = { 0, UINT16_MAX } },
+        { .x =  INT16_MAX, .y = -INT16_MAX, .texture = { UINT16_MAX, 0 } },
+        { .x =  INT16_MAX, .y =  INT16_MAX, .texture = { UINT16_MAX, UINT16_MAX } },
     };
     
     glGenBuffers(1, &context->screen.renderable.vbo);

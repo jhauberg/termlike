@@ -246,7 +246,6 @@ glyphs_add(struct glyph_renderer * const renderer,
                 vertex.position.y + transform.origin.y + transform.offset.y,
                 vertex.position.z + transform.origin.z
             };
-
         }
 
         renderer->batch.vertices[vertex_offset + i] = vertex;

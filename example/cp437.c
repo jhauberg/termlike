@@ -81,7 +81,6 @@ utf8_encode(void *buf, uint32_t c)
     }
 }
 
-
 #define PAD 4
 #define SIZE (256 * PAD) // 256 glyphs, 4 bytes per glyph
 
@@ -116,7 +115,7 @@ draw(double const interp)
     
     struct term_dimens c;
     
-    term_measure("█", &c);
+    term_measure(TERM_SINGLE_GLYPH, &c);
     
     term_fill(positioned(0, 0),
               sized(16 * c.width, 16 * c.height),

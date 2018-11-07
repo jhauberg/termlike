@@ -12,7 +12,10 @@ defaults(char const * const title)
 {
     return (struct term_settings) {
         .title = title,
-        .size = (struct term_dimens) { .width = 320, .height = 240 },
+        .size = (struct term_dimens) {
+            .width = 320,
+            .height = 240
+        },
         .pixel_size = 1,
         .fullscreen = false,
         .vsync = true

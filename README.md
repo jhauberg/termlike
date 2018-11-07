@@ -12,19 +12,23 @@ Termlike is written in **C99** and requires **OpenGL 3.3** or later.
 
 ### Limitations
 
-Termlike specializes in *one* thing; getting character glyphs on the screen- fast.
+Termlike specializes in *one* thing; getting character glyphs on the screen- fast. This makes Termlike differ from typical roguelike engines in a few ways:
 
 **256 Glyphs**
 
 Termlike *only* supports the 256 glyphs defined by [Codepage 437](https://en.wikipedia.org/wiki/Code_page_437), and provides a built-in font that resembles the one found on the original [IBM PC](https://en.wikipedia.org/wiki/IBM_PC).
 
-There is no support for custom fonts or tiles, nor any plans to.
-
 **Not a terminal**
 
 Termlike is not a terminal, nor is it a [terminal emulator](https://en.wikipedia.org/wiki/Terminal_emulator).
 
-There is no concept of a grid of cells for glyphs to be put into, or a cursor from which you print. There's just a surface full of pixels. As such, there are no restrictions on where glyphs can be put on the display surface, as long as the position can be represented as a pixel coordinate.
+There is no concept of a grid of cells for glyphs to be put into, or a cursor from which you print. There's just a surface full of pixels. As such, there are no restrictions on where, or how many, glyphs can be put on the display surface.
+
+**Not event-based**
+
+Termlike does not idle or block between input events.
+
+It renders frames and glyphs continuously, making it less energy efficient, but more encouraging toward visually appealing animations.
 
 ## Usage
 
@@ -100,7 +104,7 @@ For example, there is no sleeping or idling between frames to throttle CPU usage
 
 Because Termlike does not operate on a grid of cells, it cannot take advantage of static elements that do not change from frame to frame (for example, the floor of a dungeon).
 
-Instead, Termlike will draw every frame from a blank slate, from the ground up, over and over. It has no concept of only drawing dirty or changed parts of the screen. This obviously comes at the cost of reduced performance when compared to traditional engines, but in return you get a lot of freedom.
+Instead, Termlike will draw every frame from a blank slate, from the ground up, over and over. It has no concept of only drawing dirty or changed parts of the screen. This obviously comes at the cost of reduced performance when compared to traditional roguelike engines, but in return you get a lot of freedom.
 
 *This is important to note, as both of these points may be dealbreakers for many roguelike developers.*
 
@@ -108,7 +112,7 @@ Because of this, Termlike is well-suited for games with a lot of action, movemen
 
 **OpenGL**
 
-Termlike uses OpenGL to perform all rendering. This has both upsides and downsides. It is great because it really is the only truly cross-platform graphics API available, but also not so great because the quality of driver implementation varies significantly from system to system (and is actually [deprecated on macOS](https://developer.apple.com/macos/whats-new/#deprecationofopenglandopencl)).
+Termlike uses OpenGL to perform all rendering. This has both upsides and downsides. It is great because it really is the only truly widespread cross-platform graphics API available, but also not so great because the quality of driver implementation varies significantly from system to system (and is actually [deprecated on macOS](https://developer.apple.com/macos/whats-new/#deprecationofopenglandopencl)).
 
 **Sprite batching**
 
@@ -122,15 +126,15 @@ Termlike will accumulate all these commands for every single frame and trigger t
 
 ## Building
 
-Termlike is a cross-platform library. However, it is also a project that i'm only working on in my sparetime, and mainly on a single platform; as such, this imposes some difficulties when it comes down to actually building the project.
+Termlike is a cross-platform library. However, it is also a project that i'm only working on in my sparetime, and mainly on a single platform. This imposes some difficulties when it comes down to making the project buildable for others.
 
 ### Enter CMake
 
-Since every platform has its own preferable development environments and compilers, it would not be an insignificant task to maintain a working project state for each supported platform by hand.
+Since every platform has its own preferable development environments and compilers, it would not be an insignificant task to maintain a working project for each supported platform by hand (Xcode, Visual Studio...).
 
 To reduce the effort required, Termlike uses [CMake](https://cmake.org).
 
-This nifty tool generates the kind of build files you'd expect on your preferred platform, be it macOS, Windows or Linux; it just needs to know which files should be compiled, as well as how they relate to each other (see [CMakeLists.txt](CMakeLists.txt))- it will figure out the rest automagically.
+This nifty tool generates the kind of build files you'd expect on your preferred platform, whether it be macOS, Windows or Linux. It just needs to know which files should be compiled, and how they relate to each other (see [CMakeLists.txt](CMakeLists.txt))- it will figure out the rest automagically.
 
 ### Cloning the repository
 
@@ -160,6 +164,10 @@ $ cmake -DCMAKE_BUILD_TYPE=Debug .
 ```
 
 *Note that the build type will default to `Release` unless you specify otherwise. In release builds, some options may be omitted to produce smaller binaries.*
+
+##### Profiling overlay
+
+Termlike can display a profiling overlay that shows performance metrics, but it has to be enabled using the `TERM_BUILD_PROFILER` option (found in the `CMakeLists.txt`). Set it to `ON` to enable it.
 
 ### Building the library
 

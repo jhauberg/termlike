@@ -100,7 +100,7 @@ void term_set_ticking(term_tick_callback *);
 void term_get_display(struct term_dimens *);
 
 /**
- * Execute a single frame (read input, process gameplay and rendering).
+ * Execute a single frame (read input, process gameplay and render).
  *
  * The frequency (hz) defines the rate at which gameplay ticks should be
  * occurring. It does not affect the rendering framerate.
@@ -109,38 +109,63 @@ void term_get_display(struct term_dimens *);
  * enabled). This is preferable for most displays.
  *
  * Should the framerate ever dip lower than the ticking frequency, several
- * ticks may be issued in rapid succession to keep up with the real time that
- * has passed since the last frame. This makes rendering and gameplay
+ * ticks may be issued in rapid succession to keep up with the time that has
+ * passed since the last frame was rendered. This makes rendering and gameplay
  * independent of each other, and is required to provide a similar gameplay
- * experience regardless of framerate (slower/faster machines).
+ * experience regardless of framerate (slower vs. faster machines).
  *
  * A higher frequency can provide a smoother and more responsive experience,
  * but at the cost of more CPU cycles.
  *
  * Choosing the *right* frequency is always dependent on the kind of game being
  * built. Additionally, gameplay code will be *fully* tied to the chosen
- * frequency, and will "feel" different should it ever change.
+ * frequency, and will feel different should you decide to change it later.
  */
 void term_run(uint16_t frequency);
 
+/**
+ * Set the glyph transformation.
+ */
 void term_set_transform(struct term_transform);
+/**
+ * Get the currently set glyph transformation.
+ */
 void term_get_transform(struct term_transform *);
 
+/**
+ * Print a set of characters.
+ */
 void term_print(char const * characters,
                 struct term_position,
                 struct term_color);
+/**
+ * Print a string.
+ *
+ * The string is automatically word-wrapped if a bounded area is provided.
+ */
 void term_printstr(char const * text,
                    struct term_position,
                    struct term_color,
                    struct term_bounds);
 
 /**
- * Count the number of printable characters in a string.
+ * Count the number of printable characters in a string or set of characters.
  */
 void term_count(char const * characters, size_t * amount);
-
+/**
+ * Measure the printed dimensions of a set of characters.
+ *
+ * The resulting dimensions are scaled according to the currently set glyph
+ * transformation.
+ */
 void term_measure(char const * characters,
                   struct term_dimens *);
+/**
+ * Measure the printed dimensions of a string.
+ *
+ * The resulting dimensions are scaled according to the currently set glyph
+ * transformation.
+ */
 void term_measurestr(char const * text,
                      struct term_bounds,
                      struct term_dimens *);
@@ -159,10 +184,15 @@ bool term_key_pressed(enum term_key);
 bool term_key_released(enum term_key);
 
 /**
- * Get the cursor state.
+ * Get the current cursor state.
  */
 void term_get_cursor(struct term_cursor_state *);
 
+/**
+ * Fill a rectangular area with a color.
+ *
+ * The final shape is affected by the currently set glyph transformation.
+ */
 void term_fill(struct term_position,
                struct term_dimens,
                struct term_color);

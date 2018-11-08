@@ -1,11 +1,10 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.6)
 
 project(Termlike 
 	LANGUAGES C
 )
 
 option(TERM_BUILD_PROFILER "Include the profiling overlay" OFF)
-
 option(TERM_BUILD_EXAMPLES "Build the Termlike sample programs" ON)
 
 # default builds to Release mode
@@ -13,19 +12,26 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-# find all library source files
-file(GLOB_RECURSE LIB_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.c")
-# find all dependency sources that needs to be built
-# (note that this also pulls in sources from the glfw submodule)
-file(GLOB_RECURSE DEP_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "external/*.c")
-
-# exclude all dependency sources added from the glfw submodule
-# (because they might include example sources and other not-needed sources)
-list(FILTER DEP_SOURCES EXCLUDE REGEX "/glfw/")
-
 add_library(Termlike STATIC
-    "${LIB_SOURCES}"
-    "${DEP_SOURCES}"
+    src/animate.c
+    src/bounds.c
+    src/buffer.c
+    src/color.c
+    src/command.c
+    src/config.c
+    src/cursor.c
+    src/layer.c
+    src/position.c
+    src/termlike.c
+    src/transform.c
+    src/platform/glfw/profiler.c
+    src/platform/glfw/timer.c
+    src/platform/glfw/window.c
+    src/graphics/loader.c
+    src/graphics/viewport.c
+    src/graphics/opengl/glyph_renderer.c
+    src/graphics/opengl/renderer.c
+    external/gl3w/gl3w.c
 )
 
 target_compile_options(Termlike PRIVATE "-Wall")

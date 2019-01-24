@@ -53,11 +53,6 @@ buffer_release(struct buffer * const buffer)
 void
 buffer_copy(struct buffer * const buffer, char const * const text)
 {
-    if (buffer->text == text) {
-        // skip copy/decode; buffer should already contain this text
-        return;
-    }
-    
     size_t const length = strlen(text);
     
 #ifdef DEBUG

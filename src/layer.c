@@ -2,8 +2,6 @@
 
 #include <stdint.h> // uint8_t, UINT8_MAX
 
-#include "internal.h" // layer_z
-
 #define LAYER_MIN_INDEX 0
 #define LAYER_MAX_INDEX UINT8_MAX
 
@@ -21,9 +19,6 @@ struct term_layer const TERM_LAYER_BOTTOM = {
 };
 
 #define LAYER_MAX_INDEX_PLUS_ONE (LAYER_MAX_INDEX + 1)
-
-static inline float layer_z_between(float value, float min, float max);
-static inline float layer_lerp(float a, float b, float t);
 
 extern inline struct term_layer layered(uint8_t index);
 extern inline struct term_layer layered_depth(uint8_t index, uint8_t depth);
@@ -54,40 +49,4 @@ layered_above(struct term_layer const layer)
     }
     
     return layer_above;
-}
-
-float
-layer_z(struct term_layer const layer)
-{
-    // to provide a depth range for the top-most layer (e.g. 255),
-    // we add an additional layer just above
-    float const z = layer_z_between(layer.index,
-                                    LAYER_MIN_INDEX,
-                                    LAYER_MAX_INDEX_PLUS_ONE);
-    
-    float const z_above = layer_z_between(layer.index + 1,
-                                          LAYER_MIN_INDEX,
-                                          LAYER_MAX_INDEX_PLUS_ONE);
-    
-    float const depth_z = layer_z_between(layer.depth,
-                                          LAYER_MIN_DEPTH,
-                                          LAYER_MAX_DEPTH);
-    
-    return layer_lerp(z, z_above, depth_z);
-}
-
-static
-inline
-float
-layer_lerp(float const a, float const b, float const t)
-{
-    return (1.0f - t) * a + t * b;
-}
-
-static
-inline
-float
-layer_z_between(float const value, float const min, float const max)
-{
-    return (value - min) / (max - min);
 }

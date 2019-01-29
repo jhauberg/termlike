@@ -372,17 +372,17 @@ term_printstr(char const * const text,
     struct term_transform transform;
     
     term_get_transform(&transform);
-    
-    uint64_t const index = command_next_index_at(terminal.queue,
-                                                 position.layer);
-    
+
+    uint32_t const index = command_next_layered_index(terminal.queue,
+                                                      position.layer);
+
     struct command cmd = (struct command) {
-        .origin = position.location,
-        .color = color,
-        .bounds = bounds,
-        .transform = transform,
         .index = index,
-        .text = text
+        .text = text,
+        .transform = transform,
+        .origin = position.location,
+        .bounds = bounds,
+        .color = color
     };
     
     command_push(terminal.queue, cmd);
@@ -843,9 +843,8 @@ term_print_command(struct command const * const command)
     
     state.origin.x = command->origin.x;
     state.origin.y = command->origin.y;
-    
-    command_get_zindex(command->index, &state.origin.z);
-    
+    state.origin.z = command_index_to_z(command->index);
+
     struct term_rotation const rotate = command->transform.rotate;
     
     state.rotation = rotate.rotation;

@@ -8,8 +8,6 @@ struct term_anchor;
 struct window_size;
 struct window_params;
 
-float layer_z(struct term_layer);
-
 void rotate_point(struct term_anchor point, float angle,
                   struct term_anchor *);
 void rotate_point_center(struct term_anchor point,

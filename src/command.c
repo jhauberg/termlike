@@ -1,11 +1,9 @@
 #include "command.h" // command, command_index, command_*
 
-#include "internal.h" // layer_z
-
 #include <termlike/layer.h> // term_layer
 
 #include <stdlib.h> // malloc, free, qsort
-#include <stdint.h> // uint32_t
+#include <stdint.h> // uint16_t, uint32_t, UINT8_MAX, UINT16_MAX
 #include <stddef.h> // size_t, NULL
 
 #ifdef DEBUG
@@ -21,29 +19,31 @@ struct command_index {
     // going from top to bottom, top is least significant and bottom is most
     // this effectively means Z-value is more important than call order
     // but two indices with identical Z-value will fall back to call order
-    uint32_t order;
-    float z;
+    uint16_t order;
+    uint16_t depth;
 };
 
 struct command_buffer {
     struct command * commands;
-    uint32_t count;
-    uint32_t capacity;
+    uint16_t capacity;
+    uint16_t count;
 };
 
+static struct command_index command_int_to_index(uint32_t index);
+static uint32_t command_index_to_int(struct command_index);
 static int32_t command_compare(void const *, void const *);
 
 struct command_buffer *
 command_init(void)
 {
 #ifdef DEBUG
-    assert(sizeof(struct command_index) == sizeof(uint64_t));
+    assert(sizeof(struct command_index) == sizeof(uint32_t));
 #endif
     
     struct command_buffer * const buf = malloc(sizeof(struct command_buffer));
     
     buf->count = 0;
-    buf->capacity = 256;
+    buf->capacity = UINT8_MAX + 1;
 
     buf->commands = malloc(sizeof(struct command) * buf->capacity);
     
@@ -57,21 +57,30 @@ command_release(struct command_buffer * const buffer)
     free(buffer);
 }
 
+#ifdef TERM_INCLUDE_PROFILER
+void
+command_memuse(struct command_buffer const * const buffer, size_t * const size)
+{
+    *size = sizeof(struct command) * buffer->capacity;
+}
+#endif
+
 void
 command_push(struct command_buffer * const buffer,
              struct command const command)
 {
-#ifdef DEBUG
-    assert(buffer->count <= buffer->capacity);
-#endif
-    
     if (buffer->capacity == buffer->count) {
-        buffer->capacity = buffer->capacity * 2;
+        uint32_t expanded_capacity = buffer->capacity * 2;
 
-        if (buffer->capacity >= UINT16_MAX) {
-            buffer->capacity = UINT16_MAX;
+        if (expanded_capacity > UINT16_MAX) {
+            expanded_capacity = UINT16_MAX;
         }
-        
+
+#ifdef DEBUG
+        assert(expanded_capacity > buffer->count);
+#endif
+
+        buffer->capacity = (uint16_t)expanded_capacity;
         buffer->commands = realloc(buffer->commands,
                                    sizeof(struct command) * buffer->capacity);
     }
@@ -83,14 +92,6 @@ command_push(struct command_buffer * const buffer,
 #endif
     
     buffer->count += 1;
-}
-
-void
-command_get_zindex(uint64_t const index, float * const z)
-{
-    struct command_index * const idx = (struct command_index *)&index;
-    
-    *z = idx->z;
 }
 
 void
@@ -113,25 +114,41 @@ command_flush(struct command_buffer * const buffer,
     buffer->count = 0;
 }
 
-uint64_t
-command_next_index_at(struct command_buffer const * const buffer,
-                      struct term_layer const layer)
+uint32_t
+command_next_layered_index(struct command_buffer const * const buffer,
+                           struct term_layer const layer)
 {
-    struct command_index const index = (struct command_index) {
+    return command_index_to_int((struct command_index) {
         .order = buffer->count,
-        .z = layer_z(layer)
-    };
-    
-    return *((uint64_t *)&index);
+        .depth = (layer.index * UINT8_MAX) + layer.depth
+    });
 }
 
-#ifdef TERM_INCLUDE_PROFILER
-void
-command_memuse(struct command_buffer const * const buffer, size_t * const size)
+float
+command_index_to_z(uint32_t const index)
 {
-    *size = sizeof(struct command) * buffer->capacity;
+    struct command_index const cmd_index = command_int_to_index(index);
+
+    return (float)cmd_index.depth / UINT16_MAX;
 }
-#endif
+
+static
+struct command_index
+command_int_to_index(uint32_t const index)
+{
+    struct command_index * const index_ptr = (struct command_index *)&index;
+
+    return *index_ptr;
+}
+
+static
+uint32_t
+command_index_to_int(struct command_index const index)
+{
+    uint32_t * const index_ptr = (uint32_t *)&index;
+
+    return *index_ptr;
+}
 
 static
 int32_t

@@ -26,8 +26,7 @@ draw(double const interp)
     "This example program shows you how to print regular text (like this).\n\n"
     "Long texts are wrapped when reaching boundaries (if any), either by "
     "words or individual characters.\n\n"
-    "Any text that exceeds the internal buffer will be cut short.\n\n"
-    "Like thiiis right here!";
+    "Any text that exceeds the internal buffer will be cut short.";
     
     // define boundaries so the text will wrap inside the display
     int32_t pad_x = c.width / 2;

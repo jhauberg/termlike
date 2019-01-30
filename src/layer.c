@@ -18,8 +18,6 @@ struct term_layer const TERM_LAYER_BOTTOM = {
     .index = LAYER_MIN_INDEX
 };
 
-#define LAYER_MAX_INDEX_PLUS_ONE (LAYER_MAX_INDEX + 1)
-
 extern inline struct term_layer layered(uint8_t index);
 extern inline struct term_layer layered_depth(uint8_t index, uint8_t depth);
 

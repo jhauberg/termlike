@@ -35,6 +35,7 @@ struct glyph_uv {
     struct texture min;
     struct texture max;
 };
+
 struct graphics_shared {
     struct glyph_uv glyph_uvs[256];
     struct glyph_vertex glyph_vertices[GLYPH_VERTEX_COUNT];

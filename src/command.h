@@ -5,7 +5,7 @@
 #include <termlike/bounds.h> // term_bounds :completeness
 #include <termlike/transform.h> // term_transform :completeness
 
-#include <stdint.h> // uint64_t
+#include <stdint.h> // uint32_t
 #include <stddef.h> // size_t
 
 struct term_layer;

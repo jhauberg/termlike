@@ -3,14 +3,14 @@
 #include <stdint.h> // uint8_t, int32_t
 
 struct term_color const TERM_COLOR_WHITE = {
-    .a = 255,
+    .a = TERM_COLOR_OPAQUE,
     .r = 255,
     .g = 255,
     .b = 255
 };
 
 struct term_color const TERM_COLOR_BLACK = {
-    .a = 255,
+    .a = TERM_COLOR_OPAQUE,
     .r = 0,
     .g = 0,
     .b = 0

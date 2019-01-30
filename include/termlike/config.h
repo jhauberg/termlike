@@ -5,6 +5,9 @@
 #include <stdint.h> // uint8_t
 #include <stdbool.h> // bool
 
+/**
+ * Represents settings for a terminal window.
+ */
 struct term_settings {
     /** Text shown in the title bar of the window. */
     char const * title;
@@ -23,4 +26,7 @@ struct term_settings {
     bool vsync;
 };
 
+/**
+ * Return the default terminal window settings.
+ */
 struct term_settings defaults(char const * title);

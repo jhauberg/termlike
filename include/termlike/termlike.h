@@ -134,6 +134,8 @@ void term_get_transform(struct term_transform *);
 
 /**
  * Print a set of characters.
+ *
+ * Functionally identical to calling `term_printstr` without a bounded area.
  */
 void term_print(char const * characters,
                 struct term_position,
@@ -141,7 +143,35 @@ void term_print(char const * characters,
 /**
  * Print a string.
  *
- * The string is automatically word-wrapped if a bounded area is provided.
+ * Though the string is eventually copied to an internal buffer, it does not
+ * happen immediately; nor is it drawn immediately.
+ *
+ * Instead, a print *command* is queued up.
+ * The program will continue queuing up commands until reaching the end of a
+ * frame, at which point all commands will be sorted appropriately.
+ * This ensures that every single glyph is rendered where it is supposed to.
+ *
+ * Because of this system, the caller is responsible for ensuring the validity
+ * of the pointed-to string until the drawing actually happens; that is, the
+ * string must remain valid throughout the timespan between issuing a print,
+ * and all up to the point at which `term_run` has ended.
+ *
+ * A typical problem with this can be illustrated by the following example,
+ * where a temporary string buffer goes out of scope (thus becoming invalid),
+ * before a frame has been rendered:
+ *
+ *     void func(char const * const name) {
+ *         char buf[32];
+ *         sprintf(buf, "Hello, %s", name);
+ *         term_print(buf, positioned(0, 0), TERM_COLOR_WHITE);
+ *     }
+ *
+ * The above issue could be trivially fixed by making the temporary buffer
+ * static, but that is not always the preferable solution; e.g.:
+ *
+ *     ...
+ *         static char buf[32];
+ *     ...
  */
 void term_printstr(char const * text,
                    struct term_position,
@@ -153,7 +183,7 @@ void term_printstr(char const * text,
  */
 void term_count(char const * characters, size_t * amount);
 /**
- * Measure the printed dimensions of a set of characters.
+ * Measure the printed dimensions (in pixels) of a set of characters.
  *
  * The resulting dimensions are scaled according to the currently set glyph
  * transformation.
@@ -161,7 +191,7 @@ void term_count(char const * characters, size_t * amount);
 void term_measure(char const * characters,
                   struct term_dimens *);
 /**
- * Measure the printed dimensions of a string.
+ * Measure the printed dimensions (in pixels) of a string.
  *
  * The resulting dimensions are scaled according to the currently set glyph
  * transformation.

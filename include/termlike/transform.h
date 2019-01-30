@@ -2,7 +2,13 @@
 
 #include <stdint.h> // int32_t
 
+/**
+ * A scale.
+ */
 #define SCALE(x) (x)
+/**
+ * An angle.
+ */
 #define ANGLE(x) (x)
 
 enum term_rotate {
@@ -20,6 +26,9 @@ enum term_rotate {
     TERM_ROTATE_CHARACTERS
 };
 
+/**
+ * Represents a scale in two dimensions.
+ */
 struct term_scale {
     /**
      * The amount to scale by horizontally (1 is no scaling).
@@ -31,6 +40,9 @@ struct term_scale {
     float vertical;
 };
 
+/**
+ * Represents a relative anchor point.
+ */
 struct term_anchor {
     float x;
     float y;
@@ -51,7 +63,7 @@ struct term_rotation {
      *      │        │       │
      *    (0,1)───(.5,1)───(1,1)
      *
-     * Points can range anywhere between, or even beyond, the listed values.
+     * Points can range anywhere between (or beyond) the listed values.
      */
     struct term_anchor anchor;
     /**
@@ -64,6 +76,9 @@ struct term_rotation {
     int32_t angle;
 };
 
+/**
+ * Represents a glyph transformation.
+ */
 struct term_transform {
     /**
      * The scaling transformation.
@@ -94,6 +109,9 @@ struct term_transform {
     struct term_rotation rotate;
 };
 
+/**
+ * No glyph transformation.
+ */
 extern struct term_transform const TERM_TRANSFORM_NONE;
 
 inline

@@ -354,6 +354,9 @@ term_print(char const * const characters,
            struct term_position const position,
            struct term_color const color)
 {
+#ifdef DEBUG
+    assert(characters != NULL);
+#endif
     term_printstr(characters, position, color, TERM_BOUNDS_NONE);
 }
 
@@ -363,10 +366,9 @@ term_printstr(char const * const text,
               struct term_color const color,
               struct term_bounds const bounds)
 {
-    if (text == NULL) {
-        return;
-    }
-    
+#ifdef DEBUG
+    assert(text != NULL);
+#endif
     struct term_transform transform;
     
     term_get_transform(&transform);
@@ -389,11 +391,10 @@ term_printstr(char const * const text,
 void
 term_count(char const * const text, size_t * const length)
 {
+#ifdef DEBUG
+    assert(text != NULL);
+#endif
     *length = 0;
-    
-    if (text == NULL) {
-        return;
-    }
     
     // initialize a state for counting number of printable characters
     struct term_state_count state;
@@ -410,6 +411,9 @@ void
 term_measure(char const * const characters,
              struct term_dimens * const dimensions)
 {
+#ifdef DEBUG
+    assert(characters != NULL);
+#endif
     term_measurestr(characters, TERM_BOUNDS_NONE, dimensions);
 }
 
@@ -418,12 +422,11 @@ term_measurestr(char const * const text,
                 struct term_bounds const bounds,
                 struct term_dimens * const dimensions)
 {
+#ifdef DEBUG
+    assert(text != NULL);
+#endif
     dimensions->width = 0;
     dimensions->height = 0;
-    
-    if (text == NULL) {
-        return;
-    }
     
     struct term_transform transform;
     

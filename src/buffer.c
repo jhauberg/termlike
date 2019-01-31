@@ -53,12 +53,13 @@ buffer_release(struct buffer * const buffer)
 void
 buffer_copy(struct buffer * const buffer, char const * const text)
 {
+#ifdef DEBUG
+    assert(text != NULL);
+#endif
     size_t const length = strlen(text);
-    
 #ifdef DEBUG
     assert(length <= MAX_TEXT_LENGTH);
 #endif
-    
     buffer->text = text;
     
     char content[BUFFER_SIZE];
@@ -165,7 +166,6 @@ buffer_decode(struct buffer * const buffer, char * const text)
     while (*next) {
         // decode and advance the text pointer
         next = utf8_decode(next, &buffer->decoded[i], &error);
-        
 #ifdef DEBUG
         assert(error == 0);
 #endif

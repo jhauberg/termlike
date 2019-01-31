@@ -107,11 +107,6 @@ struct term_attributes {
     // todo: linespacing
 };
 
-struct term_cache {
-    struct viewport viewport;
-    struct graphics_font font;
-};
-
 /**
  * Represents a Termlike display.
  */
@@ -127,7 +122,6 @@ struct term_context {
     struct term_key_state keys;
     struct term_key_state previous_keys;
     struct term_cursor_state cursor;
-    struct term_cache cache;
     bool is_open;
 #ifdef TERM_INCLUDE_PROFILER
     bool is_profiling;
@@ -309,8 +303,12 @@ term_set_ticking(term_tick_callback * const tick_func)
 void
 term_get_display(struct term_dimens * const dimensions)
 {
-    dimensions->width = terminal.cache.viewport.resolution.width;
-    dimensions->height = terminal.cache.viewport.resolution.height;
+    struct viewport viewport;
+
+    graphics_get_viewport(terminal.graphics, &viewport);
+
+    dimensions->width = viewport.resolution.width;
+    dimensions->height = viewport.resolution.height;
 }
 
 void
@@ -467,10 +465,13 @@ term_get_cursor(struct term_cursor_state * const cursor)
     cursor->location = terminal.cursor.location;
     cursor->scroll = terminal.cursor.scroll;
     
+    struct viewport viewport;
+
+    graphics_get_viewport(terminal.graphics, &viewport);
+
     // the viewport is needed to transform cursor location from screen-space
     // coordinates to world-space coordinates
-    window_translate_cursor(terminal.window, cursor,
-                            terminal.cache.viewport);
+    window_translate_cursor(terminal.window, cursor, viewport);
 }
 
 static
@@ -512,7 +513,6 @@ term_setup(struct window_size const display)
     load_image_data(IBM8x8_FONT, IBM8x8_SIZE, term_load_font);
     
     term_set_transform(TERM_TRANSFORM_NONE);
-    
 #ifdef TERM_INCLUDE_PROFILER
     terminal.is_profiling = false;
     
@@ -534,9 +534,6 @@ term_invalidate(void)
                                 &viewport.framebuffer.height);
     
     graphics_invalidate(terminal.graphics, viewport);
-    graphics_get_viewport(terminal.graphics, &viewport);
-    
-    terminal.cache.viewport = viewport;
 }
 
 static
@@ -637,7 +634,11 @@ term_copy_str(char const * const text,
     
     if (bounds.size.width != TERM_BOUNDS_UNBOUNDED &&
         bounds.wrap == TERM_WRAP_WORDS) {
-        float const cw = (float)terminal.cache.font.size * scale.horizontal;
+        struct graphics_font font;
+
+        graphics_get_font(terminal.graphics, &font);
+
+        float const cw = (float)font.size * scale.horizontal;
         
         // determine max number of characters per line
         size_t const limit = (size_t)floorf((float)bounds.size.width / cw);
@@ -655,8 +656,10 @@ term_measure_buffer(struct term_bounds const bounds,
     // initialize a state for measuring the smallest bounding box that
     // contains all lines of the text, and is within specified bounds
     struct term_state_measure measure;
-    
-    struct graphics_font const font = terminal.cache.font;
+
+    struct graphics_font font;
+
+    graphics_get_font(terminal.graphics, &font);
     
     cursor_start(&measure.cursor,
                  bounds,
@@ -831,8 +834,10 @@ term_print_command(struct command const * const command)
     // of the string of characters; each character is drawn at an offset
     // from these initial values
     struct term_state_print state;
- 
-    struct graphics_font const font = terminal.cache.font;
+
+    struct graphics_font font;
+
+    graphics_get_font(terminal.graphics, &font);
     
     cursor_start(&state.cursor, command->bounds,
                  (float)font.size * command->transform.scale.horizontal,
@@ -864,8 +869,12 @@ term_print_command(struct command const * const command)
         .b = command->color.b,
         .a = command->color.a
     };
-    
-    state.display = terminal.cache.viewport.resolution;
+
+    struct viewport viewport;
+
+    graphics_get_viewport(terminal.graphics, &viewport);
+
+    state.display = viewport.resolution;
 
     buffer_foreach(terminal.buffer, term_print_character, &state);
 }
@@ -881,8 +890,6 @@ term_load_font(struct graphics_image const image)
     font.size = IBM8x8_CELL_SIZE;
     
     graphics_set_font(terminal.graphics, image, font);
-    
-    terminal.cache.font = font;
 }
 
 void
@@ -890,8 +897,10 @@ term_fill(struct term_position const position,
           struct term_dimens const size,
           struct term_color const color)
 {
-    struct graphics_font const font = terminal.cache.font;
-    
+    struct graphics_font font;
+
+    graphics_get_font(terminal.graphics, &font);
+
     float const h = (float)size.width / (float)font.size;
     float const v = (float)size.height / (float)font.size;
     

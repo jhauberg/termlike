@@ -179,6 +179,15 @@ void term_printstr(char const * text,
                    struct term_bounds);
 
 /**
+ * Fill a rectangular area with a color.
+ *
+ * The final shape is affected by the currently set glyph transformation.
+ */
+void term_fill(struct term_position,
+               struct term_dimens,
+               struct term_color);
+
+/**
  * Count the number of printable characters in a string or set of characters.
  */
 void term_count(char const * characters, size_t * amount);
@@ -217,12 +226,3 @@ bool term_key_released(enum term_key);
  * Get the current cursor state.
  */
 void term_get_cursor(struct term_cursor_state *);
-
-/**
- * Fill a rectangular area with a color.
- *
- * The final shape is affected by the currently set glyph transformation.
- */
-void term_fill(struct term_position,
-               struct term_dimens,
-               struct term_color);

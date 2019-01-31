@@ -389,6 +389,34 @@ term_printstr(char const * const text,
 }
 
 void
+term_fill(struct term_position const position,
+          struct term_dimens const size,
+          struct term_color const color)
+{
+    struct graphics_font font;
+
+    graphics_get_font(terminal.graphics, &font);
+
+    float const h = (float)size.width / (float)font.size;
+    float const v = (float)size.height / (float)font.size;
+
+    struct term_transform transform;
+
+    term_get_transform(&transform);
+
+    struct term_transform const previous_transform = transform;
+
+    transform.scale.horizontal = h * transform.scale.horizontal;
+    transform.scale.vertical = v * transform.scale.vertical;
+
+    term_set_transform(transform);
+
+    term_print("█", position, color);
+
+    term_set_transform(previous_transform);
+}
+
+void
 term_count(char const * const text, size_t * const length)
 {
 #ifdef DEBUG
@@ -893,32 +921,4 @@ term_load_font(struct graphics_image const image)
     font.size = IBM8x8_CELL_SIZE;
     
     graphics_set_font(terminal.graphics, image, font);
-}
-
-void
-term_fill(struct term_position const position,
-          struct term_dimens const size,
-          struct term_color const color)
-{
-    struct graphics_font font;
-
-    graphics_get_font(terminal.graphics, &font);
-
-    float const h = (float)size.width / (float)font.size;
-    float const v = (float)size.height / (float)font.size;
-    
-    struct term_transform transform;
-    
-    term_get_transform(&transform);
-    
-    struct term_transform const previous_transform = transform;
-    
-    transform.scale.horizontal = h * transform.scale.horizontal;
-    transform.scale.vertical = v * transform.scale.vertical;
-    
-    term_set_transform(transform);
-    
-    term_print("█", position, color);
-    
-    term_set_transform(previous_transform);
 }

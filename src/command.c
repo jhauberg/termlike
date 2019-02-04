@@ -31,8 +31,8 @@ struct command_buffer {
     uint16_t count;
 };
 
-static struct command_index command_int_to_index(uint32_t index);
-static uint32_t command_index_to_int(struct command_index);
+static inline struct command_index command_int_to_index(uint32_t index);
+static inline uint32_t command_index_to_int(struct command_index);
 static int32_t command_compare(void const *, void const *);
 
 struct command_buffer *
@@ -134,7 +134,7 @@ command_index_to_z(uint32_t const index)
     return (float)cmd_index.depth / UINT16_MAX;
 }
 
-static
+static inline
 struct command_index
 command_int_to_index(uint32_t const index)
 {
@@ -143,7 +143,7 @@ command_int_to_index(uint32_t const index)
     return *index_ptr;
 }
 
-static
+static inline
 uint32_t
 command_index_to_int(struct command_index const index)
 {

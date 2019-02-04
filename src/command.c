@@ -14,6 +14,8 @@
  #include <string.h> // memcpy
 #endif
 
+#define MAX_CAPACITY UINT16_MAX
+
 struct command_index {
     // note that the order of fields is important
     // going from top to bottom, top is least significant and bottom is most
@@ -72,8 +74,8 @@ command_push(struct command_buffer * const buffer,
     if (buffer->capacity == buffer->count) {
         uint32_t expanded_capacity = buffer->capacity * 2;
 
-        if (expanded_capacity > UINT16_MAX) {
-            expanded_capacity = UINT16_MAX;
+        if (expanded_capacity > MAX_CAPACITY) {
+            expanded_capacity = MAX_CAPACITY;
         }
 
 #ifdef DEBUG

@@ -92,11 +92,13 @@ buffer_wrap(struct buffer * const buffer, size_t const limit)
     uint32_t * next = buffer->decoded;
     
     while (*next) {
+        character = *next;
+        
         uint32_t * previous = next;
+
+        // pointer arithmetic; automatically scales by sizeof uint32_t
+        next++;
         
-        character = *next++;
-        
-        // we successfully read one character from the buffer
         num_characters += 1;
         
         if (character == '\n') {
@@ -127,11 +129,8 @@ buffer_wrap(struct buffer * const buffer, size_t const limit)
                 
                 break;
             }
-            
-            // note that we're decrementing by a single byte at a time,
-            // and *not* by 1 character (because each character may be up to
-            // 4 bytes long); in this case, it doesn't matter, because we're
-            // looking for a specific single-byte character: the whitespace
+
+            // pointer arithmetic; automatically scales by sizeof uint32_t
             previous--;
         }
     }
@@ -148,7 +147,7 @@ buffer_foreach(struct buffer const * const buffer,
     while (glyph != 0) {
         callback(glyph, state);
         
-        i++;
+        i += 1;
         
         glyph = buffer->decoded[i];
     }
@@ -169,7 +168,6 @@ buffer_decode(struct buffer * const buffer, char * const text)
 #ifdef DEBUG
         assert(error == 0);
 #endif
-        
-        i++;
+        i += 1;
     }
 }

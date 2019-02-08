@@ -35,5 +35,5 @@ uint32_t command_next_layered_index(struct command_buffer const *,
                                     struct term_layer);
 
 #ifdef TERM_INCLUDE_PROFILER
-void command_memuse(struct command_buffer const *, size_t * memory);
+void command_get_capacity(struct command_buffer const *, size_t * used, size_t * cap);
 #endif

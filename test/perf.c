@@ -25,7 +25,7 @@ draw(double const interp)
     
     struct term_layer const background_layer = layered(0);
     struct term_layer const foreground_layer = layered_above(background_layer);
-    
+
     for (uint16_t column = 0; column < columns; column++) {
         for (uint16_t row = 0; row < rows; row++) {
             int32_t x = column * c.width;
@@ -40,7 +40,7 @@ draw(double const interp)
                        background_color);
         }
     }
-  
+
     for (uint16_t column = 0; column < columns; column++) {
         for (uint16_t row = 0; row < rows; row++) {
             int32_t x = column * c.width;
@@ -72,7 +72,7 @@ draw(double const interp)
                        transparent(foreground_color, rand() % 255));
         }
     }
-    
+
     // note the 3 identical loops:
     // we could actually achieve same output with only 1 loop, however,
     // since each print occur on a different layer, this way prevents
@@ -86,7 +86,7 @@ int32_t
 main(void)
 {
     struct term_settings settings = defaults("Termlike: Performance test");
-    
+
     settings.vsync = false;
     settings.pixel_size = 1;
     

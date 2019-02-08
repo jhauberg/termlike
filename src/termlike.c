@@ -104,7 +104,9 @@ struct term_state_print {
 
 struct term_attributes {
     struct term_transform transform;
-    // todo: linespacing
+    // todo: linespacing; maybe just a term_dimens for glyph padding
+    //       essentially same as linespacing, but also adds horizonta padding
+    // todo: note that this would have to be captured per command, just like transform
 };
 
 /**
@@ -323,15 +325,6 @@ term_run(uint16_t const frequency)
     term_draw(interpolate);
 #ifdef TERM_INCLUDE_PROFILER
     profiler_end();
-    
-    size_t bytes;
-    
-    // fetch size of command buffer as an indication of how much memory
-    // is being used to accomodate all print commands for a program
-    command_memuse(terminal.queue, &bytes);
-    
-    // sum up stats from this frame
-    profiler_sum(profiler_stats(), bytes);
 #endif
     
     window_present(terminal.window);
@@ -626,6 +619,9 @@ static
 void
 term_draw(double const interpolate)
 {
+#ifdef TERM_INCLUDE_PROFILER
+    float command_load = 0;
+#endif
     graphics_begin(terminal.graphics); {
         if (terminal.draw_func) {
             terminal.draw_func(interpolate);
@@ -633,11 +629,25 @@ term_draw(double const interpolate)
 #ifdef TERM_INCLUDE_PROFILER
         if (terminal.is_profiling) {
             profiler_draw();
+
+            size_t used, capacity;
+
+            // fetch size of command buffer as an indication of how much memory
+            // is being used to accomodate all print commands for a program
+            command_get_capacity(terminal.queue, &used, &capacity);
+            command_load = (float)used / capacity;
         }
 #endif
         command_flush(terminal.queue, term_print_command);
     }
     graphics_end(terminal.graphics);
+
+#ifdef TERM_INCLUDE_PROFILER
+    if (terminal.is_profiling) {
+        // sum up stats from this frame
+        profiler_sum(profiler_stats(), command_load);
+    }
+#endif
 }
 
 static

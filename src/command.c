@@ -61,9 +61,12 @@ command_release(struct command_buffer * const buffer)
 
 #ifdef TERM_INCLUDE_PROFILER
 void
-command_memuse(struct command_buffer const * const buffer, size_t * const size)
+command_get_capacity(struct command_buffer const * const buffer,
+                     size_t * const used,
+                     size_t * const cap)
 {
-    *size = sizeof(struct command) * buffer->capacity;
+    *used = sizeof(struct command) * buffer->count;
+    *cap = sizeof(struct command) * MAX_CAPACITY;
 }
 #endif
 
@@ -106,7 +109,7 @@ command_flush(struct command_buffer * const buffer,
               sizeof(struct command),
               command_compare);
 
-        for (uint32_t i = 0; i < buffer->count; i++) {
+        for (uint16_t i = 0; i < buffer->count; i++) {
             struct command * const command = &buffer->commands[i];
             
             callback(command);

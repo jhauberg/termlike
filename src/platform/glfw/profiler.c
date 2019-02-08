@@ -3,10 +3,7 @@
 #include <termlike/termlike.h> // term_*, TERM_*
 
 #include <stdint.h> // uint16_t, int32_t, UINT16_MAX
-#include <stddef.h> // size_t
 #include <stdio.h> // sprintf
-
-#include <math.h> // ceil
 
 #if defined(__clang__)
  #pragma clang diagnostic push
@@ -32,7 +29,7 @@ static uint16_t frames_per_second = 0;
 
 static double frame_time = 0;
 
-static char summed[64];
+static char stats_string[32];
 
 static struct profiler_stats current;
 
@@ -103,7 +100,7 @@ profiler_draw(void)
     struct term_dimens c;
 
     term_measure(TERM_SINGLE_GLYPH, &c);
-    
+
     int32_t const y = display.height - c.height;
     int32_t const pad = 1;
 
@@ -111,27 +108,36 @@ profiler_draw(void)
               sized(display.width, c.height + pad),
               colored(255, 255, 225));
 
-    term_printstr("` to disable",
-                  positionedz(0, y, TERM_LAYER_TOP),
-                  colored(55, 55, 55),
-                  aligned(TERM_ALIGN_LEFT));
+    struct term_color const text_color = colored(55, 55, 55);
+    struct term_layer const text_layer = TERM_LAYER_TOP;
 
-    term_printstr(summed,
-                  positionedz(display.width, y, TERM_LAYER_TOP),
-                  colored(55, 55, 55),
+    term_printstr(stats_string,
+                  positionedz(display.width - pad, y, text_layer),
+                  text_color,
                   aligned(TERM_ALIGN_RIGHT));
+
+    term_printstr("` to disable",
+                  positionedz(0, y, text_layer),
+                  text_color,
+                  aligned(TERM_ALIGN_LEFT));
 
     term_set_transform(transform);
 }
 
 void
-profiler_sum(struct profiler_stats const stats, size_t const memory)
+profiler_sum(struct profiler_stats const stats, float const load)
 {
-    sprintf(summed,
-            "%dFPS %dDRAW MEM%.0fKB",
+    uint16_t load_pct = (uint16_t)(load * 100);
+
+    if (load_pct < 1) {
+        load_pct = 1;
+    }
+
+    sprintf(stats_string,
+            "%dFPS %dxDRAW %d%%LOAD",
             stats.frames_per_second,
             stats.draw_count,
-            ceil(memory / 1024.0));
+            load_pct);
 }
 
 struct profiler_stats

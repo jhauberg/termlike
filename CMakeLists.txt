@@ -84,9 +84,9 @@ if (TERM_BUILD_EXAMPLES)
 	add_executable(example-cp437 "example/cp437.c")
 	add_executable(example-logo "example/logo.c")
 	add_executable(example-empty "example/empty.c")
-
-	add_executable(test-perf "test/perf.c")
-	add_executable(test-transform "test/transform.c")
+	add_executable(example-performance "example/perf.c")
+	add_executable(example-transform "example/transform.c")
+	add_executable(example-layerings "example/layering.c")
 
 	set(EXAMPLE_EXECUTABLES 
 		example-cursor 
@@ -95,8 +95,9 @@ if (TERM_BUILD_EXAMPLES)
 		example-cp437
 		example-logo
 		example-empty
-		test-perf
-		test-transform
+		example-performance
+		example-transform
+		example-layering
 	)
 
 	set_target_properties(${EXAMPLE_EXECUTABLES} PROPERTIES

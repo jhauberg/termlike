@@ -20,7 +20,7 @@ draw(double const interp)
     // case: different ways of achieving same transformation
     // expected: all boxes are aligned, same size and equally spaced
     term_set_transform(scaled(1));
-    term_print("██\n██", position, TERM_COLOR_WHITE);
+    term_printstr("██\n██", position, TERM_COLOR_WHITE, TERM_BOUNDS_NONE);
     term_set_transform(scaled(2));
     term_print("█", positioned(position.location.x + c.width * 3, position.location.y), TERM_COLOR_WHITE);
     // note that the fill should be identical to scaled(2), as above
@@ -32,7 +32,7 @@ draw(double const interp)
     // note how this one is rotated using default anchoring (center), to rotate in line with the following two
     // (this is because it is *not* a single glyph, and thus would default to rotate using first glyph as anchor)
     term_set_transform(transformed(1, a, TERM_ROTATE_STRING_ANCHORED));
-    term_print("██\n██", positioned(position.location.x + 100,  position.location.y), TERM_COLOR_WHITE);
+    term_printstr("██\n██", positioned(position.location.x + 100,  position.location.y), TERM_COLOR_WHITE, TERM_BOUNDS_NONE);
     // these automatically rotate around their center because they're represent only a single glyph
     term_set_transform(transformed(2, a, TERM_ROTATE_STRING));
     term_print("█", positioned(position.location.x + 100 + c.width * 3, position.location.y), TERM_COLOR_WHITE);
@@ -65,8 +65,8 @@ draw(double const interp)
     term_printstr("FILL", positioned(position.location.x + c.width * 6, position.location.y - c.height * 2), TERM_COLOR_WHITE, TERM_BOUNDS_NONE);
     term_print("█", positioned(position.location.x + c.width * 2, position.location.y), colored(0, 225, 0));
     term_print("█", positioned(position.location.x + c.width * 5, position.location.y), colored(0, 225, 0));
-    term_print("██████████████████████", position, transparent(colored(255, 0, 0), 255/4));
-    term_print("──────────────────────", position, colored(225, 0, 0));
+    term_printstr("██████████████████████", position, transparent(colored(255, 0, 0), 255/4), TERM_BOUNDS_NONE);
+    term_printstr("──────────────────────", position, colored(225, 0, 0), TERM_BOUNDS_NONE);
     
     // case: word-wrap scaled text
     struct term_bounds bounds = bounded(c.width * 8, c.height * 12);

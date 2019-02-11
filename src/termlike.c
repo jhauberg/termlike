@@ -341,14 +341,18 @@ term_get_transform(struct term_transform * const transform)
 }
 
 void
-term_print(char const * const characters,
+term_print(char const * const character,
            struct term_position const position,
            struct term_color const color)
 {
 #ifdef DEBUG
-    assert(characters != NULL);
+    assert(character != NULL);
 #endif
-    term_printstr(characters, position, color, TERM_BOUNDS_NONE);
+    struct term_bounds bounds = TERM_BOUNDS_NONE;
+
+    bounds.limit = 1;
+
+    term_printstr(character, position, color, bounds);
 }
 
 void
@@ -420,20 +424,24 @@ term_count(char const * const text, size_t * const length)
     
     state.count = 0;
  
-    buffer_copy(terminal.buffer, text);
+    buffer_copy(terminal.buffer, text, TERM_BOUNDS_UNBOUNDED);
     buffer_foreach(terminal.buffer, term_count_character, &state);
     
     *length = state.count;
 }
 
 void
-term_measure(char const * const characters,
+term_measure(char const * const character,
              struct term_dimens * const dimensions)
 {
 #ifdef DEBUG
-    assert(characters != NULL);
+    assert(character != NULL);
 #endif
-    term_measurestr(characters, TERM_BOUNDS_NONE, dimensions);
+    struct term_bounds bounds = TERM_BOUNDS_NONE;
+
+    bounds.limit = 1;
+
+    term_measurestr(character, bounds, dimensions);
 }
 
 void
@@ -669,7 +677,7 @@ term_copy_str(char const * const text,
               struct term_bounds const bounds,
               struct term_scale const scale)
 {
-    buffer_copy(terminal.buffer, text);
+    buffer_copy(terminal.buffer, text, bounds.limit);
     
     if (bounds.size.width != TERM_BOUNDS_UNBOUNDED &&
         bounds.wrap == TERM_WRAP_WORDS) {

@@ -133,11 +133,14 @@ void term_set_transform(struct term_transform);
 void term_get_transform(struct term_transform *);
 
 /**
- * Print a set of characters.
+ * Print a character.
  *
- * Functionally identical to calling `term_printstr` without a bounded area.
+ * If the provided string is longer than a single character, only the first
+ * character will be printed.
+ *
+ * See `term_printstr` for more information.
  */
-void term_print(char const * characters,
+void term_print(char const * character,
                 struct term_position,
                 struct term_color);
 /**
@@ -192,12 +195,12 @@ void term_fill(struct term_position,
  */
 void term_count(char const * characters, size_t * amount);
 /**
- * Measure the printed dimensions (in pixels) of a set of characters.
+ * Measure the printed dimensions (in pixels) of a character.
  *
  * The resulting dimensions are scaled according to the currently set glyph
  * transformation.
  */
-void term_measure(char const * characters,
+void term_measure(char const * character,
                   struct term_dimens *);
 /**
  * Measure the printed dimensions (in pixels) of a string.

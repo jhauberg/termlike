@@ -16,16 +16,14 @@ void buffer_release(struct buffer *);
 /**
  * Copy a string to a buffer, preparing it for printing.
  *
- * Before copying, the string is validated against buffer limitations.
- * If valid, the string is copied and the buffer is zero-padded appropriately.
- *
- * If the string exceeds buffer limits, the string is only partially copied.
+ * If length is not zero, only characters up to that point is copied. Otherwise
+ * entire string is copied (null-terminated).
  */
-void buffer_copy(struct buffer *, char const *);
+void buffer_copy(struct buffer *, char const *, size_t length);
 /**
  * Apply word-wrapping to the text contents of a buffer.
  *
- * This function will alter the contents of the buffer by replacing whitespaces
+ * This function alters the contents of the buffer by replacing whitespaces
  * with linebreaks in cases where wrapping is required.
  */
 void buffer_wrap(struct buffer *, size_t limit);

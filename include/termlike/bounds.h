@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h> // int32_t
+#include <stddef.h> // size_t
 
 /**
  * Represents the text-wrapping mode.
@@ -40,9 +41,16 @@ struct term_dimens {
  * text wrapping.
  */
 struct term_bounds {
+    /**
+     * The dimensions (in pixels) of bounded area.
+     */
     struct term_dimens size;
     enum term_wrap wrap;
     enum term_align align;
+    /**
+     * The maximum number of characters inside bounded area.
+     */
+    size_t limit;
 };
 
 /**
@@ -80,7 +88,8 @@ boxed(int32_t const width,
         .size = {
             .width = width,
             .height = height
-        }
+        },
+        .limit = TERM_BOUNDS_UNBOUNDED
     };
 }
     

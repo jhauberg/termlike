@@ -91,9 +91,10 @@ draw(double const interp)
     
     term_measure(floor, &floor_size);
     
-    term_print(floor,
-               positioned(cx - (floor_size.width / 2), 200),
-               colored(255, 255, 255));
+    term_printstr(floor,
+                  positioned(cx - (floor_size.width / 2), 200),
+                  colored(255, 255, 255),
+                  TERM_BOUNDS_NONE);
     
     // balls
     char const * const ball = "☻";

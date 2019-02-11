@@ -23,13 +23,17 @@ draw_logo(double const interp)
     " │∙∙";
     
     struct term_dimens map_size;
-    
-    term_measure(map, &map_size);
 
-    term_print(map,
-               positioned((display.width / 2) - (map_size.width / 2),
-                          (display.height / 2) - (map_size.height / 2)),
-               colored(255, 255, 255));
+    struct term_bounds const bounds = bounded(display.width,
+                                              display.height);
+
+    term_measurestr(map, bounds, &map_size);
+
+    term_printstr(map,
+                  positioned((display.width / 2) - (map_size.width / 2),
+                             (display.height / 2) - (map_size.height / 2)),
+                  colored(255, 255, 255),
+                  bounds);
 }
 
 int32_t

@@ -6,7 +6,8 @@ struct term_bounds const TERM_BOUNDS_NONE = {
     .size = {
         .width = TERM_BOUNDS_UNBOUNDED,
         .height = TERM_BOUNDS_UNBOUNDED
-    }
+    },
+    .limit = TERM_BOUNDS_UNBOUNDED
 };
 
 extern inline struct term_dimens sized(int32_t width, int32_t height);

@@ -32,7 +32,7 @@ struct buffer {
     char const * text;
 };
 
-static void buffer_decode(struct buffer *, char * text);
+static void buffer_decode(struct buffer *, char * text, size_t length);
 
 struct buffer *
 buffer_init(void)
@@ -51,23 +51,25 @@ buffer_release(struct buffer * const buffer)
 }
 
 void
-buffer_copy(struct buffer * const buffer, char const * const text)
+buffer_copy(struct buffer * const buffer,
+            char const * const text,
+            size_t const length)
 {
 #ifdef DEBUG
     assert(text != NULL);
 #endif
-    size_t const length = strlen(text);
+    size_t size = strlen(text);
 #ifdef DEBUG
-    assert(length <= MAX_TEXT_LENGTH);
+    assert(size < MAX_TEXT_LENGTH);
 #endif
     buffer->text = text;
     
     char content[BUFFER_SIZE];
 
     // copy over entire string as-is
-    memcpy(&content, text, length);
+    memcpy(&content, text, size);
     // pad the buffer so that there's enough room to decode each character
-    memset(&content[length], '\0', BUFFER_CHAR_SIZE);
+    memset(&content[size], '\0', BUFFER_CHAR_SIZE);
     
     // clear any previously decoded content
     // (but only clearing as much as we need to, e.g. not the entire buffer,
@@ -76,11 +78,11 @@ buffer_copy(struct buffer * const buffer, char const * const text)
     // note that we approximate the length to clear by treating
     // each byte as 1 character; that isn't necesarilly correct,
     // but in any case it will be better than clearing too little
-    size_t const n = (length * BUFFER_CHAR_SIZE) + BUFFER_CHAR_SIZE;
+    size_t const n = (size * BUFFER_CHAR_SIZE) + BUFFER_CHAR_SIZE;
     
     memset(buffer->decoded, 0, n);
     
-    buffer_decode(buffer, content);
+    buffer_decode(buffer, content, length);
 }
 
 void
@@ -155,10 +157,12 @@ buffer_foreach(struct buffer const * const buffer,
 
 static
 void
-buffer_decode(struct buffer * const buffer, char * const text)
+buffer_decode(struct buffer * const buffer,
+              char * const text,
+              size_t const length)
 {
     int32_t error = 0;
-    uint16_t i = 0;
+    size_t i = 0;
     
     char * next = text;
     
@@ -169,5 +173,9 @@ buffer_decode(struct buffer * const buffer, char * const text)
         assert(error == 0);
 #endif
         i += 1;
+
+        if (i == length) {
+            break;
+        }
     }
 }

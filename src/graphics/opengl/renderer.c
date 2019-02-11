@@ -1,10 +1,10 @@
-#include "../renderer.h" // graphics_*
-#include "../viewport.h" // viewport, viewport_clip
+#include <termlike/graphics/renderer.h> // graphics_*
+#include <termlike/graphics/viewport.h> // viewport, viewport_clip
 
-#include "../../resources/cp437.h" // CP437, CP437_LENGTH
+#include <termlike/resources/cp437.h> // CP437, CP437_LENGTH
 
 #include "renderable.h" // renderable, vector2, vector3
-#include "glyph_renderer.h" // glyph_renderer, glyphs_*
+#include "spritebatch.h" // glyph_renderer, glyphs_*
 
 #include <stdio.h> // fprintf
 #include <stdlib.h> // malloc, free

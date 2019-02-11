@@ -1,6 +1,5 @@
-#include "../profiler.h" // profiler_*
-
 #include <termlike/termlike.h> // term_*, TERM_*
+#include <termlike/platform/profiler.h> // profiler_*
 
 #include <stdint.h> // uint16_t, int32_t, UINT16_MAX
 #include <stdio.h> // sprintf

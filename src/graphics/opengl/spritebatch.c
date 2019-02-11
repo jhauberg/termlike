@@ -1,14 +1,14 @@
-#include "glyph_renderer.h" // glyph_renderer, glyphs_*
+#include <termlike/graphics/viewport.h> // viewport
+
+#ifdef TERM_INCLUDE_PROFILER
+ #include <termlike/platform/profiler.h> // profiler_*
+#endif
+
+#include "spritebatch.h" // glyph_renderer, glyphs_*
 
 #include <stdbool.h> // bool
 #include <stdlib.h> // malloc, free
 #include <stddef.h> // NULL
-
-#include "../viewport.h" // viewport
-
-#ifdef TERM_INCLUDE_PROFILER
- #include "../../platform/profiler.h" // profiler_*
-#endif
 
 #include "renderable.h" // glyph_vertex, vector3
 

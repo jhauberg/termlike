@@ -60,6 +60,7 @@ target_include_directories(Termlike
     PUBLIC 
         "include"
     PRIVATE
+    	"src/include"
         "external"
 )
 

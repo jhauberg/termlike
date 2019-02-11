@@ -1,4 +1,4 @@
-#include "../timer.h" // timer, timer_*
+#include <termlike/platform/timer.h> // timer, timer_*
 
 #include <stdlib.h> // malloc, free
 #include <stdint.h> // uint16_t

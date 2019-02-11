@@ -1,5 +1,7 @@
 #pragma once
 
+#include <termlike/input.h> // TERM_KEY_UP, TERM_KEY_ANY
+
 #include <stdbool.h> // bool
 
 #define TERM_KEY_FIRST (TERM_KEY_UP)
@@ -15,7 +17,6 @@ enum term_key_internal {
 };
 
 #define TERM_KEY_INTERNAL_LAST (TERM_KEY_TOGGLE_PROFILING)
-
 #define TERM_KEY_MAX (TERM_KEY_INTERNAL_LAST + 1)
 
 struct term_key_state {

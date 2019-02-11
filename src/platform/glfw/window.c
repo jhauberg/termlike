@@ -1,4 +1,7 @@
+#include <termlike/platform/window.h> // window_*
 #include <termlike/input.h> // term_cursor_state, TERM_KEY_*
+#include <termlike/input/state.h> // term_key_state
+#include <termlike/graphics/viewport.h> // viewport, viewport_pixel_size
 
 #include <stdio.h> // fprintf
 #include <stdlib.h> // malloc, free
@@ -22,10 +25,6 @@
 #if defined(__clang__)
  #pragma clang diagnostic pop
 #endif
-
-#include "../window.h" // window_*
-#include "../../keys.h" // term_key_state
-#include "../../graphics/viewport.h" // viewport, viewport_pixel_size
 
 struct window_position {
     int32_t x;

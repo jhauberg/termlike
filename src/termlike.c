@@ -4,6 +4,23 @@
 #include <termlike/transform.h> // term_transform
 #include <termlike/config.h> // term_settings
 #include <termlike/input.h> // term_key, term_cursor_state
+#include <termlike/input/state.h> // term_key_state
+#include <termlike/graphics/renderer.h> // graphics_context, graphics_*
+#include <termlike/graphics/viewport.h> // viewport
+#include <termlike/graphics/loader.h> // load_image_data
+#include <termlike/platform/window.h> // window_size, window_params, window_*
+#include <termlike/platform/timer.h> // timer, timer_*
+
+#include <termlike/resources/spritefont.8x8.h> // IBM8x8*
+
+#ifdef TERM_INCLUDE_PROFILER
+ #include <termlike/platform/profiler.h> // profiler_*
+#endif
+
+#include "internal.h" // term_get_display_*
+#include "buffer.h" // buffer, buffer_*
+#include "command.h" // command_buffer, command, command_*
+#include "cursor.h" // cursor, cursor_offset, cursor_*
 
 #include <stdint.h> // uint16_t, uint32_t, int32_t
 #include <stddef.h> // size_t, NULL
@@ -15,27 +32,8 @@
 
 #include <math.h> // M_PI, floorf
 
-#include "internal.h" // term_get_display_*
-#include "buffer.h" // buffer, buffer_*
-#include "command.h" // command_buffer, command, command_*
-#include "cursor.h" // cursor, cursor_offset, cursor_*
-#include "keys.h" // term_key_state
-
-#include "graphics/renderer.h" // graphics_context, graphics_*
-#include "graphics/viewport.h" // viewport
-#include "graphics/loader.h" // load_image_data
-
-#include "platform/window.h" // window_size, window_params, window_*
-#include "platform/timer.h" // timer, timer_*
-
-#include "resources/spritefont.8x8.h" // IBM8x8*
-
 #ifdef DEBUG
  #include <assert.h> // assert
-#endif
-
-#ifdef TERM_INCLUDE_PROFILER
- #include "platform/profiler.h" // profiler_*
 #endif
 
 #define PIXEL(x) ((int32_t)floorf(x))

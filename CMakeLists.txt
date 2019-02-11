@@ -29,7 +29,7 @@ add_library(Termlike STATIC
     src/platform/glfw/window.c
     src/graphics/loader.c
     src/graphics/viewport.c
-    src/graphics/opengl/glyph_renderer.c
+    src/graphics/opengl/spritebatch.c
     src/graphics/opengl/renderer.c
     external/gl3w/gl3w.c
 )
@@ -86,7 +86,7 @@ if (TERM_BUILD_EXAMPLES)
 	add_executable(example-empty "example/empty.c")
 	add_executable(example-performance "example/perf.c")
 	add_executable(example-transform "example/transform.c")
-	add_executable(example-layerings "example/layering.c")
+	add_executable(example-layering "example/layering.c")
 
 	set(EXAMPLE_EXECUTABLES 
 		example-cursor 

@@ -1,6 +1,5 @@
-#include "loader.h" // load_*, image_loaded_callback
-
-#include "renderer.h" // graphics_image
+#include <termlike/graphics/loader.h> // load_*, image_loaded_callback
+#include <termlike/graphics/renderer.h> // graphics_image
 
 #if defined(__clang__)
  #pragma clang diagnostic push

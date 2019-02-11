@@ -1,4 +1,4 @@
-#include "viewport.h" // viewport, viewport_*
+#include <termlike/graphics/viewport.h> // viewport, viewport_*
 
 #include <stdint.h> // int32_t
 #include <math.h> // roundf

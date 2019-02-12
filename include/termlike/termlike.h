@@ -189,6 +189,13 @@ void term_printstr(char const * text,
 void term_fill(struct term_position,
                struct term_dimens,
                struct term_color);
+/**
+ * Print a character repeatedly over a rectangular area.
+ */
+void term_repeat(char const * character,
+                 struct term_position,
+                 struct term_dimens,
+                 struct term_color);
 
 /**
  * Count the number of printable characters in a string or set of characters.

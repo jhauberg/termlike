@@ -412,6 +412,15 @@ term_fill(struct term_position const position,
 }
 
 void
+term_repeat(char const * const character,
+            struct term_position const position,
+            struct term_dimens const size,
+            struct term_color const color)
+{
+    // todo: essentially the same as fill, except repeating uv's
+}
+
+void
 term_count(char const * const text, size_t * const length)
 {
 #ifdef DEBUG

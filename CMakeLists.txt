@@ -34,7 +34,16 @@ add_library(Termlike STATIC
     external/gl3w/gl3w.c
 )
 
-target_compile_options(Termlike PRIVATE "-Wall")
+if (MSVC)
+	# enable all warnings
+	# suppress C4204 (C89 compliance) 
+	# suppress C4028 (prototype parameter not matching declaration)
+	target_compile_options(Termlike PRIVATE /Wall /wd4204 /wd4028)
+else()
+	# enable all warnings and more
+	target_compile_options(Termlike PRIVATE -Wall -Wextra)
+endif()
+
 target_compile_features(Termlike PRIVATE c_std_99)
 
 if (CMAKE_BUILD_TYPE MATCHES "Debug")

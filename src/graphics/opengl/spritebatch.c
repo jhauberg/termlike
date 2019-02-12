@@ -142,8 +142,8 @@ glyphs_invalidate(struct glyph_renderer * const renderer,
     mat4x4_identity(projection);
     
     mat4x4_ortho(projection,
-                 0, viewport.resolution.width,
-                 0, viewport.resolution.height,
+                 0, (float)viewport.resolution.width,
+                 0, (float)viewport.resolution.height,
                 -1,  // near
                  1); // far
     

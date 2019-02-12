@@ -232,8 +232,11 @@ window_translate_cursor(struct window_context const * const context,
     window_get_pixel_scale(context, &horz_pixel_scale, &vert_pixel_scale);
     
     // offset cursor location by the dimensions taken up by any boxed bars
-    cursor->location.x -= (viewport.offset.width / 2) / horz_pixel_scale;
-    cursor->location.y -= (viewport.offset.height / 2) / vert_pixel_scale;
+    int32_t const half_width = viewport.offset.width / 2;
+    int32_t const half_height = viewport.offset.height / 2;
+    
+    cursor->location.x -= (int32_t)(half_width / horz_pixel_scale);
+    cursor->location.y -= (int32_t)(half_height / vert_pixel_scale);
     
     // determine pixel sizes (pixels are stretched in fullscreen)
     float horz_pixel_size, vert_pixel_size;

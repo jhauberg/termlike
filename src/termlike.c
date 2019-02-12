@@ -893,8 +893,8 @@ term_print_command(struct command const * const command)
     state.measured = measurement;
     state.bounds = command->bounds;
     
-    state.origin.x = command->origin.x;
-    state.origin.y = command->origin.y;
+    state.origin.x = (float)command->origin.x;
+    state.origin.y = (float)command->origin.y;
     state.origin.z = command_index_to_z(command->index);
 
     struct term_rotation const rotate = command->transform.rotate;

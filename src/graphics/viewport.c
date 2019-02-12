@@ -57,30 +57,32 @@ viewport_get_mode(struct viewport const viewport,
         (float)viewport.resolution.width / (float)viewport.resolution.height;
     float const framebuffer_aspect_ratio =
         (float)viewport.framebuffer.width / (float)viewport.framebuffer.height;
-    
-    float adjusted_width = viewport.framebuffer.width;
-    float adjusted_height = viewport.framebuffer.height;
-    
+
+    struct viewport_size adjusted = viewport.framebuffer;
+
     *mode = VIEWPORT_MODE_NORMAL;
     
     if (screen_aspect_ratio > framebuffer_aspect_ratio ||
-        framebuffer_aspect_ratio > screen_aspect_ratio) {
-        float const targetAspectRatio = screen_aspect_ratio;
-        
+        screen_aspect_ratio < framebuffer_aspect_ratio) {
+        float const desired_aspect_ratio = screen_aspect_ratio;
+        float const height = (float)adjusted.width / desired_aspect_ratio;
+
         // letterbox (horizontal bars)
-        adjusted_height = roundf(adjusted_width / targetAspectRatio);
+        adjusted.height = (int32_t)roundf(height);
         
         *mode = VIEWPORT_MODE_LETTERBOX;
-        
-        if (adjusted_height > viewport.framebuffer.height) {
+
+        if (adjusted.height > viewport.framebuffer.height) {
             // pillarbox (vertical bars)
-            adjusted_height = viewport.framebuffer.height;
-            adjusted_width = roundf(adjusted_height * targetAspectRatio);
-            
+            adjusted.height = viewport.framebuffer.height;
+
+            float const width = (float)adjusted.height * desired_aspect_ratio;
+
+            adjusted.width = (int32_t)roundf(width);
+
             *mode = VIEWPORT_MODE_PILLARBOX;
         }
     }
-    
-    target->width = (int32_t)adjusted_width;
-    target->height = (int32_t)adjusted_height;
+
+    *target = adjusted;
 }

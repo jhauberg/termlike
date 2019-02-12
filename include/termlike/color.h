@@ -57,9 +57,9 @@ inline
 struct term_color
 coloredh(int32_t const hex)
 {
-    return colored((hex & 0xFF0000) >> 16,
-                   (hex & 0xFF00) >> 8,
-                   (hex & 0xFF) >> 0);
+    return colored((uint8_t)((hex & 0xFF0000) >> 16),
+                   (uint8_t)((hex & 0xFF00) >> 8),
+                   (uint8_t)((hex & 0xFF) >> 0));
 }
 
 /**

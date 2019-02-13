@@ -38,6 +38,10 @@
 
 #define PIXEL(x) ((int32_t)floorf(x))
 
+// the maximum number of lines is *actually* equal to the maximum size of
+// the internal string buffer (in the case where each character/byte is a
+// newline) but that is really a huge amount of lines, so we artificially limit
+// it to much less than that
 #define MAX_LINES (128)
 
 /**
@@ -52,11 +56,8 @@ struct term_state_count {
  * Provides widths for all lines in a buffer.
  */
 struct term_lines {
-    // the maximum number of lines is *actually* equal to the maximum size of
-    // the internal buffer (in the case where each character/byte is a newline)
-    // but that is really a huge amount of lines, so we artificially limit it
-    // to much less than that
-    int32_t widths[MAX_LINES];
+    int32_t * widths;
+    size_t count;
 };
 
 /**
@@ -88,12 +89,12 @@ struct term_measurement {
  * Provides values for rendering printable characters in a buffer.
  */
 struct term_state_print {
+    struct cursor cursor;
+    struct term_bounds bounds;
     struct graphics_color tint;
     struct viewport_size display;
-    struct cursor cursor;
     struct graphics_position origin;
-    struct term_bounds bounds;
-    struct term_measurement measured;
+    struct term_measurement * measured;
     struct term_scale scale;
     struct term_anchor anchor;
     float radians;
@@ -111,6 +112,7 @@ struct term_attributes {
  * Represents a Termlike display.
  */
 struct term_context {
+    int32_t line_width_buffer[MAX_LINES];
     term_draw_callback * draw_func;
     term_tick_callback * tick_func;
     struct window_context * window;
@@ -263,7 +265,7 @@ term_close(void)
     if (!terminal.is_open) {
         return false;
     }
-    
+
     graphics_release(terminal.graphics);
     timer_release(terminal.timer);
     command_release(terminal.queue);
@@ -464,7 +466,7 @@ term_measurestr(char const * const text,
     term_copy_str(text, bounds, scale);
     
     struct term_measurement measurement;
-    
+
     term_measure_buffer(bounds, scale, &measurement);
     
     dimensions->width = measurement.size.width;
@@ -712,15 +714,20 @@ term_measure_buffer(struct term_bounds const bounds,
                  bounds,
                  (float)font.size * scale.horizontal,
                  (float)font.size * scale.vertical);
-    
+
+    measure.lines.count = 0;
+    measure.lines.widths = terminal.line_width_buffer;
+
     measure.bounds = bounds;
     
     buffer_foreach(terminal.buffer, term_measure_character, &measure);
     
     uint32_t const line_count = measure.cursor.offset.line + 1;
-    
+
+    measure.lines.count = line_count;
+
     measurement->lines = measure.lines;
-    
+
     measurement->size.width = 0;
     measurement->size.height = PIXEL((float)line_count * measure.cursor.height);
     
@@ -755,20 +762,29 @@ term_print_character(uint32_t const character, void * const data)
     }
     
     if (state->bounds.align == TERM_ALIGN_RIGHT) {
-        offset.x -= state->measured.lines.widths[offset.line];
+#ifdef DEBUG
+        assert(state->measured != NULL);
+#endif
+        offset.x -= (float)state->measured->lines.widths[offset.line];
     } else if (state->bounds.align == TERM_ALIGN_CENTER) {
-        offset.x -= (float)state->measured.lines.widths[offset.line] / 2.0f;
+#ifdef DEBUG
+        assert(state->measured != NULL);
+#endif
+        offset.x -= (float)state->measured->lines.widths[offset.line] / 2.0f;
     }
-    
-    float const w = (float)state->measured.size.width;
-    float const h = (float)state->measured.size.height;
-    
+
     float const cw = (float)state->cursor.width;
     float const ch = (float)state->cursor.height;
     
     if ((state->rotation == TERM_ROTATE_STRING ||
          state->rotation == TERM_ROTATE_STRING_ANCHORED) &&
         (state->radians > 0 || state->radians < 0)) {
+#ifdef DEBUG
+        assert(state->measured != NULL);
+#endif
+        float const w = (float)state->measured->size.width;
+        float const h = (float)state->measured->size.height;
+
         struct term_anchor const point = {
             .x = offset.x,
             .y = offset.y
@@ -848,11 +864,11 @@ term_measure_character(uint32_t const character, void * const data)
     if (character != '\n') {
         edge += state->cursor.width;
     }
-    
+
 #ifdef DEBUG
     assert(offset.line < MAX_LINES);
 #endif
-    
+
     state->lines.widths[offset.line] = PIXEL(edge);
 }
 
@@ -863,24 +879,37 @@ term_print_command(struct command const * const command)
     term_copy_str(command->text,
                   command->bounds,
                   command->transform.scale);
-    
-    // determine the minimum bounding box and line widths for the current
-    // contents of the buffer
-    struct term_measurement measurement = { 0 };
 
-    if (command->bounds.align != TERM_ALIGN_LEFT ||
-        (command->transform.rotate.angle != 0 &&
-         command->transform.rotate.rotation == TERM_ROTATE_STRING_ANCHORED)) {
-        term_measure_buffer(command->bounds,
-                            command->transform.scale,
-                            &measurement);
-    }
-    
     // initialize a state for printing contents of the buffer;
     // this state will hold positional values for the upper-left origin
     // of the string of characters; each character is drawn at an offset
     // from these initial values
     struct term_state_print state;
+
+    state.measured = NULL;
+
+    // measurements of buffer are only required ahead of time, if:
+    //  1) alignment is not default (left), or
+    //  2) rotation is applied (to string)
+    if (command->bounds.align != TERM_ALIGN_LEFT ||
+        ((command->transform.rotate.rotation == TERM_ROTATE_STRING_ANCHORED ||
+          command->transform.rotate.rotation == TERM_ROTATE_STRING) &&
+         command->transform.rotate.angle != 0)) {
+        // todo: this seems to become garbage in some run configurations
+        //       causing a crash or invalid render locations when measurements
+        //       are needed, e.g. in term_print_character, however as I see it,
+        //       we don't exit this function until after term_print_character
+        //       has finished, so why does this happen?
+        //       can fix by storing in global scope instead, but might be
+        //       indication of a deeper problem here
+        struct term_measurement measurement;
+
+        term_measure_buffer(command->bounds,
+                            command->transform.scale,
+                            &measurement);
+
+        state.measured = &measurement;
+    }
 
     struct graphics_font font;
 
@@ -889,8 +918,7 @@ term_print_command(struct command const * const command)
     cursor_start(&state.cursor, command->bounds,
                  (float)font.size * command->transform.scale.horizontal,
                  (float)font.size * command->transform.scale.vertical);
-    
-    state.measured = measurement;
+
     state.bounds = command->bounds;
     
     state.origin.x = (float)command->origin.x;

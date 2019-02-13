@@ -27,8 +27,8 @@ struct command_index {
 
 struct command_buffer {
     struct command * commands;
-    uint16_t capacity;
-    uint16_t count;
+    size_t capacity;
+    size_t count;
 };
 
 static inline struct command_index command_int_to_index(uint32_t index);
@@ -75,7 +75,7 @@ command_push(struct command_buffer * const buffer,
              struct command const command)
 {
     if (buffer->capacity == buffer->count) {
-        uint32_t expanded_capacity = buffer->capacity * 2;
+        size_t expanded_capacity = buffer->capacity * 2;
 
         if (expanded_capacity > MAX_CAPACITY) {
             expanded_capacity = MAX_CAPACITY;
@@ -85,7 +85,7 @@ command_push(struct command_buffer * const buffer,
         assert(expanded_capacity > buffer->count);
 #endif
 
-        buffer->capacity = (uint16_t)expanded_capacity;
+        buffer->capacity = expanded_capacity;
         buffer->commands = realloc(buffer->commands,
                                    sizeof(struct command) * buffer->capacity);
     }
@@ -109,7 +109,7 @@ command_flush(struct command_buffer * const buffer,
               sizeof(struct command),
               command_compare);
 
-        for (uint16_t i = 0; i < buffer->count; i++) {
+        for (size_t i = 0; i < buffer->count; i++) {
             struct command * const command = &buffer->commands[i];
             
             callback(command);
@@ -124,7 +124,7 @@ command_next_layered_index(struct command_buffer const * const buffer,
                            struct term_layer const layer)
 {
     return command_index_to_int((struct command_index) {
-        .order = buffer->count,
+        .order = (uint16_t)buffer->count,
         .depth = (layer.index * UINT8_MAX) + layer.depth
     });
 }

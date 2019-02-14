@@ -51,7 +51,13 @@ struct term_state_count {
  * Provides widths for all lines in a buffer.
  */
 struct term_lines {
+    /**
+     * A pointer to a buffer of line widths.
+     */
     int32_t * widths;
+    /**
+     * The size of the buffer.
+     */
     size_t capacity;
 };
 
@@ -118,7 +124,7 @@ struct term_context {
     struct timer * timer;
     struct buffer * buffer;
     struct command_buffer * queue;
-    struct term_lines linebuffer;
+    struct term_lines lines;
     struct term_attributes attributes;
     struct term_key_state keys;
     struct term_key_state previous_keys;
@@ -265,7 +271,7 @@ term_close(void)
         return false;
     }
 
-    free(terminal.linebuffer.widths);
+    free(terminal.lines.widths);
     
     graphics_release(terminal.graphics);
     timer_release(terminal.timer);
@@ -540,9 +546,8 @@ term_setup(struct window_size const display)
     terminal.queue = command_init();
     terminal.buffer = buffer_init();
     
-    terminal.linebuffer.capacity = 4; // default 4 lines, expands when needed
-    terminal.linebuffer.widths = malloc(sizeof(int32_t) *
-                                        terminal.linebuffer.capacity);
+    terminal.lines.capacity = 4; // default 4 lines, expands when needed
+    terminal.lines.widths = malloc(sizeof(int32_t) * terminal.lines.capacity);
 
     terminal.draw_func = NULL;
     terminal.tick_func = NULL;
@@ -720,7 +725,7 @@ term_measure_buffer(struct term_bounds const bounds,
                  (float)font.size * scale.horizontal,
                  (float)font.size * scale.vertical);
 
-    measure.lines = &terminal.linebuffer;
+    measure.lines = &terminal.lines;
     measure.bounds = bounds;
     
     buffer_foreach(terminal.buffer, term_measure_character, &measure);

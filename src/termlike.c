@@ -885,9 +885,10 @@ term_print_command(struct command const * const command)
     // of the string of characters; each character is drawn at an offset
     // from these initial values
     struct term_state_print state;
-
+    struct term_measurement measurement;
+    
     state.measured = NULL;
-
+    
     // measurements of buffer are only required ahead of time, if:
     //  1) alignment is not default (left), or
     //  2) rotation is applied (to string)
@@ -895,15 +896,6 @@ term_print_command(struct command const * const command)
         ((command->transform.rotate.rotation == TERM_ROTATE_STRING_ANCHORED ||
           command->transform.rotate.rotation == TERM_ROTATE_STRING) &&
          command->transform.rotate.angle != 0)) {
-        // todo: this seems to become garbage in some run configurations
-        //       causing a crash or invalid render locations when measurements
-        //       are needed, e.g. in term_print_character, however as I see it,
-        //       we don't exit this function until after term_print_character
-        //       has finished, so why does this happen?
-        //       can fix by storing in global scope instead, but might be
-        //       indication of a deeper problem here
-        struct term_measurement measurement;
-
         term_measure_buffer(command->bounds,
                             command->transform.scale,
                             &measurement);

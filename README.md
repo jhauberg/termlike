@@ -53,7 +53,7 @@ main(void)
             term_set_closing(true);
         }
         
-        term_print("Hello", positioned(0, 0), colored(255, 255, 255));
+        term_printstr("Hello", positioned(0, 0), colored(255, 255, 255), TERM_BOUNDS_NONE);
         
         term_run(TERM_FREQUENCY_DEFAULT);
     }

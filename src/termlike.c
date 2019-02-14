@@ -18,10 +18,11 @@
 #endif
 
 #include "internal.h" // term_get_display_*
-#include "buffer.h" // buffer, buffer_*
+#include "buffer.h" // buffer, buffer_*, MAX_TEXT_LENGTH
 #include "command.h" // command_buffer, command, command_*
 #include "cursor.h" // cursor, cursor_offset, cursor_*
 
+#include <stdlib.h> // malloc, free
 #include <stdint.h> // uint16_t, uint32_t, int32_t
 #include <stddef.h> // size_t, NULL
 #include <stdbool.h> // bool
@@ -38,12 +39,6 @@
 
 #define PIXEL(x) ((int32_t)floorf(x))
 
-// the maximum number of lines is *actually* equal to the maximum size of
-// the internal string buffer (in the case where each character/byte is a
-// newline) but that is really a huge amount of lines, so we artificially limit
-// it to much less than that
-#define MAX_LINES (128)
-
 /**
  * Provides a count that can be accumulated for each printable character
  * in a buffer.
@@ -57,7 +52,7 @@ struct term_state_count {
  */
 struct term_lines {
     int32_t * widths;
-    size_t count;
+    size_t capacity;
 };
 
 /**
@@ -65,9 +60,9 @@ struct term_lines {
  * printable characters in a buffer.
  */
 struct term_state_measure {
+    struct term_lines * lines;
     struct cursor cursor;
     struct term_bounds bounds;
-    struct term_lines lines;
 };
 
 /**
@@ -77,7 +72,11 @@ struct term_measurement {
     /**
      * The horizontal dimensions of each line in the measured buffer contents.
      */
-    struct term_lines lines;
+    int32_t * line_widths;
+    /**
+     * The number of lines measured.
+     */
+    size_t line_count;
     /**
      * The dimensions of the smallest bounding box that can hold the measured
      * buffer contents.
@@ -112,7 +111,6 @@ struct term_attributes {
  * Represents a Termlike display.
  */
 struct term_context {
-    int32_t line_width_buffer[MAX_LINES];
     term_draw_callback * draw_func;
     term_tick_callback * tick_func;
     struct window_context * window;
@@ -120,6 +118,7 @@ struct term_context {
     struct timer * timer;
     struct buffer * buffer;
     struct command_buffer * queue;
+    struct term_lines linebuffer;
     struct term_attributes attributes;
     struct term_key_state keys;
     struct term_key_state previous_keys;
@@ -266,6 +265,8 @@ term_close(void)
         return false;
     }
 
+    free(terminal.linebuffer.widths);
+    
     graphics_release(terminal.graphics);
     timer_release(terminal.timer);
     command_release(terminal.queue);
@@ -538,6 +539,10 @@ term_setup(struct window_size const display)
     
     terminal.queue = command_init();
     terminal.buffer = buffer_init();
+    
+    terminal.linebuffer.capacity = 4; // default 4 lines, expands when needed
+    terminal.linebuffer.widths = malloc(sizeof(int32_t) *
+                                        terminal.linebuffer.capacity);
 
     terminal.draw_func = NULL;
     terminal.tick_func = NULL;
@@ -715,24 +720,22 @@ term_measure_buffer(struct term_bounds const bounds,
                  (float)font.size * scale.horizontal,
                  (float)font.size * scale.vertical);
 
-    measure.lines.count = 0;
-    measure.lines.widths = terminal.line_width_buffer;
-
+    measure.lines = &terminal.linebuffer;
     measure.bounds = bounds;
     
     buffer_foreach(terminal.buffer, term_measure_character, &measure);
     
     uint32_t const line_count = measure.cursor.offset.line + 1;
 
-    measure.lines.count = line_count;
-
-    measurement->lines = measure.lines;
+    measurement->line_count = line_count;
+    measurement->line_widths = measure.lines->widths;
 
     measurement->size.width = 0;
     measurement->size.height = PIXEL((float)line_count * measure.cursor.height);
     
+    // determine bounding width from the widest line
     for (uint32_t i = 0; i < line_count; i++) {
-        int32_t const width = measure.lines.widths[i];
+        int32_t const width = measure.lines->widths[i];
         
         if (measurement->size.width < width) {
             measurement->size.width = width;
@@ -765,12 +768,12 @@ term_print_character(uint32_t const character, void * const data)
 #ifdef DEBUG
         assert(state->measured != NULL);
 #endif
-        offset.x -= (float)state->measured->lines.widths[offset.line];
+        offset.x -= (float)state->measured->line_widths[offset.line];
     } else if (state->bounds.align == TERM_ALIGN_CENTER) {
 #ifdef DEBUG
         assert(state->measured != NULL);
 #endif
-        offset.x -= (float)state->measured->lines.widths[offset.line] / 2.0f;
+        offset.x -= (float)state->measured->line_widths[offset.line] / 2.0f;
     }
 
     float const cw = (float)state->cursor.width;
@@ -864,12 +867,31 @@ term_measure_character(uint32_t const character, void * const data)
     if (character != '\n') {
         edge += state->cursor.width;
     }
-
+    
+    uint32_t const line_index = offset.line;
+    uint32_t const line_count = line_index + 1;
+    
+    if (line_count > state->lines->capacity) {
+        size_t expanded_capacity = state->lines->capacity * 2;
+        
+        // the maximum number of lines is directly tied to the limits of the
+        // internal text buffer; e.g. the max number of characters it will hold
+        // equals the maximum possible number of lines (if each character
+        // was a newline)
+        if (expanded_capacity > MAX_TEXT_LENGTH) {
+            expanded_capacity = MAX_TEXT_LENGTH;
+        }
+        
 #ifdef DEBUG
-    assert(offset.line < MAX_LINES);
+        assert(expanded_capacity > line_count);
 #endif
-
-    state->lines.widths[offset.line] = PIXEL(edge);
+        
+        state->lines->capacity = expanded_capacity;
+        state->lines->widths = realloc(state->lines->widths,
+                                   sizeof(int32_t) * state->lines->capacity);
+    }
+    
+    state->lines->widths[line_index] = PIXEL(edge);
 }
 
 static

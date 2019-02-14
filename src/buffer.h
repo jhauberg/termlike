@@ -3,6 +3,11 @@
 #include <stdint.h> // uint32_t
 #include <stddef.h> // size_t
 
+/**
+ * The maximum number of characters a buffer will hold.
+ */
+#define MAX_TEXT_LENGTH (4096)
+
 struct buffer;
 
 /**

@@ -18,10 +18,11 @@
 #endif
 
 #include "internal.h" // term_get_display_*
-#include "buffer.h" // buffer, buffer_*
+#include "buffer.h" // buffer, buffer_*, MAX_TEXT_LENGTH
 #include "command.h" // command_buffer, command, command_*
 #include "cursor.h" // cursor, cursor_offset, cursor_*
 
+#include <stdlib.h> // malloc, free
 #include <stdint.h> // uint16_t, uint32_t, int32_t
 #include <stddef.h> // size_t, NULL
 #include <stdbool.h> // bool
@@ -38,8 +39,6 @@
 
 #define PIXEL(x) ((int32_t)floorf(x))
 
-#define MAX_LINES (128)
-
 /**
  * Provides a count that can be accumulated for each printable character
  * in a buffer.
@@ -52,11 +51,14 @@ struct term_state_count {
  * Provides widths for all lines in a buffer.
  */
 struct term_lines {
-    // the maximum number of lines is *actually* equal to the maximum size of
-    // the internal buffer (in the case where each character/byte is a newline)
-    // but that is really a huge amount of lines, so we artificially limit it
-    // to much less than that
-    int32_t widths[MAX_LINES];
+    /**
+     * A pointer to a buffer of line widths.
+     */
+    int32_t * widths;
+    /**
+     * The size of the buffer.
+     */
+    size_t capacity;
 };
 
 /**
@@ -64,9 +66,9 @@ struct term_lines {
  * printable characters in a buffer.
  */
 struct term_state_measure {
+    struct term_lines * lines;
     struct cursor cursor;
     struct term_bounds bounds;
-    struct term_lines lines;
 };
 
 /**
@@ -76,7 +78,11 @@ struct term_measurement {
     /**
      * The horizontal dimensions of each line in the measured buffer contents.
      */
-    struct term_lines lines;
+    int32_t * line_widths;
+    /**
+     * The number of lines measured.
+     */
+    size_t line_count;
     /**
      * The dimensions of the smallest bounding box that can hold the measured
      * buffer contents.
@@ -88,12 +94,12 @@ struct term_measurement {
  * Provides values for rendering printable characters in a buffer.
  */
 struct term_state_print {
+    struct cursor cursor;
+    struct term_bounds bounds;
     struct graphics_color tint;
     struct viewport_size display;
-    struct cursor cursor;
     struct graphics_position origin;
-    struct term_bounds bounds;
-    struct term_measurement measured;
+    struct term_measurement * measured;
     struct term_scale scale;
     struct term_anchor anchor;
     float radians;
@@ -118,6 +124,7 @@ struct term_context {
     struct timer * timer;
     struct buffer * buffer;
     struct command_buffer * queue;
+    struct term_lines lines;
     struct term_attributes attributes;
     struct term_key_state keys;
     struct term_key_state previous_keys;
@@ -263,6 +270,8 @@ term_close(void)
     if (!terminal.is_open) {
         return false;
     }
+
+    free(terminal.lines.widths);
     
     graphics_release(terminal.graphics);
     timer_release(terminal.timer);
@@ -473,7 +482,7 @@ term_measurestr(char const * const text,
     term_copy_str(text, bounds, scale);
     
     struct term_measurement measurement;
-    
+
     term_measure_buffer(bounds, scale, &measurement);
     
     dimensions->width = measurement.size.width;
@@ -545,6 +554,9 @@ term_setup(struct window_size const display)
     
     terminal.queue = command_init();
     terminal.buffer = buffer_init();
+    
+    terminal.lines.capacity = 4; // default 4 lines, expands when needed
+    terminal.lines.widths = malloc(sizeof(int32_t) * terminal.lines.capacity);
 
     terminal.draw_func = NULL;
     terminal.tick_func = NULL;
@@ -721,20 +733,23 @@ term_measure_buffer(struct term_bounds const bounds,
                  bounds,
                  (float)font.size * scale.horizontal,
                  (float)font.size * scale.vertical);
-    
+
+    measure.lines = &terminal.lines;
     measure.bounds = bounds;
     
     buffer_foreach(terminal.buffer, term_measure_character, &measure);
     
     uint32_t const line_count = measure.cursor.offset.line + 1;
-    
-    measurement->lines = measure.lines;
-    
+
+    measurement->line_count = line_count;
+    measurement->line_widths = measure.lines->widths;
+
     measurement->size.width = 0;
     measurement->size.height = PIXEL((float)line_count * measure.cursor.height);
     
+    // determine bounding width from the widest line
     for (uint32_t i = 0; i < line_count; i++) {
-        int32_t const width = measure.lines.widths[i];
+        int32_t const width = measure.lines->widths[i];
         
         if (measurement->size.width < width) {
             measurement->size.width = width;
@@ -764,20 +779,29 @@ term_print_character(uint32_t const character, void * const data)
     }
     
     if (state->bounds.align == TERM_ALIGN_RIGHT) {
-        offset.x -= state->measured.lines.widths[offset.line];
+#ifdef DEBUG
+        assert(state->measured != NULL);
+#endif
+        offset.x -= (float)state->measured->line_widths[offset.line];
     } else if (state->bounds.align == TERM_ALIGN_CENTER) {
-        offset.x -= (float)state->measured.lines.widths[offset.line] / 2.0f;
+#ifdef DEBUG
+        assert(state->measured != NULL);
+#endif
+        offset.x -= (float)state->measured->line_widths[offset.line] / 2.0f;
     }
-    
-    float const w = (float)state->measured.size.width;
-    float const h = (float)state->measured.size.height;
-    
+
     float const cw = (float)state->cursor.width;
     float const ch = (float)state->cursor.height;
     
     if ((state->rotation == TERM_ROTATE_STRING ||
          state->rotation == TERM_ROTATE_STRING_ANCHORED) &&
         (state->radians > 0 || state->radians < 0)) {
+#ifdef DEBUG
+        assert(state->measured != NULL);
+#endif
+        float const w = (float)state->measured->size.width;
+        float const h = (float)state->measured->size.height;
+
         struct term_anchor const point = {
             .x = offset.x,
             .y = offset.y
@@ -858,11 +882,30 @@ term_measure_character(uint32_t const character, void * const data)
         edge += state->cursor.width;
     }
     
-#ifdef DEBUG
-    assert(offset.line < MAX_LINES);
-#endif
+    uint32_t const line_index = offset.line;
+    uint32_t const line_count = line_index + 1;
     
-    state->lines.widths[offset.line] = PIXEL(edge);
+    if (line_count > state->lines->capacity) {
+        size_t expanded_capacity = state->lines->capacity * 2;
+        
+        // the maximum number of lines is directly tied to the limits of the
+        // internal text buffer; e.g. the max number of characters it will hold
+        // equals the maximum possible number of lines (if each character
+        // was a newline)
+        if (expanded_capacity > MAX_TEXT_LENGTH) {
+            expanded_capacity = MAX_TEXT_LENGTH;
+        }
+        
+#ifdef DEBUG
+        assert(expanded_capacity > line_count);
+#endif
+        
+        state->lines->capacity = expanded_capacity;
+        state->lines->widths = realloc(state->lines->widths,
+                                   sizeof(int32_t) * state->lines->capacity);
+    }
+    
+    state->lines->widths[line_index] = PIXEL(edge);
 }
 
 static
@@ -872,24 +915,29 @@ term_print_command(struct command const * const command)
     term_copy_str(command->text,
                   command->bounds,
                   command->transform.scale);
-    
-    // determine the minimum bounding box and line widths for the current
-    // contents of the buffer
-    struct term_measurement measurement = { 0 };
 
-    if (command->bounds.align != TERM_ALIGN_LEFT ||
-        (command->transform.rotate.angle != 0 &&
-         command->transform.rotate.rotation == TERM_ROTATE_STRING_ANCHORED)) {
-        term_measure_buffer(command->bounds,
-                            command->transform.scale,
-                            &measurement);
-    }
-    
     // initialize a state for printing contents of the buffer;
     // this state will hold positional values for the upper-left origin
     // of the string of characters; each character is drawn at an offset
     // from these initial values
     struct term_state_print state;
+    struct term_measurement measurement;
+    
+    state.measured = NULL;
+    
+    // measurements of buffer are only required ahead of time, if:
+    //  1) alignment is not default (left), or
+    //  2) rotation is applied (to string)
+    if (command->bounds.align != TERM_ALIGN_LEFT ||
+        ((command->transform.rotate.rotation == TERM_ROTATE_STRING_ANCHORED ||
+          command->transform.rotate.rotation == TERM_ROTATE_STRING) &&
+         command->transform.rotate.angle != 0)) {
+        term_measure_buffer(command->bounds,
+                            command->transform.scale,
+                            &measurement);
+
+        state.measured = &measurement;
+    }
 
     struct graphics_font font;
 
@@ -898,8 +946,7 @@ term_print_command(struct command const * const command)
     cursor_start(&state.cursor, command->bounds,
                  (float)font.size * command->transform.scale.horizontal,
                  (float)font.size * command->transform.scale.vertical);
-    
-    state.measured = measurement;
+
     state.bounds = command->bounds;
     
     state.origin.x = (float)command->origin.x;

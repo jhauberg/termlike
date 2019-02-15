@@ -1,6 +1,11 @@
+# ignore macOS stuff
+.DS_Store
+
 # ignore build output
 *.o
 *.a
+bin/
+lib/
 
 # ignore CMake output
 CMakeCache.txt

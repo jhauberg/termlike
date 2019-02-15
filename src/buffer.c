@@ -13,10 +13,6 @@
 #endif
 
 /**
- * The maximum number of characters in a printed string.
- */
-#define MAX_TEXT_LENGTH (4096)
-/**
  * The size (in bytes) of a single UTF8 encoded character.
  */
 #define BUFFER_CHAR_SIZE (sizeof(uint32_t))

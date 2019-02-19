@@ -40,7 +40,7 @@ struct glyph_renderer *
 glyphs_init(struct viewport const viewport)
 {
     struct glyph_renderer * renderer = malloc(sizeof(struct glyph_renderer));
-    
+
     char const * const vertex_shader =
     "#version 330 core\n"
     "layout (location = 0) in vec3 vertex_position;\n"
@@ -66,42 +66,42 @@ glyphs_init(struct viewport const viewport)
     "}";
 
     GLuint const vs = graphics_compile_shader(GL_VERTEX_SHADER,
-                                            vertex_shader);
+                                              vertex_shader);
     GLuint const fs = graphics_compile_shader(GL_FRAGMENT_SHADER,
-                                            fragment_shader);
-    
+                                              fragment_shader);
+
     renderer->renderable.program = graphics_link_program(vs, fs);
-    
+
     glDeleteShader(vs);
     glDeleteShader(fs);
-    
+
     glGenBuffers(1, &renderer->renderable.vbo);
     glGenVertexArrays(1, &renderer->renderable.vao);
-    
+
     glBindVertexArray(renderer->renderable.vao);
     glBindBuffer(GL_ARRAY_BUFFER, renderer->renderable.vbo);
-    
+
     GLsizei const stride = sizeof(struct glyph_vertex);
-    
+
     glBufferData(GL_ARRAY_BUFFER,
                  GLYPH_BATCH_VERTEX_COUNT * stride,
                  NULL,
                  GL_DYNAMIC_DRAW);
-    
+
     glVertexAttribPointer(0,
                           3,
                           GL_FLOAT, GL_FALSE,
                           stride,
                           0);
     glEnableVertexAttribArray(0);
-    
+
     glVertexAttribPointer(1,
                           4,
                           GL_UNSIGNED_BYTE, GL_TRUE,
                           stride,
                           (GLvoid *)(sizeof(struct vector3)));
     glEnableVertexAttribArray(1);
-    
+
     glVertexAttribPointer(2,
                           2,
                           GL_UNSIGNED_SHORT, GL_TRUE,
@@ -109,12 +109,12 @@ glyphs_init(struct viewport const viewport)
                           (GLvoid *)(sizeof(struct vector3) +
                                      sizeof(struct color)));
     glEnableVertexAttribArray(2);
-        
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-    
+
     glyphs_invalidate(renderer, viewport);
-    
+
     return renderer;
 }
 
@@ -124,7 +124,7 @@ glyphs_release(struct glyph_renderer * const renderer)
     glDeleteProgram(renderer->renderable.program);
     glDeleteVertexArrays(1, &renderer->renderable.vao);
     glDeleteBuffers(1, &renderer->renderable.vbo);
-    
+
     free(renderer);
 }
 
@@ -137,20 +137,20 @@ glyphs_invalidate(struct glyph_renderer * const renderer,
 
     mat4x4 view;
     mat4x4_identity(view);
-    
+
     mat4x4 projection;
     mat4x4_identity(projection);
-    
+
     mat4x4_ortho(projection,
                  0, (float)viewport.resolution.width,
                  0, (float)viewport.resolution.height,
-                -1,  // near
+                 -1,  // near
                  1); // far
-    
+
     mat4x4 model_view;
     mat4x4_mul(model_view, model, view);
     mat4x4_mul(renderer->transform, projection, model_view);
-    
+
     glyphs_reset(renderer);
 }
 
@@ -166,30 +166,30 @@ glyphs_add(struct glyph_renderer * const renderer,
             // texture switch requires flushing (don't flush if not set yet)
         }
     }
-    
+
     renderer->current_texture_id = texture_id;
-    
+
     if (renderer->batch.count + 1 > MAX_GLYPHS) {
         if (glyphs_flush(renderer)) {
             // hitting capacity requires flushing
         }
     }
-    
+
     bool const requires_scaling = (transform.scale.x > 1 ||
                                    transform.scale.x < 1 ||
                                    transform.scale.y > 1 ||
                                    transform.scale.y < 1);
-    
+
     bool const requires_rotation = (transform.angle > 0 ||
                                     transform.angle < 0);
-    
+
     bool const requires_transformation = (requires_scaling ||
                                           requires_rotation);
-    
+
     uint32_t const vertex_offset = renderer->batch.count * GLYPH_VERTEX_COUNT;
-    
+
     mat4x4 transformed;
-    
+
     if (requires_transformation) {
         mat4x4 translated;
         mat4x4_identity(translated);
@@ -197,18 +197,18 @@ glyphs_add(struct glyph_renderer * const renderer,
                          transform.origin.x,
                          transform.origin.y,
                          transform.origin.z);
-        
+
         mat4x4 rotated;
         mat4x4_identity(rotated);
-        
+
         if (requires_rotation) {
             mat4x4_rotate_Z(rotated, rotated,
                             transform.angle);
         }
-        
+
         mat4x4 scaled;
         mat4x4_identity(scaled);
-        
+
         if (requires_scaling) {
             mat4x4_scale_aniso(scaled, scaled,
                                transform.scale.x,
@@ -219,7 +219,7 @@ glyphs_add(struct glyph_renderer * const renderer,
         mat4x4_mul(transformed, translated, rotated);
         mat4x4_mul(transformed, transformed, scaled);
     }
-    
+
     for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
         struct glyph_vertex vertex = (*vertices)[i];
 
@@ -230,11 +230,11 @@ glyphs_add(struct glyph_renderer * const renderer,
                 vertex.position.z,
                 1
             };
-            
+
             vec4 world_position;
-            
+
             mat4x4_mul_vec4(world_position, transformed, position);
-            
+
             vertex.position = (struct vector3) {
                 world_position[0] + transform.offset.x,
                 world_position[1] + transform.offset.y,
@@ -250,7 +250,7 @@ glyphs_add(struct glyph_renderer * const renderer,
 
         renderer->batch.vertices[vertex_offset + i] = vertex;
     }
-    
+
     renderer->batch.count += 1;
 }
 
@@ -261,11 +261,11 @@ glyphs_flush(struct glyph_renderer * const renderer)
     if (renderer->batch.count == 0) {
         return false;
     }
-    
+
     glyphs_draw(renderer);
-    
+
     renderer->batch.count = 0;
-    
+
     return true;
 }
 
@@ -281,13 +281,13 @@ void
 glyphs_begin(struct glyph_renderer const * const renderer)
 {
     glyphs_state(true);
-    
+
     glUseProgram(renderer->renderable.program);
-    
+
     GLint const uniform_transform =
     glGetUniformLocation(renderer->renderable.program, "transform");
     glUniformMatrix4fv(uniform_transform, 1, GL_FALSE, *renderer->transform);
-    
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->current_texture_id);
     glBindVertexArray(renderer->renderable.vao);
@@ -298,12 +298,12 @@ void
 glyphs_end(struct glyph_renderer * const renderer)
 {
     glyphs_flush(renderer);
-    
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glUseProgram(0);
-    
+
     glyphs_state(false);
 }
 
@@ -314,7 +314,7 @@ glyphs_state(bool const enable)
     if (enable) {
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
-        
+
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
         glFrontFace(GL_CW);
@@ -333,16 +333,17 @@ void
 glyphs_draw(struct glyph_renderer const * const renderer)
 {
     uint32_t const count = renderer->batch.count * GLYPH_VERTEX_COUNT;
-    
+
     GLsizeiptr const size = sizeof(struct glyph_vertex) * count;
-    
+
     glBufferSubData(GL_ARRAY_BUFFER,
                     0,
                     size,
                     renderer->batch.vertices);
-    
+
     glDrawArrays(GL_TRIANGLES, 0, (GLsizei)count);
 #ifdef TERM_INCLUDE_PROFILER
     profiler_increment_draw_count(1);
 #endif
 }
+

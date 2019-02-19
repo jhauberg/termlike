@@ -34,9 +34,9 @@ struct buffer *
 buffer_init(void)
 {
     struct buffer * const buffer = malloc(sizeof(struct buffer));
-    
+
     memset(buffer->decoded, 0, sizeof(buffer->decoded));
-    
+
     return buffer;
 }
 
@@ -59,14 +59,14 @@ buffer_copy(struct buffer * const buffer,
     assert(size < MAX_TEXT_LENGTH);
 #endif
     buffer->text = text;
-    
+
     char content[BUFFER_SIZE];
 
     // copy over entire string as-is
     memcpy(&content, text, size);
     // pad the buffer so that there's enough room to decode each character
     memset(&content[size], '\0', BUFFER_CHAR_SIZE);
-    
+
     // clear any previously decoded content
     // (but only clearing as much as we need to, e.g. not the entire buffer,
     //  so "garbage" content may remain from previous copies- this shouldn't
@@ -75,9 +75,9 @@ buffer_copy(struct buffer * const buffer,
     // each byte as 1 character; that isn't necesarilly correct,
     // but in any case it will be better than clearing too little
     size_t const n = (size * BUFFER_CHAR_SIZE) + BUFFER_CHAR_SIZE;
-    
+
     memset(buffer->decoded, 0, n);
-    
+
     buffer_decode(buffer, content, length);
 }
 
@@ -85,20 +85,20 @@ void
 buffer_wrap(struct buffer * const buffer, size_t const limit)
 {
     size_t num_characters = 0;
-    
+
     uint32_t character = 0;
     uint32_t * next = buffer->decoded;
-    
+
     while (*next) {
         character = *next;
-        
+
         uint32_t * previous = next;
 
         // pointer arithmetic; automatically scales by sizeof uint32_t
         next++;
-        
+
         num_characters += 1;
-        
+
         if (character == '\n') {
             // we hit an explicit linebreak,
             // so we can assume that a new line starts here
@@ -110,7 +110,7 @@ buffer_wrap(struct buffer * const buffer, size_t const limit)
             // so we just continue with reading the next character
             continue;
         }
-        
+
         // we've reached the limit for number of characters per line,
         // so backtrack to find a previous whitespace where we can break
         // note that in a case where no available whitespace can be found,
@@ -118,13 +118,13 @@ buffer_wrap(struct buffer * const buffer, size_t const limit)
         while (*previous) {
             if (*previous == ' ') {
                 *previous = '\n';
-                
+
                 // make sure to begin the next line from this point
                 // we can be sure that this is not "mid-character" for
                 // larger-sized characters, because we specifically found
                 // the whitespace
                 next = previous;
-                
+
                 break;
             }
 
@@ -141,12 +141,12 @@ buffer_foreach(struct buffer const * const buffer,
 {
     uint16_t i = 0;
     uint32_t glyph = buffer->decoded[i];
-    
+
     while (glyph != 0) {
         callback(glyph, state);
-        
+
         i += 1;
-        
+
         glyph = buffer->decoded[i];
     }
 }
@@ -159,9 +159,9 @@ buffer_decode(struct buffer * const buffer,
 {
     int32_t error = 0;
     size_t i = 0;
-    
+
     char * next = text;
-    
+
     while (*next) {
         // decode and advance the text pointer
         next = utf8_decode(next, &buffer->decoded[i], &error);

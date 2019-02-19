@@ -35,7 +35,7 @@ rotate_point(struct term_anchor const point, float const angle,
         .x = 0,
         .y = 0
     };
-    
+
     rotate_point_center(point, center, angle, result);
 }
 
@@ -46,10 +46,10 @@ rotate_point_center(struct term_anchor const point,
 {
     float const s = sinf(angle);
     float const t = cosf(angle);
-    
+
     float const x = point.x - center.x;
     float const y = point.y - center.y;
-    
+
     result->x = ((x * t) - (y * s)) + center.x;
     result->y = ((x * s) + (y * t)) + center.y;
 }

@@ -33,11 +33,11 @@ struct timer *
 timer_init(void)
 {
     struct timer * const timer = malloc(sizeof(struct timer));
-    
+
     timer->scale = 1;
-    
+
     timer_reset(timer);
-    
+
     return timer;
 }
 
@@ -54,7 +54,7 @@ timer_reset(struct timer * const timer)
     timer->previous = 0;
     timer->step = 0;
     timer->lag = 0;
-    
+
     glfwSetTime(0);
 }
 
@@ -63,11 +63,11 @@ timer_begin(struct timer * const timer)
 {
     double const time = glfwGetTime();
     double time_elapsed = time - timer->previous;
-    
+
     if (time_elapsed > maximum_frame_time) {
         time_elapsed = maximum_frame_time;
     }
-    
+
     timer->lag += fabs(time_elapsed * timer->scale);
     timer->previous = time;
 }
@@ -84,17 +84,17 @@ timer_tick(struct timer * const timer,
            double * const step)
 {
     timer->step = 1.0 / frequency;
-    
+
     *step = timer->step;
-    
+
     if (timer->lag >= timer->step) {
         timer->lag -= timer->step;
-        
+
         timer->time += timer->step;
-        
+
         return true;
     }
-    
+
     return false;
 }
 

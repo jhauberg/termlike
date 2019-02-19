@@ -71,14 +71,14 @@ struct window_context *
 window_create(struct window_params const params)
 {
     glfwSetErrorCallback(window_callback_error);
-    
+
     if (glfwInit() != GLFW_TRUE) {
         fprintf(stderr, "GLFW (%s) failed to initialize",
                 glfwGetVersionString());
-        
+
         return NULL;
     }
-    
+
     glfwWindowHint(GLFW_SAMPLES, 0);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -87,44 +87,44 @@ window_create(struct window_params const params)
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
     glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
-    
+
     struct window_position position;
-    
+
     GLFWwindow * const window = window_open(params.title,
                                             params.display,
                                             params.fullscreen,
                                             &position);
-    
+
     if (window == NULL) {
         window_terminate(NULL);
-        
+
         return NULL;
     }
-    
+
     if (params.hide_cursor) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
     }
-    
+
     glfwSetScrollCallback(window, window_callback_scroll);
     // setting swap interval requires an initialized window/OpenGL context
     glfwSwapInterval(params.swap_interval);
-    
+
     if (gl3wInit() != GL3W_OK) {
         // initializing gl3w requires an OpenGL context
         fprintf(stderr, "gl3w failed to initialize");
-        
+
         window_terminate(NULL);
-        
+
         return NULL;
     }
-    
+
     struct window_context * const context =
-        malloc(sizeof(struct window_context));
-    
+    malloc(sizeof(struct window_context));
+
     context->window = window;
     context->display = params.display;
     context->stored_position = position;
-    
+
     return context;
 }
 
@@ -132,13 +132,13 @@ void
 window_terminate(struct window_context * const context)
 {
     glfwSetErrorCallback(NULL);
-    
+
     if (context != NULL) {
         glfwSetScrollCallback(context->window, NULL);
     }
-    
+
     glfwTerminate();
-    
+
     if (context != NULL) {
         free(context);
     }
@@ -156,7 +156,7 @@ window_is_closed(struct window_context * const context)
     if (context->window != NULL) {
         return glfwWindowShouldClose(context->window);
     }
-    
+
     return true;
 }
 
@@ -166,7 +166,7 @@ window_is_fullscreen(struct window_context const * const context)
     if (context->window != NULL) {
         return glfwGetWindowMonitor(context->window) != NULL;
     }
-    
+
     return false;
 }
 
@@ -216,7 +216,7 @@ window_read(struct window_context * const context,
             struct term_cursor_state * const cursor)
 {
     GLFWwindow * const window = context->window;
-    
+
     window_read_keys(window, keys);
     window_read_cursor(window, cursor);
 }
@@ -228,29 +228,29 @@ window_translate_cursor(struct window_context const * const context,
 {
     // determine backing pixel-scale (to support retina/high-dpi displays)
     float horz_pixel_scale, vert_pixel_scale;
-    
+
     window_get_pixel_scale(context, &horz_pixel_scale, &vert_pixel_scale);
-    
+
     // offset cursor location by the dimensions taken up by any boxed bars
     int32_t const half_width = viewport.offset.width / 2;
     int32_t const half_height = viewport.offset.height / 2;
-    
+
     cursor->location.x -= (int32_t)(half_width / horz_pixel_scale);
     cursor->location.y -= (int32_t)(half_height / vert_pixel_scale);
-    
+
     // determine pixel sizes (pixels are stretched in fullscreen)
     float horz_pixel_size, vert_pixel_size;
-    
+
     viewport_pixel_size(viewport, &horz_pixel_size, &vert_pixel_size);
-    
+
     // scale pixel sizes by the backing pixel-scale
     horz_pixel_size /= horz_pixel_scale;
     vert_pixel_size /= vert_pixel_scale;
-    
+
     // determine aspect ratio to scale cursor location by
     float const aspect = horz_pixel_size > vert_pixel_size ?
-        vert_pixel_size : horz_pixel_size;
-    
+    vert_pixel_size : horz_pixel_size;
+
     // finally determine the cursor location within our world space
     cursor->location.x = (int32_t)(cursor->location.x / aspect);
     cursor->location.y = (int32_t)(cursor->location.y / aspect);
@@ -262,11 +262,11 @@ window_read_keys(GLFWwindow * const window,
                  struct term_key_state * const keys)
 {
     bool down_previously[TERM_KEY_MAX];
-    
+
     for (int32_t input = TERM_KEY_FIRST; input < TERM_KEY_MAX; input++) {
         down_previously[input] = keys->down[input];
     }
-    
+
     bool const is_modified =
         glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_RIGHT_ALT) == GLFW_PRESS ||
@@ -276,56 +276,56 @@ window_read_keys(GLFWwindow * const window,
         glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_LEFT_SUPER) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_RIGHT_SUPER) == GLFW_PRESS;
-    
+
     keys->down[TERM_KEY_UP] =
         glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
-    
+
     keys->down[TERM_KEY_DOWN] =
         glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
-    
+
     keys->down[TERM_KEY_LEFT] =
         glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
-    
+
     keys->down[TERM_KEY_RIGHT] =
         glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
-    
+
     keys->down[TERM_KEY_CONFIRM] =
         (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS ||
          glfwGetKey(window, GLFW_KEY_KP_ENTER) == GLFW_PRESS) && !is_modified;
-    
+
     keys->down[TERM_KEY_ESCAPE] =
         glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && !is_modified;
-    
+
     keys->down[TERM_KEY_SPACE] =
         glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !is_modified;
-    
+
     keys->down[TERM_KEY_TOGGLE_FULLSCREEN] =
         glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS &&
         glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
-    
+
     keys->down[TERM_KEY_TOGGLE_PROFILING] =
         (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS &&
          glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS) ||
         (glfwGetKey(window, GLFW_KEY_GRAVE_ACCENT) == GLFW_PRESS &&
          !is_modified);
-    
+
     keys->down[TERM_KEY_MOUSE_LEFT] =
         glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-    
+
     keys->down[TERM_KEY_MOUSE_RIGHT] =
         glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
-    
+
     keys->down[TERM_KEY_ANY] = false;
-    
+
     for (int32_t input = TERM_KEY_FIRST; input < TERM_KEY_MAX; input++) {
         if (keys->down[input]) {
             keys->down[TERM_KEY_ANY] = true;
         }
-        
+
         keys->released[input] = down_previously[input] && !keys->down[input];
         keys->pressed[input] = !down_previously[input] && keys->down[input];
     }
@@ -338,12 +338,12 @@ window_read_cursor(GLFWwindow * const window,
 {
     double cursor_x = 0;
     double cursor_y = 0;
-    
+
     glfwGetCursorPos(window, &cursor_x, &cursor_y);
-    
+
     cursor->location.x = (int32_t)floor(cursor_x);
     cursor->location.y = (int32_t)floor(cursor_y);
-    
+
     cursor->scroll.horizontal = accumulated_cursor_scroll.x_offset;
     cursor->scroll.vertical = accumulated_cursor_scroll.y_offset;
 }
@@ -356,23 +356,23 @@ window_open(char const * const title,
             struct window_position * const position)
 {
     GLFWwindow * window = NULL;
-    
+
     // position is used for restoring window location when switching between
     // fullscreen and windowed; it is not used to initially place the window
     position->x = 0;
     position->y = 0;
-    
+
     if (fullscreen) {
         GLFWmonitor * const monitor = glfwGetPrimaryMonitor();
-        
+
         if (monitor) {
             GLFWvidmode const * const display_mode = glfwGetVideoMode(monitor);
-            
+
             // make windows appear as centered when switching from fullscreen
             // as they would otherwise appear at (0, 0)- corner of the screen
             position->x = (display_mode->width / 2) - (display.width / 2);
             position->y = (display_mode->height / 2) - (display.height / 2);
-            
+
             window = glfwCreateWindow(display_mode->width,
                                       display_mode->height,
                                       title,
@@ -386,11 +386,11 @@ window_open(char const * const title,
                                   NULL,
                                   NULL);
     }
-    
+
     if (window != NULL) {
         glfwMakeContextCurrent(window);
     }
-    
+
     return window;
 }
 
@@ -401,7 +401,7 @@ window_make_windowed(GLFWwindow * const window,
                      struct window_size const size)
 {
     int32_t const refresh_rate = GLFW_DONT_CARE;
-    
+
     glfwSetWindowMonitor(window, NULL,
                          position.x, position.y,
                          size.width, size.height,
@@ -414,12 +414,12 @@ window_make_fullscreen(GLFWwindow * const window,
                        struct window_position * const previous)
 {
     GLFWmonitor * const monitor = glfwGetPrimaryMonitor();
-    
+
     if (monitor) {
         GLFWvidmode const * const mode = glfwGetVideoMode(monitor);
-        
+
         struct window_position const default_position = { 0, 0 };
-        
+
         glfwGetWindowPos(window, &previous->x, &previous->y);
         glfwSetWindowMonitor(window, monitor,
                              default_position.x,
@@ -436,7 +436,7 @@ window_callback_scroll(GLFWwindow * const window,
                        double const y)
 {
     (void)window;
-    
+
     accumulated_cursor_scroll.x_offset += x;
     accumulated_cursor_scroll.y_offset += y;
 }

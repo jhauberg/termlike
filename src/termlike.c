@@ -234,23 +234,23 @@ term_open(struct term_settings const settings)
     if (terminal.is_open) {
         term_close();
     }
-    
+
     struct window_size display = (struct window_size) {
         .width = settings.size.width,
         .height = settings.size.height
     };
-    
+
     struct window_params params;
-    
+
     term_get_display_params(settings, display, &params);
-    
+
     if (params.display.width == 0 ||
         params.display.height == 0) {
         return false;
     }
-    
+
     terminal.window = window_create(params);
-    
+
     if (terminal.window == NULL) {
         return false;
     }
@@ -258,9 +258,9 @@ term_open(struct term_settings const settings)
     if (!term_setup(display)) {
         return false;
     }
-    
+
     terminal.is_open = true;
-    
+
     return terminal.is_open;
 }
 
@@ -272,14 +272,14 @@ term_close(void)
     }
 
     free(terminal.lines.widths);
-    
+
     graphics_release(terminal.graphics);
     timer_release(terminal.timer);
     command_release(terminal.queue);
     buffer_release(terminal.buffer);
-    
+
     window_terminate(terminal.window);
-    
+
     terminal = (struct term_context const) { 0 };
 
     return !terminal.is_open;
@@ -324,7 +324,7 @@ void
 term_run(uint16_t const frequency)
 {
     double interpolate = 0;
-    
+
     term_update(frequency, &interpolate);
 #ifdef TERM_INCLUDE_PROFILER
     profiler_begin();
@@ -333,7 +333,7 @@ term_run(uint16_t const frequency)
 #ifdef TERM_INCLUDE_PROFILER
     profiler_end();
 #endif
-    
+
     window_present(terminal.window);
 }
 
@@ -374,7 +374,7 @@ term_printstr(char const * const text,
     assert(text != NULL);
 #endif
     struct term_transform transform;
-    
+
     term_get_transform(&transform);
 
     uint32_t const index = command_next_layered_index(terminal.queue,
@@ -388,7 +388,7 @@ term_printstr(char const * const text,
         .bounds = bounds,
         .color = color
     };
-    
+
     command_push(terminal.queue, cmd);
 }
 
@@ -427,15 +427,15 @@ term_count(char const * const text, size_t * const length)
     assert(text != NULL);
 #endif
     *length = 0;
-    
+
     // initialize a state for counting number of printable characters
     struct term_state_count state;
-    
+
     state.count = 0;
- 
+
     buffer_copy(terminal.buffer, text, TERM_BOUNDS_UNBOUNDED);
     buffer_foreach(terminal.buffer, term_count_character, &state);
-    
+
     *length = state.count;
 }
 
@@ -463,19 +463,19 @@ term_measurestr(char const * const text,
 #endif
     dimensions->width = 0;
     dimensions->height = 0;
-    
+
     struct term_transform transform;
-    
+
     term_get_transform(&transform);
-    
+
     struct term_scale const scale = transform.scale;
-    
+
     term_copy_str(text, bounds, scale);
-    
+
     struct term_measurement measurement;
 
     term_measure_buffer(bounds, scale, &measurement);
-    
+
     dimensions->width = measurement.size.width;
     dimensions->height = measurement.size.height;
 }
@@ -503,7 +503,7 @@ term_get_cursor(struct term_cursor_state * const cursor)
 {
     cursor->location = terminal.cursor.location;
     cursor->scroll = terminal.cursor.scroll;
-    
+
     struct viewport viewport;
 
     graphics_get_viewport(terminal.graphics, &viewport);
@@ -518,46 +518,46 @@ bool
 term_setup(struct window_size const display)
 {
     struct viewport viewport;
-    
+
     viewport.offset.width = 0;
     viewport.offset.height = 0;
-    
+
     // initialize framebuffer, actual values set in term_invalidate
     viewport.framebuffer.height = 0;
     viewport.framebuffer.width = 0;
-    
+
     viewport.resolution.width = display.width;
     viewport.resolution.height = display.height;
-    
+
     terminal.graphics = graphics_init(viewport);
-    
+
     if (terminal.graphics == NULL) {
         return false;
     }
-    
+
     term_invalidate();
-    
+
     terminal.timer = timer_init();
-    
+
     if (terminal.timer == NULL) {
         return false;
     }
-    
+
     terminal.queue = command_init();
     terminal.buffer = buffer_init();
-    
+
     terminal.lines.capacity = 4; // default 4 lines, expands when needed
     terminal.lines.widths = malloc(sizeof(int32_t) * terminal.lines.capacity);
 
     terminal.draw_func = NULL;
     terminal.tick_func = NULL;
-    
+
     load_image_data(IBM8x8_FONT, IBM8x8_SIZE, term_load_font);
-    
+
     term_set_transform(TERM_TRANSFORM_NONE);
 #ifdef TERM_INCLUDE_PROFILER
     terminal.is_profiling = false;
-    
+
     profiler_reset();
 #endif
     return true;
@@ -568,13 +568,13 @@ void
 term_invalidate(void)
 {
     struct viewport viewport;
-    
+
     graphics_get_viewport(terminal.graphics, &viewport);
-    
+
     window_get_framebuffer_size(terminal.window,
                                 &viewport.framebuffer.width,
                                 &viewport.framebuffer.height);
-    
+
     graphics_invalidate(terminal.graphics, viewport);
 }
 
@@ -583,26 +583,26 @@ void
 term_update(uint16_t const frequency, double * const interpolate)
 {
     struct window_context * const window = terminal.window;
-    
+
     // read input state for this frame
     // from this point on, input deltas branch off into two synchronized paths;
     // one for frame related input (e.g. draw, internals)
     // and one for tick related input (e.g. tick)
     window_read(window, &terminal.keys, &terminal.cursor);
-    
+
     // save a copy of the current key state for this frame
     struct term_key_state const current_keys = terminal.keys;
-    
+
     if (term_key_released((enum term_key)TERM_KEY_TOGGLE_FULLSCREEN)) {
         term_toggle_fullscreen();
     }
-    
+
 #ifdef TERM_INCLUDE_PROFILER
     if (term_key_pressed((enum term_key)TERM_KEY_TOGGLE_PROFILING)) {
         terminal.is_profiling = !terminal.is_profiling;
     }
 #endif
-    
+
     // reset input state as it were during the previous tick
     // note that this is necessary to syncronize input between ticks and not
     // between frames (a game may run so fast that it skips ticks during a
@@ -610,24 +610,24 @@ term_update(uint16_t const frequency, double * const interpolate)
     // want to do something on pressed/released, but those states could never
     // trigger if it happened during a frame that skipped a tick)
     terminal.keys = terminal.previous_keys;
-    
+
     timer_begin(terminal.timer); {
         double step = 0;
-        
+
         while (timer_tick(terminal.timer, frequency, &step)) {
             // update input state from previous tick
             window_read(window, &terminal.keys, &terminal.cursor);
             // save a copy of the state read during this tick, so that
             // following ticks use the correct input delta
             terminal.previous_keys = terminal.keys;
-            
+
             if (terminal.tick_func) {
                 terminal.tick_func(step);
             }
         }
     }
     timer_end(terminal.timer, interpolate);
-    
+
     // finally set key state to that of this frame
     // (regardless of whether or not a tick occurred during this frame)
     terminal.keys = current_keys;
@@ -673,9 +673,9 @@ void
 term_toggle_fullscreen(void)
 {
     struct window_context * const window = terminal.window;
-    
+
     window_set_fullscreen(window, !window_is_fullscreen(window));
-    
+
     // note that generally, the graphics context should be invalidated
     // whenever the window is resized in any way- however, since the window
     // is currently limited to the initial size, resizing *only* happens
@@ -690,7 +690,7 @@ term_copy_str(char const * const text,
               struct term_scale const scale)
 {
     buffer_copy(terminal.buffer, text, bounds.limit);
-    
+
     if (bounds.size.width != TERM_BOUNDS_UNBOUNDED &&
         bounds.wrap == TERM_WRAP_WORDS) {
         struct graphics_font font;
@@ -698,10 +698,10 @@ term_copy_str(char const * const text,
         graphics_get_font(terminal.graphics, &font);
 
         float const cw = (float)font.size * scale.horizontal;
-        
+
         // determine max number of characters per line
         size_t const limit = (size_t)floorf((float)bounds.size.width / cw);
-        
+
         buffer_wrap(terminal.buffer, limit);
     }
 }
@@ -719,7 +719,7 @@ term_measure_buffer(struct term_bounds const bounds,
     struct graphics_font font;
 
     graphics_get_font(terminal.graphics, &font);
-    
+
     cursor_start(&measure.cursor,
                  bounds,
                  (float)font.size * scale.horizontal,
@@ -727,9 +727,9 @@ term_measure_buffer(struct term_bounds const bounds,
 
     measure.lines = &terminal.lines;
     measure.bounds = bounds;
-    
+
     buffer_foreach(terminal.buffer, term_measure_character, &measure);
-    
+
     uint32_t const line_count = measure.cursor.offset.line + 1;
 
     measurement->line_count = line_count;
@@ -737,11 +737,11 @@ term_measure_buffer(struct term_bounds const bounds,
 
     measurement->size.width = 0;
     measurement->size.height = PIXEL((float)line_count * measure.cursor.height);
-    
+
     // determine bounding width from the widest line
     for (uint32_t i = 0; i < line_count; i++) {
         int32_t const width = measure.lines->widths[i];
-        
+
         if (measurement->size.width < width) {
             measurement->size.width = width;
         }
@@ -753,22 +753,22 @@ void
 term_print_character(uint32_t const character, void * const data)
 {
     struct term_state_print * const state = (struct term_state_print *)data;
-    
+
     struct cursor_offset offset;
-    
+
     cursor_advance(&state->cursor, &offset, character);
-    
+
     if (character == '\n' ||
         character == ' ') {
         // don't print stuff we don't need to
         return;
     }
-    
+
     if (cursor_is_out_of_bounds(&state->cursor)) {
         // don't draw anything out of bounds
         return;
     }
-    
+
     if (state->bounds.align == TERM_ALIGN_RIGHT) {
 #ifdef DEBUG
         assert(state->measured != NULL);
@@ -783,7 +783,7 @@ term_print_character(uint32_t const character, void * const data)
 
     float const cw = (float)state->cursor.width;
     float const ch = (float)state->cursor.height;
-    
+
     if ((state->rotation == TERM_ROTATE_STRING ||
          state->rotation == TERM_ROTATE_STRING_ANCHORED) &&
         (state->radians > 0 || state->radians < 0)) {
@@ -797,36 +797,36 @@ term_print_character(uint32_t const character, void * const data)
             .x = offset.x,
             .y = offset.y
         };
-        
+
         struct term_anchor rotated;
-        
+
         if (state->rotation == TERM_ROTATE_STRING_ANCHORED) {
             float const dx = w * state->anchor.x;
             float const dy = h * state->anchor.y;
-            
+
             struct term_anchor const center = {
                 .x = dx - (cw / 2),
                 .y = dy - (ch / 2)
             };
-            
+
             rotate_point_center(point, center, -state->radians, &rotated);
         } else {
             rotate_point(point, -state->radians, &rotated);
         }
-        
+
         offset.x = rotated.x;
         offset.y = rotated.y;
     }
-    
+
     offset.x += state->origin.x;
     offset.y += state->origin.y;
-    
+
     if (offset.x + cw < 0 || offset.x > state->display.width ||
         offset.y + ch < 0 || offset.y > state->display.height) {
         // cull unnecessary draws
         return;
     }
-    
+
     struct graphics_transform transform = {
         .position = {
             .x = offset.x,
@@ -839,7 +839,7 @@ term_print_character(uint32_t const character, void * const data)
         },
         .angle = state->radians
     };
-    
+
     graphics_draw(terminal.graphics,
                   state->tint,
                   transform,
@@ -851,9 +851,9 @@ void
 term_count_character(uint32_t const character, void * const data)
 {
     (void)character;
-    
+
     struct term_state_count * const state = (struct term_state_count *)data;
-    
+
     state->count += 1;
 }
 
@@ -864,21 +864,21 @@ term_measure_character(uint32_t const character, void * const data)
     struct term_state_measure * const state = (struct term_state_measure *)data;
 
     struct cursor_offset offset;
-    
+
     cursor_advance(&state->cursor, &offset, character);
-    
+
     float edge = offset.x;
-    
+
     if (character != '\n') {
         edge += state->cursor.width;
     }
-    
+
     uint32_t const line_index = offset.line;
     uint32_t const line_count = line_index + 1;
-    
+
     if (line_count > state->lines->capacity) {
         size_t expanded_capacity = state->lines->capacity * 2;
-        
+
         // the maximum number of lines is directly tied to the limits of the
         // internal text buffer; e.g. the max number of characters it will hold
         // equals the maximum possible number of lines (if each character
@@ -886,16 +886,16 @@ term_measure_character(uint32_t const character, void * const data)
         if (expanded_capacity > MAX_TEXT_LENGTH) {
             expanded_capacity = MAX_TEXT_LENGTH;
         }
-        
+
 #ifdef DEBUG
         assert(expanded_capacity > line_count);
 #endif
-        
+
         state->lines->capacity = expanded_capacity;
         state->lines->widths = realloc(state->lines->widths,
-                                   sizeof(int32_t) * state->lines->capacity);
+                                       sizeof(int32_t) * state->lines->capacity);
     }
-    
+
     state->lines->widths[line_index] = PIXEL(edge);
 }
 
@@ -913,9 +913,9 @@ term_print_command(struct command const * const command)
     // from these initial values
     struct term_state_print state;
     struct term_measurement measurement;
-    
+
     state.measured = NULL;
-    
+
     // measurements of buffer are only required ahead of time, if:
     //  1) alignment is not default (left), or
     //  2) rotation is applied (to string)
@@ -933,30 +933,30 @@ term_print_command(struct command const * const command)
     struct graphics_font font;
 
     graphics_get_font(terminal.graphics, &font);
-    
+
     cursor_start(&state.cursor, command->bounds,
                  (float)font.size * command->transform.scale.horizontal,
                  (float)font.size * command->transform.scale.vertical);
 
     state.bounds = command->bounds;
-    
+
     state.origin.x = (float)command->origin.x;
     state.origin.y = (float)command->origin.y;
     state.origin.z = command_index_to_z(command->index);
 
     struct term_rotation const rotate = command->transform.rotate;
-    
+
     state.rotation = rotate.rotation;
     state.anchor = rotate.anchor;
-    
+
     state.radians = 0;
-    
+
     if (rotate.angle != 0 && rotate.angle != 360) {
         state.radians = (float)((rotate.angle * M_PI) / 180.0f);
     }
-    
+
     state.scale = command->transform.scale;
-    
+
     state.tint = (struct graphics_color) {
         .r = command->color.r,
         .g = command->color.g,
@@ -978,10 +978,10 @@ void
 term_load_font(struct graphics_image const image)
 {
     struct graphics_font font;
-    
+
     font.columns = IBM8x8_COLUMNS;
     font.rows = IBM8x8_ROWS;
     font.size = IBM8x8_CELL_SIZE;
-    
+
     graphics_set_font(terminal.graphics, image, font);
 }

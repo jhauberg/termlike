@@ -41,14 +41,14 @@ command_init(void)
 #ifdef DEBUG
     assert(sizeof(struct command_index) == sizeof(uint32_t));
 #endif
-    
+
     struct command_buffer * const buf = malloc(sizeof(struct command_buffer));
-    
+
     buf->count = 0;
     buf->capacity = UINT8_MAX + 1;
 
     buf->commands = malloc(sizeof(struct command) * buf->capacity);
-    
+
     return buf;
 }
 
@@ -89,13 +89,13 @@ command_push(struct command_buffer * const buffer,
         buffer->commands = realloc(buffer->commands,
                                    sizeof(struct command) * buffer->capacity);
     }
-    
+
 #ifdef _WIN32
     memcpy(&buffer->commands[buffer->count], &command, sizeof(struct command));
 #else
     buffer->commands[buffer->count] = command;
 #endif
-    
+
     buffer->count += 1;
 }
 
@@ -111,11 +111,11 @@ command_flush(struct command_buffer * const buffer,
 
         for (size_t i = 0; i < buffer->count; i++) {
             struct command * const command = &buffer->commands[i];
-            
+
             callback(command);
         }
     }
-    
+
     buffer->count = 0;
 }
 
@@ -162,12 +162,12 @@ command_compare(void const * const cmd,
 {
     struct command const * lhs = (struct command *)cmd;
     struct command const * rhs = (struct command *)other_cmd;
-    
+
     if (lhs->index < rhs->index) {
         return -1;
     } else if (lhs->index > rhs->index) {
         return 1;
     }
-    
+
     return 0;
 }

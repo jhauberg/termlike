@@ -90,11 +90,11 @@ struct graphics_context *
 graphics_init(struct viewport const viewport)
 {
     struct graphics_context * context = malloc(sizeof(struct graphics_context));
-    
+
     context->viewport = viewport;
-    
+
     graphics_setup(context);
-    
+
     return context;
 }
 
@@ -102,7 +102,7 @@ void
 graphics_release(struct graphics_context * const context)
 {
     graphics_teardown(context);
-    
+
     free(context);
 }
 
@@ -111,17 +111,17 @@ graphics_begin(struct graphics_context * const context)
 {
     int32_t const width = context->viewport.resolution.width;
     int32_t const height = context->viewport.resolution.height;
-    
+
     glBindFramebuffer(GL_FRAMEBUFFER, context->screen.framebuffer); {
         glViewport(0, 0, width, height);
-        
+
         glClearColor(context->clear.r / 255.0f,
                      context->clear.g / 255.0f,
                      context->clear.b / 255.0f,
                      context->clear.a / 255.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
-    
+
     glyphs_begin(context->glyphs);
 }
 
@@ -129,7 +129,7 @@ void
 graphics_end(struct graphics_context * const context)
 {
     glyphs_end(context->glyphs);
-    
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0); {
         glViewport(context->clip.x,
                    context->clip.y,
@@ -141,7 +141,7 @@ graphics_end(struct graphics_context * const context)
                      context->bars.b / 255.0f,
                      context->bars.a / 255.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        
+
         glUseProgram(context->screen.renderable.program);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, context->screen.texture_id);
@@ -155,7 +155,7 @@ graphics_end(struct graphics_context * const context)
         glBindTexture(GL_TEXTURE_2D, 0);
         glUseProgram(0);
     }
-    
+
     graphics_process_errors();
 }
 
@@ -166,34 +166,34 @@ graphics_draw(struct graphics_context const * const context,
               uint32_t const code)
 {
     bool const use_cache = code == cache_previous_code;
-    
+
     uint32_t const table_index = use_cache ?
         cache_previous_index : graphics_get_table_index(code);
-    
+
     cache_previous_code = code;
     cache_previous_index = table_index;
-    
+
     struct glyph_vertex vertices[GLYPH_VERTEX_COUNT];
     struct glyph_uv const uv = context->shared.glyph_uvs[table_index];
-    
+
     memcpy(&vertices, context->shared.glyph_vertices,
            sizeof(context->shared.glyph_vertices));
-    
+
     graphics_set_uv(&vertices, uv);
     graphics_set_tint(&vertices, color);
-    
+
     struct glyph_transform glyph_transform;
-    
+
     graphics_get_transform(transform,
                            context->viewport,
                            context->shared.glyph,
                            &glyph_transform);
-    
+
     glyph_transform.offset = (struct vector2) {
         .x = context->shared.glyph_half.horizontal,
         .y = context->shared.glyph_half.vertical
     };
-    
+
     glyphs_add(context->glyphs, &vertices, glyph_transform,
                context->font_texture_id);
 }
@@ -213,55 +213,55 @@ graphics_set_font(struct graphics_context * const context,
     if (context->font_texture_id != 0) {
         glDeleteTextures(1, &context->font_texture_id);
     }
-    
+
     graphics_create_texture(image, &context->font_texture_id);
-    
+
     context->font = font;
-    
+
     // store commonly used values to avoid calculating over and over
     struct graphics_scale const glyph = (struct graphics_scale) {
         .horizontal = font.size,
         .vertical = font.size
     };
-    
+
     struct graphics_scale const texture = (struct graphics_scale) {
         .horizontal = font.columns * glyph.horizontal,
         .vertical = font.rows * glyph.vertical
     };
-    
+
     context->shared.glyph = glyph;
     context->shared.glyph_half = (struct graphics_scale) {
         .horizontal = glyph.horizontal / 2.0f,
         .vertical = glyph.vertical / 2.0f,
     };
-    
+
     float const half_pixel = 0.5f;
-    
+
     float const w = half_pixel / texture.horizontal;
     float const h = half_pixel / texture.vertical;
-    
+
     for (uint16_t column = 0; column < 16; column++) {
         for (uint16_t row = 0; row < 16; row++) {
             struct vector2 source;
-            
+
             source.x = column * glyph.horizontal;
             source.y = row * glyph.vertical;
-            
+
             // flip it
             source.y = (texture.vertical - glyph.vertical) - source.y;
-            
+
             struct vector2 const min = {
                 .x = (source.x + w) / texture.horizontal,
                 .y = (source.y + h) / texture.vertical
             };
-            
+
             struct vector2 const max = {
                 .x = (source.x - w + glyph.horizontal) / texture.horizontal,
                 .y = (source.y - h + glyph.vertical) / texture.vertical
             };
-            
+
             uint16_t const index = (row * 16) + column;
-            
+
             // normalize to fixed-point values
             context->shared.glyph_uvs[index] = (struct glyph_uv) {
                 .min = (struct texture) {
@@ -275,7 +275,7 @@ graphics_set_font(struct graphics_context * const context,
             };
         }
     }
-    
+
     graphics_set_position(&context->shared.glyph_vertices,
                           context->shared.glyph_half);
 }
@@ -286,7 +286,7 @@ graphics_invalidate(struct graphics_context * const context,
 {
     viewport_box(viewport, &context->viewport);
     viewport_clip(context->viewport, &context->clip);
-    
+
     glyphs_invalidate(context->glyphs, context->viewport);
 }
 
@@ -302,30 +302,30 @@ void
 graphics_setup(struct graphics_context * const context)
 {
     glClearDepth(1.0);
-    
+
     graphics_setup_screen_shader(context);
     graphics_setup_screen_texture(context);
     graphics_setup_screen_buffer(context);
     graphics_setup_screen_vbo(context);
-    
+
     context->clear = (struct color) {
         .r = 0,
         .g = 0,
         .b = 0,
         .a = 255
     };
-    
+
     context->bars = (struct color) {
         .r = 30,
         .g = 30,
         .b = 30,
         .a = 255
     };
-    
+
     context->font.columns = 0;
     context->font.rows = 0;
     context->font_texture_id = 0;
-    
+
     context->glyphs = glyphs_init(context->viewport);
 }
 
@@ -334,7 +334,7 @@ void
 graphics_teardown(struct graphics_context * const context)
 {
     glyphs_release(context->glyphs);
-    
+
     glDeleteTextures(1, &context->font_texture_id);
     glDeleteTextures(1, &context->screen.texture_id);
     glDeleteFramebuffers(1, &context->screen.framebuffer);
@@ -357,7 +357,7 @@ graphics_setup_screen_shader(struct graphics_context * const context)
     "    gl_Position = vec4(vertex_position, 1);\n"
     "    texture_coord = vertex_texture_coord.st;\n"
     "}\n";
-    
+
     char const * const fragment_shader =
     "#version 330 core\n"
     "in vec2 texture_coord;\n"
@@ -367,14 +367,14 @@ graphics_setup_screen_shader(struct graphics_context * const context)
     "    vec4 sampled_color = texture(sampler, texture_coord.st);\n"
     "    fragment_color = sampled_color;\n"
     "}\n";
-    
+
     GLuint const vs = graphics_compile_shader(GL_VERTEX_SHADER,
                                               vertex_shader);
     GLuint const fs = graphics_compile_shader(GL_FRAGMENT_SHADER,
                                               fragment_shader);
-    
+
     context->screen.renderable.program = graphics_link_program(vs, fs);
-    
+
     glDeleteShader(vs);
     glDeleteShader(fs);
 }
@@ -387,7 +387,7 @@ graphics_setup_screen_texture(struct graphics_context * const context)
     glBindTexture(GL_TEXTURE_2D, context->screen.texture_id); {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        
+
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
                      context->viewport.resolution.width,
                      context->viewport.resolution.height,
@@ -417,13 +417,13 @@ graphics_setup_screen_buffer(struct graphics_context * const context)
                                  0);
         }
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
-        
+
         GLenum const draw_buffers[1] = {
             GL_COLOR_ATTACHMENT0
         };
-        
+
         glDrawBuffers(1, draw_buffers);
-        
+
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) !=
             GL_FRAMEBUFFER_COMPLETE) {
             fprintf(stderr, "OpenGL: screen framebuffer is invalid\n");
@@ -442,24 +442,24 @@ graphics_setup_screen_vbo(struct graphics_context * const context)
         { .x =  INT16_MAX, .y = -INT16_MAX, .texture = { UINT16_MAX, 0 } },
         { .x =  INT16_MAX, .y =  INT16_MAX, .texture = { UINT16_MAX, UINT16_MAX } },
     };
-    
+
     glGenBuffers(1, &context->screen.renderable.vbo);
     glGenVertexArrays(1, &context->screen.renderable.vao);
-    
+
     glBindVertexArray(context->screen.renderable.vao); {
         glBindBuffer(GL_ARRAY_BUFFER, context->screen.renderable.vbo); {
             glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
                          GL_STATIC_DRAW);
-            
+
             GLsizei const stride = sizeof(struct frame_vertex);
-            
+
             glVertexAttribPointer(0,
                                   2,
                                   GL_SHORT, GL_TRUE,
                                   stride,
                                   0);
             glEnableVertexAttribArray(0);
-            
+
             glVertexAttribPointer(1,
                                   2,
                                   GL_UNSIGNED_SHORT, GL_TRUE,
@@ -478,27 +478,27 @@ graphics_create_texture(struct graphics_image const image,
                         GLuint * const texture_id)
 {
     GLenum format = 0;
-    
+
     if (image.components == 3) {
         format = GL_RGB;
     } else if (image.components == 4) {
         format = GL_RGBA;
     }
-    
+
     if (format == 0) {
         return;
     }
-    
+
     GLint const format_internal = (GLint)format;
-    
+
     glGenTextures(1, texture_id);
     glBindTexture(GL_TEXTURE_2D, *texture_id); {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        
+
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        
+
         glTexImage2D(GL_TEXTURE_2D,
                      0, format_internal,
                      image.width, image.height,
@@ -518,16 +518,16 @@ graphics_set_position(struct glyph_vertex (* const verts)[GLYPH_VERTEX_COUNT],
     float const r = halved_glyph.horizontal;
     float const b = -halved_glyph.vertical;
     float const t = halved_glyph.vertical;
-    
+
     struct vector2 const bl = { .x = l, .y = b };
     struct vector2 const tl = { .x = l, .y = t };
     struct vector2 const tr = { .x = r, .y = t };
     struct vector2 const br = { .x = r, .y = b };
-    
+
     (*verts)[0].position = (struct vector3) { .x = tl.x, .y = tl.y, .z = 0 };
     (*verts)[1].position = (struct vector3) { .x = br.x, .y = br.y, .z = 0 };
     (*verts)[2].position = (struct vector3) { .x = bl.x, .y = bl.y, .z = 0 };
-    
+
     (*verts)[3].position = (struct vector3) { .x = tl.x, .y = tl.y, .z = 0 };
     (*verts)[4].position = (struct vector3) { .x = tr.x, .y = tr.y, .z = 0 };
     (*verts)[5].position = (struct vector3) { .x = br.x, .y = br.y, .z = 0 };
@@ -540,17 +540,17 @@ graphics_set_uv(struct glyph_vertex (* const verts)[GLYPH_VERTEX_COUNT],
 {
     struct texture const bl = uv.min;
     struct texture const tr = uv.max;
-    
+
     struct texture const tl = {
         .u = uv.min.u,
         .v = uv.max.v
     };
-    
+
     struct texture const br = {
         .u = uv.max.u,
         .v = uv.min.v
     };
-    
+
     (*verts)[0].texture = tl;
     (*verts)[1].texture = br;
     (*verts)[2].texture = bl;
@@ -567,7 +567,7 @@ graphics_set_tint(struct glyph_vertex (* const verts)[GLYPH_VERTEX_COUNT],
 #ifdef DEBUG
     assert(sizeof(struct color) == sizeof(struct graphics_color));
 #endif
-    
+
     for (uint16_t i = 0; i < GLYPH_VERTEX_COUNT; i++) {
         memcpy(&(*verts)[i].color, &color, sizeof(struct color));
     }
@@ -582,23 +582,23 @@ graphics_get_transform(struct graphics_transform const transform,
 {
     float const w = glyph_size.horizontal * transform.scale.horizontal;
     float const h = glyph_size.vertical * transform.scale.vertical;
-    
+
     float const dx = (w - glyph_size.horizontal) / 2.0f;
     float const dy = (h - glyph_size.vertical) / 2.0f;
-    
+
     float const x = transform.position.x + dx;
     float const y = transform.position.y + dy;
-    
+
     float const flipped_y = (viewport.resolution.height -
                              glyph_size.vertical -
                              y);
-    
+
     glyph->origin = (struct vector3) {
         .x = x,
         .y = flipped_y,
         .z = transform.position.z
     };
-    
+
     glyph->angle = transform.angle;
     glyph->scale.x = transform.scale.horizontal;
     glyph->scale.y = transform.scale.vertical;
@@ -613,19 +613,19 @@ graphics_get_table_index(uint32_t const code)
         // within basic ASCII range; skip mapping
         return code;
     }
-    
+
     for (uint16_t i = 0; i < 33; i++) {
         if (CP437[i] == code) {
             return i;
         }
     }
-    
+
     for (uint16_t i = 127; i < CP437_LENGTH; i++) {
         if (CP437[i] == code) {
             return i;
         }
     }
-    
+
     return 63; // mapping not found, default to '?'
 }
 
@@ -634,24 +634,24 @@ graphics_compile_shader(GLenum const type,
                         GLchar const * const source)
 {
     GLuint const shader = glCreateShader(type);
-    
+
     glShaderSource(shader, 1, &source, NULL);
     glCompileShader(shader);
-    
+
     GLint param;
-    
+
     glGetShaderiv(shader, GL_COMPILE_STATUS, &param);
-    
+
     if (param != GL_TRUE) {
         GLchar log[4096];
-        
+
         glGetShaderInfoLog(shader, sizeof(log), NULL, log);
-        
+
         fprintf(stderr, "OpenGL: shader compilation error: %s\n", (char *)log);
-        
+
         return 0;
     }
-    
+
     return shader;
 }
 
@@ -660,26 +660,26 @@ graphics_link_program(GLuint const vs,
                       GLuint const fs)
 {
     GLuint const program = glCreateProgram();
-    
+
     glAttachShader(program, vs);
     glAttachShader(program, fs);
-    
+
     glLinkProgram(program);
-    
+
     GLint param;
-    
+
     glGetProgramiv(program, GL_LINK_STATUS, &param);
-    
+
     if (param != GL_TRUE) {
         GLchar log[4096];
-        
+
         glGetProgramInfoLog(program, sizeof(log), NULL, log);
-        
+
         fprintf(stderr, "OpenGL: program link error: %s\n", (char *)log);
-        
+
         return 0;
     }
-    
+
     return program;
 }
 
@@ -688,7 +688,7 @@ void
 graphics_process_errors(void)
 {
     GLenum error;
-    
+
     while ((error = glGetError()) != GL_NO_ERROR) {
         fprintf(stderr, "OpenGL: %d\n", error);
     }

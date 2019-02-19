@@ -120,10 +120,10 @@ rotated(int32_t const angle,
         enum term_rotate const rotation)
 {
     struct term_transform transform = TERM_TRANSFORM_NONE;
-    
+
     transform.rotate.angle = angle;
     transform.rotate.rotation = rotation;
-    
+
     return transform;
 }
 
@@ -132,10 +132,10 @@ struct term_transform
 scaled(float const scale)
 {
     struct term_transform transform = TERM_TRANSFORM_NONE;
-    
+
     transform.scale.horizontal = scale;
     transform.scale.vertical = scale;
-    
+
     return transform;
 }
 
@@ -146,11 +146,11 @@ transformed(float const scale,
             enum term_rotate const rotation)
 {
     struct term_transform transform = TERM_TRANSFORM_NONE;
-    
+
     transform.scale.horizontal = scale;
     transform.scale.vertical = scale;
     transform.rotate.angle = angle;
     transform.rotate.rotation = rotation;
-    
+
     return transform;
 }

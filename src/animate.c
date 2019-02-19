@@ -43,16 +43,15 @@ animate_reset(struct term_animate * const animatable, float const value)
 {
     animatable->time = 0;
     animatable->value = value;
-    animatable->result.current = animatable->value;
-    animatable->result.previous = animatable->value;
+    animatable->result.current = value;
+    animatable->result.previous = value;
 }
 
 void
 animate_set(struct term_animate * const animatable, float const value)
 {
-    animatable->value = value;
     animatable->result.previous = animatable->result.current;
-    animatable->result.current = animatable->value;
+    animatable->result.current = value;
 }
 
 void
@@ -83,8 +82,7 @@ animate_by(struct term_animate * const animatable,
            float const add,
            double const step)
 {
-    float const from = animatable->value;
-    float const value = from + (float)(add * step);
+    float const value = animatable->result.current + (float)(add * step);
 
     animate_set(animatable, value);
 }
@@ -92,7 +90,7 @@ animate_by(struct term_animate * const animatable,
 void
 animate_get(struct term_animate const * const animatable, float * const value)
 {
-    *value = animatable->value;
+    *value = animatable->result.current;
 }
 
 void

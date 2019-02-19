@@ -65,13 +65,16 @@ animate_to(struct term_animate * const animatable,
 
         if (animatable->time > duration) {
             animatable->time = duration;
-        }
 
-        animatable->result.previous = animatable->result.current;
-        animatable->result.current = animate_from_to(animatable->value,
-                                                     value,
-                                                     animatable->time,
-                                                     duration);
+            animate_set(animatable, value);
+        } else {
+            float const interpolated_value = animate_from_to(animatable->value,
+                                                             value,
+                                                             animatable->time,
+                                                             duration);
+
+            animate_set(animatable, interpolated_value);
+        }
     } else {
         animate_set(animatable, value);
     }

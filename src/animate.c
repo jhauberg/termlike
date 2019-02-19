@@ -5,11 +5,15 @@
 
 #include <math.h> // fabsf
 
+struct vector {
+    float current;
+    float previous;
+};
+
 struct term_animate {
     double time;
     float value;
-    float result;
-    float result_prev;
+    struct vector result;
 };
 
 static float animate_blend_value(float previous, float next, double interp);
@@ -39,16 +43,16 @@ animate_reset(struct term_animate * const animatable, float const value)
 {
     animatable->time = 0;
     animatable->value = value;
-    animatable->result = value;
-    animatable->result_prev = value;
+    animatable->result.current = animatable->value;
+    animatable->result.previous = animatable->value;
 }
 
 void
 animate_set(struct term_animate * const animatable, float const value)
 {
     animatable->value = value;
-    animatable->result_prev = animatable->result;
-    animatable->result = animatable->value;
+    animatable->result.previous = animatable->result.current;
+    animatable->result.current = animatable->value;
 }
 
 void
@@ -64,11 +68,11 @@ animate_to(struct term_animate * const animatable,
             animatable->time = duration;
         }
 
-        animatable->result_prev = animatable->result;
-        animatable->result = animate_from_to(animatable->value,
-                                             value,
-                                             animatable->time,
-                                             duration);
+        animatable->result.previous = animatable->result.current;
+        animatable->result.current = animate_from_to(animatable->value,
+                                                     value,
+                                                     animatable->time,
+                                                     duration);
     } else {
         animate_set(animatable, value);
     }
@@ -96,8 +100,8 @@ animate_blendf(struct term_animate const * const animatable,
                double const interpolation,
                float * const value)
 {
-    *value = animate_blend_value(animatable->result_prev,
-                                 animatable->result,
+    *value = animate_blend_value(animatable->result.previous,
+                                 animatable->result.current,
                                  interpolation);
 }
 

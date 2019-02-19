@@ -36,7 +36,7 @@ tick(double const step)
     ball_position_y_fixed += ball_velocity_fixed * step;
     
     float ball_bottom_y;
-    
+
     animate_get(ball_position_y, &ball_bottom_y);
     
     ball_bottom_y = ball_bottom_y + 8;
@@ -89,7 +89,7 @@ draw(double const interp)
     
     struct term_dimens floor_size;
     
-    term_measure(floor, &floor_size);
+    term_measurestr(floor, TERM_BOUNDS_NONE, &floor_size);
     
     term_printstr(floor,
                   positioned(cx - (floor_size.width / 2), 200),

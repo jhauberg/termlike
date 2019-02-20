@@ -2,6 +2,9 @@
 
 #include <stdint.h> // int32_t
 
+#define SECONDS(s) (s)
+#define MILLISECONDS(ms) (ms / 1000.0)
+
 struct term_animate;
 
 struct term_animate * animated(float value);

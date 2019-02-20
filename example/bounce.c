@@ -8,6 +8,8 @@
 static struct term_animate * ball_position_y;
 static float ball_position_y_fixed;
 
+static struct term_animate * fade;
+
 static float ball_velocity = 0;
 static float ball_velocity_fixed = 0;
 
@@ -19,19 +21,20 @@ tick(double const step)
     static float const platform_friction = 0.86f;
     
     float const platform_top_y = 200;
-    
+    float const speed = 30;
+
     if (term_key_down(TERM_KEY_UP)) {
-        ball_velocity -= 25;
-        ball_velocity_fixed -= 25;
+        ball_velocity -= speed;
+        ball_velocity_fixed -= speed;
     } else if (term_key_down(TERM_KEY_DOWN)) {
-        ball_velocity += 25;
-        ball_velocity_fixed += 25;
+        ball_velocity += speed;
+        ball_velocity_fixed += speed;
     }
     
     ball_velocity -= gravity;
     ball_velocity_fixed -= gravity;
     
-    animate_by(ball_position_y, ball_velocity, step);
+    animate_by(ball_position_y, ball_velocity * step, step);
     
     ball_position_y_fixed += ball_velocity_fixed * step;
     
@@ -55,6 +58,17 @@ tick(double const step)
         ball_velocity_fixed *= -1;
         
         ball_position_y_fixed = platform_top_y - 8;
+    }
+
+    float f;
+
+    animate_get(fade, &f);
+
+    // checking prior to animating so that we always get the final frame
+    if (f >= TERM_COLOR_OPAQUE) {
+        animate_reset(fade, TERM_COLOR_TRANSPARENT);
+    } else {
+        animate_to(fade, TERM_COLOR_OPAQUE, SECONDS(2), step);
     }
 }
 
@@ -118,6 +132,13 @@ draw(double const interp)
     term_print(ball,
                positioned(cx - (ball_size.width / 2) + 6, y),
                colored(255, 255, 255));
+
+
+    int32_t a;
+
+    animate_blend(fade, interp, &a);
+
+    term_fill(positioned(20, 60), sized(8, 8), transparent(TERM_COLOR_WHITE, a));
 }
 
 int32_t
@@ -132,6 +153,8 @@ main(void)
  
     ball_position_y = animated(160);
     ball_position_y_fixed = 160;
+
+    fade = animated(TERM_COLOR_TRANSPARENT);
     
     while (!term_is_closing()) {
         if (term_key_down(TERM_KEY_ESCAPE)) {
@@ -147,7 +170,8 @@ main(void)
     }
     
     animate_release(ball_position_y);
-    
+    animate_release(fade);
+
     term_close();
     
     return 0;

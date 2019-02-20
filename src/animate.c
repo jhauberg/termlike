@@ -5,15 +5,18 @@
 
 #include <math.h> // fabsf
 
-struct vector {
+struct term_frame {
+    float original;
     float current;
     float previous;
 };
 
 struct term_animate {
+    struct term_frame value;
+    /**
+     * The accumulated amount of time passed during animation.
+     */
     double time;
-    float value;
-    struct vector result;
 };
 
 static float animate_blend_value(float previous, float next, double interp);
@@ -41,17 +44,17 @@ animate_release(struct term_animate * const animatable)
 void
 animate_reset(struct term_animate * const animatable, float const value)
 {
-    animatable->time = 0;
-    animatable->value = value;
-    animatable->result.current = value;
-    animatable->result.previous = value;
+    animatable->time = SECONDS(0);
+    animatable->value.original = value;
+    animatable->value.current = value;
+    animatable->value.previous = value;
 }
 
 void
 animate_set(struct term_animate * const animatable, float const value)
 {
-    animatable->result.previous = animatable->result.current;
-    animatable->result.current = value;
+    animatable->value.previous = animatable->value.current;
+    animatable->value.current = value;
 }
 
 void
@@ -60,21 +63,21 @@ animate_to(struct term_animate * const animatable,
            double const duration,
            double const step)
 {
-    if (duration > 0) {
-        animatable->time += step;
+    animatable->time += step;
 
-        if (animatable->time > duration) {
-            animatable->time = duration;
+    if (duration > SECONDS(0)) {
+        double t = animatable->time;
 
-            animate_set(animatable, value);
-        } else {
-            float const interpolated_value = animate_from_to(animatable->value,
-                                                             value,
-                                                             animatable->time,
-                                                             duration);
-
-            animate_set(animatable, interpolated_value);
+        if (t < SECONDS(0)) {
+            t = SECONDS(0);
+        } else if (t > duration) {
+            t = duration;
         }
+
+        animate_set(animatable, animate_from_to(animatable->value.original,
+                                                value,
+                                                t,
+                                                duration));
     } else {
         animate_set(animatable, value);
     }
@@ -82,18 +85,18 @@ animate_to(struct term_animate * const animatable,
 
 void
 animate_by(struct term_animate * const animatable,
-           float const add,
+           float const value,
            double const step)
 {
-    float const value = animatable->result.current + (float)(add * step);
+    animatable->value.original += value;
 
-    animate_set(animatable, value);
+    animate_to(animatable, animatable->value.original, SECONDS(0), step);
 }
 
 void
 animate_get(struct term_animate const * const animatable, float * const value)
 {
-    *value = animatable->result.current;
+    *value = animatable->value.current;
 }
 
 void
@@ -101,8 +104,8 @@ animate_blendf(struct term_animate const * const animatable,
                double const interpolation,
                float * const value)
 {
-    *value = animate_blend_value(animatable->result.previous,
-                                 animatable->result.current,
+    *value = animate_blend_value(animatable->value.previous,
+                                 animatable->value.current,
                                  interpolation);
 }
 
@@ -125,9 +128,10 @@ animate_from_to(float const a,
                 double const time,
                 double const duration)
 {
-    float const t = duration > 0 ? (float)(time / duration) : 1;
+    float const scalar = duration > SECONDS(0) ?
+        (float)(time / duration) : 1;
 
-    float d = animate_lerp(a, b, t);
+    float d = animate_lerp(a, b, scalar);
 
     if (animate_equals(d, b)) {
         d = b;
@@ -146,15 +150,15 @@ animate_blend_value(float const previous,
         return next;
     }
 
-    float t = (float)interpolation;
+    float scalar = (float)interpolation;
 
-    if (t < 0) {
-        t = 0;
-    } else if (t > 1) {
-        t = 1;
+    if (scalar < 0) {
+        scalar = 0;
+    } else if (scalar > 1) {
+        scalar = 1;
     }
 
-    return animate_lerp(previous, next, t);
+    return animate_lerp(previous, next, scalar);
 }
 
 static

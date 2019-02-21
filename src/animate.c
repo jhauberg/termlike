@@ -1,6 +1,7 @@
 #include <termlike/animate.h> // term_animate, animated
 
 #include <stdbool.h> // bool
+#include <stdint.h> // int32_t
 
 #include <math.h> // fabsf
 

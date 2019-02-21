@@ -5,10 +5,10 @@
 #include <stdint.h> // int32_t
 #include <stdbool.h> // bool :completeness
 
-static struct term_animate * ball_position_y;
+static struct term_animate ball_position_y;
 static float ball_position_y_fixed;
 
-static struct term_animate * fade;
+static struct term_animate fade;
 
 static float ball_velocity = 0;
 static float ball_velocity_fixed = 0;
@@ -34,21 +34,19 @@ tick(double const step)
     ball_velocity -= gravity;
     ball_velocity_fixed -= gravity;
     
-    animate_by(ball_position_y, ball_velocity * step, step);
+    animate_by(&ball_position_y, ball_velocity * step, step);
     
     ball_position_y_fixed += ball_velocity_fixed * step;
     
-    float ball_bottom_y;
+    float ball_bottom_y = ball_position_y.value.current;
 
-    animate_get(ball_position_y, &ball_bottom_y);
-    
     ball_bottom_y = ball_bottom_y + 8;
     
     if (ball_bottom_y > platform_top_y) {
         ball_velocity *= platform_friction;
         ball_velocity *= -1;
         
-        animate_reset(ball_position_y, platform_top_y - 8);
+        ball_position_y = animated(platform_top_y - 8);
     }
     
     ball_bottom_y = ball_position_y_fixed + 8;
@@ -60,15 +58,13 @@ tick(double const step)
         ball_position_y_fixed = platform_top_y - 8;
     }
 
-    float f;
-
-    animate_get(fade, &f);
+    float f = fade.value.current;
 
     // checking prior to animating so that we always get the final frame
     if (f >= TERM_COLOR_OPAQUE) {
-        animate_reset(fade, TERM_COLOR_TRANSPARENT);
+        fade = animated(TERM_COLOR_TRANSPARENT);
     } else {
-        animate_to(fade, TERM_COLOR_OPAQUE, SECONDS(2), step);
+        animate_to(&fade, TERM_COLOR_OPAQUE, SECONDS(2), step);
     }
 }
 
@@ -138,7 +134,7 @@ draw(double const interp)
 
     animate_blend(fade, interp, &a);
 
-    term_fill(positioned(20, 60), sized(8, 8), transparent(TERM_COLOR_WHITE, a));
+    term_fill(positioned(20, 60), sized(8, 8), transparent(TERM_COLOR_WHITE, (uint8_t)a));
 }
 
 int32_t
@@ -168,9 +164,6 @@ main(void)
         // only works as long as everything runs consistently fast
         term_run(15);
     }
-    
-    animate_release(ball_position_y);
-    animate_release(fade);
 
     term_close();
     

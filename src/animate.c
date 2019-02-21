@@ -1,61 +1,18 @@
 #include <termlike/animate.h> // term_animate, animated
 
-#include <stdlib.h> // malloc, free
 #include <stdbool.h> // bool
 
 #include <math.h> // fabsf
 
-struct term_frame {
-    float original;
-    float current;
-    float previous;
-};
+extern inline struct term_animate animated(float value);
 
-struct term_animate {
-    struct term_frame value;
-    /**
-     * The accumulated amount of time passed during animation.
-     */
-    double time;
-};
+static void animate_set(struct term_animate *, float value);
 
 static float animate_blend_value(float previous, float next, double interp);
 static float animate_from_to(float a, float b, double time, double duration);
 
 static bool animate_equals(float a, float b);
 static float animate_lerp(float a, float b, float t);
-
-struct term_animate *
-animated(float const value)
-{
-    struct term_animate * const anim = malloc(sizeof(struct term_animate));
-
-    animate_reset(anim, value);
-
-    return anim;
-}
-
-void
-animate_release(struct term_animate * const animatable)
-{
-    free(animatable);
-}
-
-void
-animate_reset(struct term_animate * const animatable, float const value)
-{
-    animatable->time = SECONDS(0);
-    animatable->value.original = value;
-    animatable->value.current = value;
-    animatable->value.previous = value;
-}
-
-void
-animate_set(struct term_animate * const animatable, float const value)
-{
-    animatable->value.previous = animatable->value.current;
-    animatable->value.current = value;
-}
 
 void
 animate_to(struct term_animate * const animatable,
@@ -94,23 +51,17 @@ animate_by(struct term_animate * const animatable,
 }
 
 void
-animate_get(struct term_animate const * const animatable, float * const value)
-{
-    *value = animatable->value.current;
-}
-
-void
-animate_blendf(struct term_animate const * const animatable,
+animate_blendf(struct term_animate const animatable,
                double const interpolation,
                float * const value)
 {
-    *value = animate_blend_value(animatable->value.previous,
-                                 animatable->value.current,
+    *value = animate_blend_value(animatable.value.previous,
+                                 animatable.value.current,
                                  interpolation);
 }
 
 void
-animate_blend(struct term_animate const * const animatable,
+animate_blend(struct term_animate const animatable,
               double const interpolation,
               int32_t * const value)
 {
@@ -119,6 +70,14 @@ animate_blend(struct term_animate const * const animatable,
     animate_blendf(animatable, interpolation, &v);
 
     *value = (int32_t)v;
+}
+
+static
+void
+animate_set(struct term_animate * const animatable, float const value)
+{
+    animatable->value.previous = animatable->value.current;
+    animatable->value.current = value;
 }
 
 static

@@ -426,7 +426,30 @@ term_repeat(char const * const character,
             struct term_dimens const size,
             struct term_color const color)
 {
-    // todo: essentially the same as fill, except repeating uv's
+    struct graphics_font font;
+
+    graphics_get_font(terminal.graphics, &font);
+#if DEBUG
+    assert(size.width >= font.size /* area not large enough to fit glyph */);
+    assert(size.height >= font.size /* area not large enough to fit glyph */);
+#endif
+    int32_t const columns = (int32_t)floorf((float)size.width / (float)font.size);
+    int32_t const rows = (int32_t)floorf((float)size.height / (float)font.size);
+
+    for (int32_t column = 0; column < columns; column++) {
+        for (int32_t row = 0; row < rows; row++) {
+            struct term_location const offset = (struct term_location) {
+                .x = column * font.size,
+                .y = row * font.size
+            };
+
+            term_print(character,
+                       positionedz(position.location.x + offset.x,
+                                   position.location.y + offset.y,
+                                   position.layer),
+                       color);
+        }
+    }
 }
 
 void

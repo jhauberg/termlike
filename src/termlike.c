@@ -355,7 +355,7 @@ term_print(char const * const character,
            struct term_color const color)
 {
 #ifdef DEBUG
-    assert(character != NULL);
+    assert(character != NULL /* can't print nothing */);
 #endif
     struct term_bounds bounds = TERM_BOUNDS_NONE;
 
@@ -371,7 +371,7 @@ term_printstr(char const * const text,
               struct term_bounds const bounds)
 {
 #ifdef DEBUG
-    assert(text != NULL);
+    assert(text != NULL /* can't print nothing */);
 #endif
     struct term_transform transform;
 
@@ -397,6 +397,10 @@ term_fill(struct term_position const position,
           struct term_dimens const size,
           struct term_color const color)
 {
+    if (size.width == 0 || size.height == 0) {
+        return;
+    }
+
     struct graphics_font font;
 
     graphics_get_font(terminal.graphics, &font);
@@ -424,7 +428,7 @@ void
 term_count(char const * const text, size_t * const length)
 {
 #ifdef DEBUG
-    assert(text != NULL);
+    assert(text != NULL /* can't count nothing */);
 #endif
     *length = 0;
 
@@ -444,7 +448,7 @@ term_measure(char const * const character,
              struct term_dimens * const dimensions)
 {
 #ifdef DEBUG
-    assert(character != NULL);
+    assert(character != NULL /* can't measure nothing */);
 #endif
     struct term_bounds bounds = TERM_BOUNDS_NONE;
 
@@ -459,7 +463,7 @@ term_measurestr(char const * const text,
                 struct term_dimens * const dimensions)
 {
 #ifdef DEBUG
-    assert(text != NULL);
+    assert(text != NULL /* can't measure nothing */);
 #endif
     dimensions->width = 0;
     dimensions->height = 0;
@@ -771,12 +775,12 @@ term_print_character(uint32_t const character, void * const data)
 
     if (state->bounds.align == TERM_ALIGN_RIGHT) {
 #ifdef DEBUG
-        assert(state->measured != NULL);
+        assert(state->measured != NULL /* measure required; see term_print_command */);
 #endif
         offset.x -= (float)state->measured->line_widths[offset.line];
     } else if (state->bounds.align == TERM_ALIGN_CENTER) {
 #ifdef DEBUG
-        assert(state->measured != NULL);
+        assert(state->measured != NULL /* measure required; see term_print_command */);
 #endif
         offset.x -= (float)state->measured->line_widths[offset.line] / 2.0f;
     }
@@ -788,7 +792,7 @@ term_print_character(uint32_t const character, void * const data)
          state->rotation == TERM_ROTATE_STRING_ANCHORED) &&
         (state->radians > 0 || state->radians < 0)) {
 #ifdef DEBUG
-        assert(state->measured != NULL);
+        assert(state->measured != NULL /* measure required; see term_print_command */);
 #endif
         float const w = (float)state->measured->size.width;
         float const h = (float)state->measured->size.height;
@@ -888,7 +892,7 @@ term_measure_character(uint32_t const character, void * const data)
         }
 
 #ifdef DEBUG
-        assert(expanded_capacity > line_count);
+        assert(expanded_capacity > line_count /* could not expand as needed */);
 #endif
 
         state->lines->capacity = expanded_capacity;

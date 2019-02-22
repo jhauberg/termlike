@@ -82,7 +82,7 @@ command_push(struct command_buffer * const buffer,
         }
 
 #ifdef DEBUG
-        assert(expanded_capacity > buffer->count);
+        assert(expanded_capacity > buffer->count /* could not expand as needed */);
 #endif
 
         buffer->capacity = expanded_capacity;

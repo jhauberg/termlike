@@ -70,6 +70,6 @@ struct term_color
 transparent(struct term_color color, uint8_t const alpha)
 {
     color.a = alpha;
-    
+
     return color;
 }

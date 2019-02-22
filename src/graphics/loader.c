@@ -27,24 +27,24 @@ load_image_data(uint8_t const * const buffer,
                 image_loaded_callback * const callback)
 {
     stbi_set_flip_vertically_on_load(true);
-    
+
     struct graphics_image image;
-    
+
     image.data = stbi_load_from_memory(buffer,
                                        length,
                                        &image.width, &image.height,
                                        &image.components,
                                        STBI_rgb_alpha);
-    
+
     if (!image.data) {
         return false;
     }
-    
+
     if (callback) {
         callback(image);
     }
-    
+
     stbi_image_free(image.data);
-    
+
     return true;
 }

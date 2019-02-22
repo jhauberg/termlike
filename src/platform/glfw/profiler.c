@@ -59,28 +59,28 @@ profiler_end(void)
 {
     double const time = glfwGetTime();
     double const time_since_last_frame = time - last_frame_time;
-    
+
     frame_time = time_since_last_frame;
     last_frame_time = time;
-    
+
     frames_per_second = (uint16_t)(1.0 / frame_time);
-    
+
     if (frames_per_second < current.frames_per_second_min) {
         current.frames_per_second_min = frames_per_second;
     }
-    
+
     if (frames_per_second > current.frames_per_second_max) {
         current.frames_per_second_max = frames_per_second;
     }
-    
+
     double const time_since_last_average = time - last_average_time;
-    
+
     if (time_since_last_average >= frame_average_interval) {
         last_average_time = time;
-        
+
         profiler_update_averages();
     }
-    
+
     current.frame_time = frame_time * 1000;
 }
 
@@ -88,14 +88,14 @@ void
 profiler_draw(void)
 {
     struct term_dimens display;
-    
+
     term_get_display(&display);
-    
+
     struct term_transform transform;
-    
+
     term_get_transform(&transform);
     term_set_transform(TERM_TRANSFORM_NONE);
-    
+
     struct term_dimens c;
 
     term_measure(TERM_SINGLE_GLYPH, &c);

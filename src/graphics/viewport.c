@@ -30,17 +30,17 @@ viewport_box(struct viewport viewport,
              struct viewport * const box)
 {
     *box = viewport;
-    
+
     box->offset.width = 0;
     box->offset.height = 0;
-    
+
     struct viewport_size target;
     enum viewport_mode mode;
-    
+
     viewport_get_mode(viewport, &target, &mode);
-    
+
     struct viewport_size framebuffer = viewport.framebuffer;
-    
+
     if (mode != VIEWPORT_MODE_NORMAL) {
         box->offset.width = framebuffer.width - target.width;
         box->offset.height = framebuffer.height - target.height;
@@ -54,14 +54,14 @@ viewport_get_mode(struct viewport const viewport,
                   enum viewport_mode * const mode)
 {
     float const screen_aspect_ratio =
-        (float)viewport.resolution.width / (float)viewport.resolution.height;
+    (float)viewport.resolution.width / (float)viewport.resolution.height;
     float const framebuffer_aspect_ratio =
-        (float)viewport.framebuffer.width / (float)viewport.framebuffer.height;
+    (float)viewport.framebuffer.width / (float)viewport.framebuffer.height;
 
     struct viewport_size adjusted = viewport.framebuffer;
 
     *mode = VIEWPORT_MODE_NORMAL;
-    
+
     if (screen_aspect_ratio > framebuffer_aspect_ratio ||
         screen_aspect_ratio < framebuffer_aspect_ratio) {
         float const desired_aspect_ratio = screen_aspect_ratio;
@@ -69,7 +69,7 @@ viewport_get_mode(struct viewport const viewport,
 
         // letterbox (horizontal bars)
         adjusted.height = (int32_t)roundf(height);
-        
+
         *mode = VIEWPORT_MODE_LETTERBOX;
 
         if (adjusted.height > viewport.framebuffer.height) {

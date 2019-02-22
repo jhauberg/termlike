@@ -2,18 +2,39 @@
 
 #include <stdint.h> // int32_t
 
-struct term_animate;
+#define SECONDS(s) (s)
+#define MILLISECONDS(ms) (ms / 1000.0)
 
-struct term_animate * animated(float value);
-void animate_release(struct term_animate *);
+struct term_frame {
+    float original;
+    float current;
+    float previous;
+};
 
-void animate_get(struct term_animate const *, float * value);
-void animate_set(struct term_animate *, float value);
+struct term_animate {
+    struct term_frame value;
+    /**
+     * The accumulated amount of time passed during animation.
+     */
+    double time;
+};
+
+inline
+struct term_animate
+animated(float const value)
+{
+    return (struct term_animate) {
+        .value = {
+            .original = value,
+            .current = value,
+            .previous = value
+        },
+        .time = SECONDS(0)
+    };
+}
 
 void animate_by(struct term_animate *, float value, double s);
 void animate_to(struct term_animate *, float value, double duration, double s);
 
-void animate_blend(struct term_animate const *, double interp, int32_t * value);
-void animate_blendf(struct term_animate const *, double interp, float * value);
-
-void animate_reset(struct term_animate *, float value);
+void animate_blend(struct term_animate, double interp, int32_t * value);
+void animate_blendf(struct term_animate, double interp, float * value);

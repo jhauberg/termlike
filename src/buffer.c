@@ -87,7 +87,9 @@ buffer_wrap(struct buffer * const buffer, size_t const limit)
     size_t num_characters = 0;
 
     uint32_t character = 0;
-    uint32_t * next = buffer->decoded;
+
+    uint32_t * const start = buffer->decoded;
+    uint32_t * next = start;
 
     while (*next) {
         character = *next;
@@ -105,7 +107,7 @@ buffer_wrap(struct buffer * const buffer, size_t const limit)
             num_characters = 0;
         }
 
-        if (num_characters < limit) {
+        if (num_characters <= limit) {
             // we've not yet reached the limit for number of characters per line
             // so we just continue with reading the next character
             continue;
@@ -115,7 +117,7 @@ buffer_wrap(struct buffer * const buffer, size_t const limit)
         // so backtrack to find a previous whitespace where we can break
         // note that in a case where no available whitespace can be found,
         // no breaks will be inserted
-        while (*previous) {
+        while (previous != start) {
             if (*previous == ' ') {
                 *previous = '\n';
 

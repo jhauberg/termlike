@@ -10,26 +10,6 @@ Termlike is written in **C99** and requires **OpenGL 3.3** or later.
 
 <img src="assets/screenshot.png" width="432" height="374">
 
-### Limitations
-
-Termlike specializes in *one* thing; getting character glyphs on the screen- fast. This makes Termlike differ from typical roguelike engines in a few ways:
-
-**256 Glyphs**
-
-Termlike *only* supports the 256 glyphs defined by [Codepage 437](https://en.wikipedia.org/wiki/Code_page_437), and provides a built-in font that resembles the one found on the original [IBM PC](https://en.wikipedia.org/wiki/IBM_PC).
-
-**Not a terminal**
-
-Termlike is not a terminal, nor is it a [terminal emulator](https://en.wikipedia.org/wiki/Terminal_emulator).
-
-There is no concept of a grid of cells for glyphs to be put into, or a cursor from which you print. There's just a surface full of pixels. As such, there are no restrictions on where, or how many, glyphs can be put on the display surface.
-
-**Not event-based**
-
-Termlike does not idle or block between input events.
-
-It renders frames and glyphs continuously, making it less energy efficient, but more encouraging toward visually appealing animations.
-
 ## Usage
 
 Termlike is intended to be used as a static library that you link into your program.
@@ -92,38 +72,6 @@ A few dependencies are required to keep the scope of the project down. Most of t
 * [`nothings/stb_image`](https://github.com/nothings/stb) provides **image loading** capabilities (png)
 * [`skeeto/branchless-utf8`](https://github.com/skeeto/branchless-utf8) provides **UTF8 decoding**
 
-## Technicalities
-
-**CPU heavy**
-
-Termlike is implemented as a typical game engine, which means taking as much advantage of the hardware as possible; all the time, and never stopping.
-
-For example, there is no sleeping or idling between frames to throttle CPU usage. It will run as fast as it can, all the time, to be as responsive as possible- which is a bane for battery-powered laptops with loud fans, but a boon for games with a lot of animation or a focus on action. *You can, however, reduce CPU impact significantly by enabling vsync*.
-
-**Not tile-based**
-
-Because Termlike does not operate on a grid of cells, it cannot take advantage of static elements that do not change from frame to frame (for example, the floor of a dungeon).
-
-Instead, Termlike will draw every frame from a blank slate, from the ground up, over and over. It has no concept of only drawing dirty or changed parts of the screen. This obviously comes at the cost of reduced performance when compared to traditional roguelike engines, but in return you get a lot of freedom.
-
-*This is important to note, as both of these points may be dealbreakers for many roguelike developers.*
-
-Because of this, Termlike is well-suited for games with a lot of action, movement or animation, but less so for more traditional games. [Here's](#similar-projects) some good alternatives for that.
-
-**OpenGL**
-
-Termlike uses OpenGL to perform all rendering. This has both upsides and downsides. It is great because it really is the only truly widespread cross-platform graphics API available, but also not so great because the quality of driver implementation varies significantly from system to system (and is actually [deprecated on macOS](https://developer.apple.com/macos/whats-new/#deprecationofopenglandopencl)).
-
-**Sprite batching**
-
-Behind the scenes, deep inside the guts of it all, Termlike performs glyph rendering by utilizing what is commonly known as *sprite batching*. This is a very GPU-efficient technique that lets a program make as few draw calls as possible.
-
-**Command buffering**
-
-Whenever a program calls any of the `term_print` functions, Termlike does not immediately render the character glyphs. Instead, the call is buffered as a *command* that contains all the necessary information to make the glyphs appear as expected.
-
-Termlike will accumulate all these commands for every single frame and trigger them only when appropriate (and in the expected order). This allows a program to not worry about when or where it issues print commands, and is a requirement to guarantee correct layering/ordering when coupled with sprite batching (without it, glyphs on top could be flushed before those below).
-
 ## Building
 
 Termlike is a cross-platform library. However, it is also a project that i'm only working on in my sparetime, and mainly on a single platform. This imposes some difficulties when it comes down to making the project buildable for others.
@@ -180,6 +128,58 @@ $ make
 ```
 
 On Windows, you typically end up with a Visual Studio solution.
+
+## Technicalities
+
+**CPU heavy**
+
+Termlike is implemented as a typical game engine, which means taking as much advantage of the hardware as possible; all the time, and never stopping.
+
+For example, there is no sleeping or idling between frames to throttle CPU usage. It will run as fast as it can, all the time, to be as responsive as possible- which is a bane for battery-powered laptops with loud fans, but a boon for games with a lot of animation or a focus on action. *You can, however, reduce CPU impact significantly by enabling vsync*.
+
+**Not tile-based**
+
+Because Termlike does not operate on a grid of cells, it cannot take advantage of static elements that do not change from frame to frame (for example, the floor of a dungeon).
+
+Instead, Termlike will draw every frame from a blank slate, from the ground up, over and over. It has no concept of only drawing dirty or changed parts of the screen. This obviously comes at the cost of reduced performance when compared to traditional roguelike engines, but in return you get a lot of freedom.
+
+*This is important to note, as both of these points may be dealbreakers for many roguelike developers.*
+
+Because of this, Termlike is well-suited for games with a lot of action, movement or animation, but less so for more traditional games. [Here's](#similar-projects) some good alternatives for that.
+
+**OpenGL**
+
+Termlike uses OpenGL to perform all rendering. This has both upsides and downsides. It is great because it really is the only truly widespread cross-platform graphics API available, but also not so great because the quality of driver implementation varies significantly from system to system (and is actually [deprecated on macOS](https://developer.apple.com/macos/whats-new/#deprecationofopenglandopencl)).
+
+**Sprite batching**
+
+Behind the scenes, deep inside the guts of it all, Termlike performs glyph rendering by utilizing what is commonly known as *sprite batching*. This is a very GPU-efficient technique that lets a program make as few draw calls as possible.
+
+**Command buffering**
+
+Whenever a program calls any of the `term_print` functions, Termlike does not immediately render the character glyphs. Instead, the call is buffered as a *command* that contains all the necessary information to make the glyphs appear as expected.
+
+Termlike will accumulate all these commands for every single frame and trigger them only when appropriate (and in the expected order). This allows a program to not worry about when or where it issues print commands, and is a requirement to guarantee correct layering/ordering when coupled with sprite batching (without it, glyphs on top could be flushed before those below).
+
+### Limitations
+
+Termlike specializes in *one* thing; getting character glyphs on the screen- fast. This makes Termlike differ from typical roguelike engines in a few ways:
+
+**256 Glyphs**
+
+Termlike *only* supports the 256 glyphs defined by [Codepage 437](https://en.wikipedia.org/wiki/Code_page_437), and provides a built-in font that resembles the one found on the original [IBM PC](https://en.wikipedia.org/wiki/IBM_PC).
+
+**Not a terminal**
+
+Termlike is not a terminal, nor is it a [terminal emulator](https://en.wikipedia.org/wiki/Terminal_emulator).
+
+There is no concept of a grid of cells for glyphs to be put into, or a cursor from which you print. There's just a surface full of pixels. As such, there are no restrictions on where, or how many, glyphs can be put on the display surface.
+
+**Not event-based**
+
+Termlike does not idle or block between input events.
+
+It renders frames and glyphs continuously, making it less energy efficient, but more encouraging toward visually appealing animations.
 
 ## License
 
